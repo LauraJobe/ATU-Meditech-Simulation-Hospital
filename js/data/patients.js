@@ -22,6 +22,7 @@ window.SIM_PATIENTS = [
   {
     id: 'brody',
     level: 3,
+    experiences: ['advms'],
     name: { first: 'Vincent', last: 'Brody' },
     mrn: 'ATU-L3-0628', // not listed in Notion — placeholder for wristband scanning
     dob: '1959-06-28',
@@ -113,6 +114,7 @@ window.SIM_PATIENTS = [
   {
     id: 'livingston',
     level: 3,
+    experiences: ['advms', 'icu'],
     name: { first: 'Ruth', last: 'Livingston' },
     mrn: 'ATU-L3-1008', // not listed in Notion — placeholder for wristband scanning
     dob: '1945-10-08',
@@ -225,6 +227,7 @@ window.SIM_PATIENTS = [
   {
     id: 'shapiro',
     level: 3,
+    experiences: ['advms'],
     name: { first: 'Carl', last: 'Shapiro' },
     mrn: 'PCS71900',
     dob: '1972-07-19',
@@ -343,6 +346,7 @@ window.SIM_PATIENTS = [
   {
     id: 'sharp',
     level: 3,
+    experiences: ['advms'],
     name: { first: 'Karl', last: 'Sharp' },
     mrn: 'PCS71901', // Notion lab sheet shows PCS71900 (same as Shapiro) — changed so wristband scanning can tell them apart
     dob: '1962-07-19',
@@ -453,6 +457,7 @@ window.SIM_PATIENTS = [
   {
     id: 'watkins',
     level: 3,
+    experiences: ['advms'],
     name: { first: 'Vernon', last: 'Watkins' },
     mrn: 'ATU-L3-0409', // not listed in Notion — placeholder for wristband scanning
     dob: '1957-04-09',
@@ -555,6 +560,7 @@ window.SIM_PATIENTS = [
   {
     id: 'carter',
     level: 3,
+    experiences: ['psych'],
     name: { first: 'David', last: 'Carter' },
     mrn: '12855',
     dob: '1997-12-03',

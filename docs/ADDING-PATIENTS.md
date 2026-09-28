@@ -22,6 +22,7 @@ Each patient has a `scenarioStart` clock time. When the chart is first opened (o
 |---|---|
 | `id` | `'watkins'`. Unique, lowercase, no spaces. |
 | `level` | `1`, `2`, or `3`. Controls which census tab shows the patient. |
+| `experiences` | `['advms', 'icu']`. Sim experiences this patient appears under: `ms`, `advms`, `icu`, `psych`, `ob`, `peds` (list in `js/config.js`). |
 | `name` | `{ first: 'Vernon', last: 'Watkins' }` |
 | `mrn` | Printed on the wristband barcode. Must be unique. |
 | `dob`, `age`, `sex` | `'1957-04-09'`, `'69 years'`, `'M'` |

@@ -90,7 +90,7 @@
   }
 
   Views.mar = {
-    label: 'eMAR',
+    label: 'Medications',
     render(p, doc) {
       const groups = [
         ['all', 'All'], ['scheduled', 'Scheduled'], ['prn', 'PRN'], ['continuous', 'Continuous / IV'], ['inactive', 'Held / DC\'d']

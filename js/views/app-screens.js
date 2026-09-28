@@ -7,6 +7,9 @@
 
   const allergyText = p => p.nkda || !(p.allergies || []).length ? 'NKDA' : p.allergies.map(a => a.agent).join(', ');
 
+  Screens.experience = () => (Store.session() || {}).experience || 'all';
+  Screens.experienceLabel = id => id === 'all' ? 'All Experiences' : ((C.experiences.find(x => x.id === id) || {}).label || id);
+
   /* ---------------- Sign in ---------------- */
   Screens.login = {
     render() {
@@ -18,6 +21,10 @@
           <label class="field"><span>Role</span><select name="cred">
             <option value="SN">Student Nurse (SN)</option><option value="RN">Registered Nurse (RN)</option>
             <option value="Instructor">Instructor</option></select></label>
+          <label class="field"><span>Simulation experience</span><select name="experience" required>
+            <option value="">— Select your sim experience —</option>
+            ${C.experiences.map(x => `<option value="${esc(x.id)}">${esc(x.label)}</option>`).join('')}
+            <option value="all">All experiences (instructor)</option></select></label>
           <label class="field"><span>Clinical group / cohort (optional)</span><input name="group" placeholder="e.g., Level 3 — Group A"></label>
           <button class="btn btn-primary btn-block" type="submit">Sign In</button>
           <p class="muted small">Your name is attached to every entry as your electronic signature.</p>
@@ -28,7 +35,8 @@
         e.preventDefault();
         const v = U.formValues(e.target);
         if (!v.name) return;
-        Store.setSession({ name: v.name, cred: v.cred, group: v.group, signedIn: Date.now() });
+        if (!v.experience) { UI.formError(e.target, 'Choose your simulation experience.'); return; }
+        Store.setSession({ name: v.name, cred: v.cred, group: v.group, experience: v.experience, signedIn: Date.now() });
         location.hash = '#/census';
         App.render();
       });
@@ -39,7 +47,8 @@
   let levelTab = null;
   Screens.census = {
     render() {
-      const pts = Model.allPatients();
+      const exp = Screens.experience();
+      const pts = Model.allPatients().filter(p => exp === 'all' || (p.experiences || []).includes(exp));
       const levels = [1, 2, 3];
       if (levelTab == null) levelTab = pts.some(p => p.level === 3) ? 3 : (pts[0] && pts[0].level) || 3;
       const shown = pts.filter(p => (p.level || 3) === levelTab);
@@ -61,16 +70,22 @@
         </tr>`;
       }).join('');
       return `<div class="page">
-        <div class="page-head"><h1>Patient Census</h1>
+        <div class="page-head"><h1>Patient Census — ${esc(Screens.experienceLabel(exp))}</h1>
+          <label class="inline">Sim experience: <select data-action="experience">
+            ${C.experiences.map(x => `<option value="${esc(x.id)}" ${x.id === exp ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}
+            <option value="all" ${exp === 'all' ? 'selected' : ''}>All experiences</option></select></label>
           <div class="tabs">${levels.map(l => `<button class="tab ${l === levelTab ? 'tab-on' : ''}" data-level="${l}">Level ${l}</button>`).join('')}</div>
         </div>
         ${UI.panel(`Level ${levelTab} — ATU Simulation Hospital`, shown.length ? `<div class="scroll-x"><table class="grid census">
           <thead><tr><th>Location</th><th>Patient</th><th>Age/Sex</th><th>Diagnosis</th><th>Attending</th><th>Allergies</th><th>Code</th><th>Alerts</th></tr></thead>
-          <tbody>${rows}</tbody></table></div>` : UI.empty(`No Level ${levelTab} patients have been added yet.`))}
+          <tbody>${rows}</tbody></table></div>` : UI.empty(`No Level ${levelTab} patients have been added for ${Screens.experienceLabel(exp)} yet.`))}
         <p class="muted">Select a patient to open the chart. Always verify two identifiers (name and date of birth).</p>
       </div>`;
     },
     bind(root) {
+      root.querySelector('[data-action="experience"]').addEventListener('change', e => {
+        const sess = Store.session(); sess.experience = e.target.value; Store.setSession(sess); levelTab = null; App.render();
+      });
       root.querySelectorAll('[data-level]').forEach(b => b.addEventListener('click', () => { levelTab = Number(b.dataset.level); App.render(); }));
       root.querySelectorAll('[data-open]').forEach(r => {
         const go = () => { location.hash = `#/patient/${r.dataset.open}/summary`; };
@@ -104,7 +119,7 @@
         const count = Store.SECTIONS.reduce((n, s) => n + doc[s].length, 0);
         const custom = Store.customPatients().some(c => c.id === p.id);
         return `<section class="panel">
-          <header class="panel-head"><h2>Level ${esc(p.level || 3)} · ${esc(p.name.last)}, ${esc(p.name.first)} <span class="muted">— ${esc(p.admitDx)}</span></h2>
+          <header class="panel-head"><h2>Level ${esc(p.level || 3)} · ${esc(p.name.last)}, ${esc(p.name.first)} <span class="muted">— ${esc(p.admitDx)} · ${esc((p.experiences || []).map(Screens.experienceLabel).join(', ') || 'No experience assigned')}</span></h2>
             <div class="panel-actions">
               <a class="btn btn-sm" href="#/patient/${esc(p.id)}/summary">Open Chart</a>
               <a class="btn btn-sm" href="#/patient/${esc(p.id)}/report">Chart Report</a>

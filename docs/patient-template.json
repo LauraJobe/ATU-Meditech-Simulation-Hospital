@@ -1,6 +1,7 @@
 {
   "id": "example",
   "level": 1,
+  "experiences": ["ms"],
   "name": { "first": "Jane", "last": "Example" },
   "mrn": "ATU-L1-0001",
   "dob": "1960-01-15",

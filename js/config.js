@@ -6,6 +6,17 @@ window.EHR_CONFIG = {
   hospitalName: 'ATU Simulation Hospital',
   systemName: 'SimEHR',
 
+  // Simulation experiences students choose from at sign-in. Each patient in
+  // js/data/patients.js lists the experience ids it belongs to.
+  experiences: [
+    { id: 'ms', label: 'Medical-Surgical' },
+    { id: 'advms', label: 'Advanced Medical-Surgical' },
+    { id: 'icu', label: 'ICU / Critical Care' },
+    { id: 'psych', label: 'Psychiatric / Mental Health' },
+    { id: 'ob', label: 'OB / Maternal-Newborn' },
+    { id: 'peds', label: 'Pediatrics' }
+  ],
+
   // PIN that unlocks Instructor Tools. This is a convenience lock only,
   // not real security — anyone who can read the page source can see it.
   instructorPin: '2468',

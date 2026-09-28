@@ -81,7 +81,7 @@
   }
 
   Views.assess = {
-    label: 'Assessments',
+    label: 'Nurse/Allied Health',
     render(p, doc) {
       const forms = (p.assessmentForms || ['wdl-adult', 'pain']).filter(id => FORMS()[id]);
       const buttons = forms.map(id => `<button class="btn ${id.startsWith('wdl') || id === 'mse' ? 'btn-primary' : ''}" data-form="${id}">+ ${esc(FORMS()[id].title)}</button>`).join('');
@@ -160,6 +160,7 @@
     });
   }
 
+  Views.assess.open = open;
   Views.assess.detail = detail;
   Views.assess.summary = summary;
 })();

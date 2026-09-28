@@ -1,6 +1,6 @@
 # ATU Simulation Hospital — SimEHR
 
-A simulation electronic health record for nursing students to document in during simulation. It's laid out like a hospital EHR such as MEDITECH Expanse: a patient banner, left-side chart navigation, an eMAR with barcode scanning, flowsheets, and notes. It's an independent teaching tool, not affiliated with MEDITECH, and never holds real patient data.
+A simulation electronic health record for nursing students to document in during simulation. It's laid out like MEDITECH Expanse: a dark icon toolbar (Return To, Home, Workload, Chart, Document, Orders, Suspend), folder-style chart tabs, a right-hand patient panel (Special Indicators, Allergies, Problems), and yellow-highlighted abnormal values, plus an eMAR with barcode scanning, flowsheets, and notes. It's an independent teaching tool, not affiliated with MEDITECH, and never holds real patient data.
 
 It's a static website with no server, database, or build step. Host it free on GitHub Pages and open it in any browser on the sim lab workstations.
 
@@ -8,7 +8,9 @@ It's a static website with no server, database, or build step. Host it free on G
 
 | Chart section | What it does |
 |---|---|
+| **Sign-in** | Students enter their name and role and **choose their sim experience**: Medical-Surgical, Advanced Medical-Surgical, ICU / Critical Care, Psychiatric / Mental Health, OB / Maternal-Newborn, or Pediatrics. The census shows only that experience's patients, and students can switch experiences from the census. |
 | **Census** | Level 1 / 2 / 3 tabs. Shows allergy, code status, and alert badges (meds due/overdue, new orders, new results). Name alerts flag look-alike patients. |
+| **Worklist** | Care items with frequency, Last Done, and Status/Due (overdue items starred in red): vital signs at the ordered frequency, WDL assessment, pain, Braden, Morse, I&O, and more. **Document** opens the right form. |
 | **Summary** | Alerts, patient info, latest vitals with abnormal flags, meds due now, abnormal results, HPI, and recent documentation. |
 | **Orders** | Provider orders by category. **Acknowledge** new orders. Enter **verbal/telephone orders**; read-back is required and the order is flagged for co-signature. |
 | **eMAR** | Scheduled, PRN, and continuous meds. **Scan the wristband and the medication** (a USB scanner or typing both work). The eMAR checks for wrong patient and wrong med, allergies, required pre-assessment (HR, BP, pain, labs), hold parameters, early/late doses, PRN given too soon, and high-alert double checks. It also prompts a PRN effectiveness reassessment. |
@@ -26,14 +28,14 @@ Documentation follows legal-record rules. Entries are never deleted; they are **
 
 ## Level 3 patients (from Notion)
 
-| Patient | Scenario | Chart clock starts | Instructor events |
-|---|---|---|---|
-| Vincent Brody, 67 M | COPD exacerbation | 1200 | — |
-| Ruth Livingston, 80 F | POD 5 ORIF R hip → deterioration | 0930 | **Transfer to ICU** (NS bolus, norepinephrine, Foley, vancomycin, DC pip-tazo/LR) |
-| Carl Shapiro, 54 M | NSTEMI | 1400 | **Repeat troponin resulted** (0.06 → 0.1) |
-| Karl Sharp, 64 M | NSTEMI, **DNR** (look-alike of Shapiro) | 1400 | — |
-| Vernon Watkins, 69 M | POD 4 hemicolectomy → STAT orders | 1000 | **STAT orders — nurse-driven heparin protocol** |
-| David Carter, 28 M | Schizophrenia, involuntary hold | 1000 | — |
+| Patient | Sim experience | Scenario | Chart clock starts | Instructor events |
+|---|---|---|---|---|
+| Vincent Brody, 67 M | Adv. Med-Surg | COPD exacerbation | 1200 | — |
+| Ruth Livingston, 80 F | Adv. Med-Surg, ICU | POD 5 ORIF R hip → deterioration | 0930 | **Transfer to ICU** (NS bolus, norepinephrine, Foley, vancomycin, DC pip-tazo/LR) |
+| Carl Shapiro, 54 M | Adv. Med-Surg | NSTEMI | 1400 | **Repeat troponin resulted** (0.06 → 0.1) |
+| Karl Sharp, 64 M | Adv. Med-Surg | NSTEMI, **DNR** (look-alike of Shapiro) | 1400 | — |
+| Vernon Watkins, 69 M | Adv. Med-Surg | POD 4 hemicolectomy → STAT orders | 1000 | **STAT orders — nurse-driven heparin protocol** |
+| David Carter, 28 M | Psych | Schizophrenia, involuntary hold | 1000 | — |
 
 Level 1 and Level 2 tabs are ready; their patients just need to be added (see below).
 
@@ -60,6 +62,7 @@ To try it locally, open `index.html` in a browser, or run `python3 -m http.serve
 
 - **Settings** (hospital name, instructor PIN, scan requirement, due window, vital-sign ranges): `js/config.js`
 - **Patients:** `js/data/patients.js`. See **[docs/ADDING-PATIENTS.md](docs/ADDING-PATIENTS.md)** for every field, plus `docs/patient-template.json`, which you can import from Instructor Tools → **Add Patient (JSON)** without editing code.
+- **Sim experiences:** the list is in `js/config.js` (`experiences`). Each patient's `experiences: ['advms', 'icu']` controls where it appears.
 - **Assessment forms and WDL definitions:** `js/data/assessment-forms.js`
 
 ## Items to review in the Level 3 data

@@ -8,7 +8,7 @@ It's a static website with no server, database, or build step. Host it free on G
 
 | Chart section | What it does |
 |---|---|
-| **Sign-in** | Students enter their name and role and **choose their sim experience**: Medical-Surgical, Advanced Medical-Surgical, ICU / Critical Care, Psychiatric / Mental Health, OB / Maternal-Newborn, or Pediatrics. Students see and can open **only that experience's patients**; to change experience they sign out and back in. Instructors (after the PIN) can view any or all experiences from the census; click **Lock** in Instructor Tools before handing the computer back to a student. |
+| **Sign-in** | Students enter their name and role and **choose their sim experience**: Medical-Surgical, Advanced Medical-Surgical, ICU / Critical Care, Psychiatric / Mental Health, OB / Maternal-Newborn, or Pediatrics. Students see and can open **only that experience's patients**; to change experience they sign out and back in. Ruth Livingston starts on the ortho unit and shows ICU once the "Transfer to ICU" event is released. Instructors (after the PIN) can view any or all experiences from the census; click **Lock** in Instructor Tools before handing the computer back to a student. |
 | **Census** | Level 1 / 2 / 3 tabs. Shows allergy, code status, and alert badges (meds due/overdue, new orders, new results). Name alerts flag look-alike patients. |
 | **Worklist** | Care items with frequency, Last Done, and Status/Due (overdue items starred in red): vital signs at the ordered frequency, WDL assessment, pain, Braden, Morse, I&O, and more. **Document** opens the right form. |
 | **Summary** | Alerts, patient info, latest vitals with abnormal flags, meds due now, abnormal results, HPI, and recent documentation. |

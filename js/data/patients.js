@@ -120,7 +120,7 @@ window.SIM_PATIENTS = [
     dob: '1945-10-08',
     age: '80 years',
     sex: 'F',
-    unit: 'Intensive Care Unit',
+    unit: 'Orthopedic Med-Surg Unit',
     room: '—',
     service: 'Orthopedics',
     attending: 'Dr. Marcus',

@@ -49,7 +49,10 @@
   <script>
     (function () {
       const esc = U.esc;
-      const pts = Model.allPatients();
+      // Students only see labels for their own sim experience; instructors see all.
+      const sess = Store.session() || {};
+      const pts = Model.allPatients().filter(p => Store.instructorUnlocked() || (sess.experience && (p.experiences || []).includes(sess.experience)));
+      if (!pts.length) document.body.insertAdjacentHTML('beforeend', '<p class="note">Sign in to the EHR, or unlock Instructor Tools, to print labels.</p>');
       const pick = document.getElementById('pick');
       pts.forEach(p => { const o = document.createElement('option'); o.value = p.id; o.textContent = `${p.name.last}, ${p.name.first}`; pick.appendChild(o); });
 

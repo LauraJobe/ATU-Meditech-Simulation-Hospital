@@ -8,7 +8,7 @@ It's a static website with no server, database, or build step. Host it free on G
 
 | Chart section | What it does |
 |---|---|
-| **Sign-in** | Students enter their name and role and **choose their sim experience**: Medical-Surgical, Advanced Medical-Surgical, ICU / Critical Care, Psychiatric / Mental Health, OB / Maternal-Newborn, or Pediatrics. The census shows only that experience's patients, and students can switch experiences from the census. |
+| **Sign-in** | Students enter their name and role and **choose their sim experience**: Medical-Surgical, Advanced Medical-Surgical, ICU / Critical Care, Psychiatric / Mental Health, OB / Maternal-Newborn, or Pediatrics. Students see and can open **only that experience's patients**; to change experience they sign out and back in. Instructors (after the PIN) can view any or all experiences from the census; click **Lock** in Instructor Tools before handing the computer back to a student. |
 | **Census** | Level 1 / 2 / 3 tabs. Shows allergy, code status, and alert badges (meds due/overdue, new orders, new results). Name alerts flag look-alike patients. |
 | **Worklist** | Care items with frequency, Last Done, and Status/Due (overdue items starred in red): vital signs at the ordered frequency, WDL assessment, pain, Braden, Morse, I&O, and more. **Document** opens the right form. |
 | **Summary** | Alerts, patient info, latest vitals with abnormal flags, meds due now, abnormal results, HPI, and recent documentation. |
@@ -31,9 +31,9 @@ Documentation follows legal-record rules. Entries are never deleted; they are **
 | Patient | Sim experience | Scenario | Chart clock starts | Instructor events |
 |---|---|---|---|---|
 | Vincent Brody, 67 M | Adv. Med-Surg | COPD exacerbation | 1200 | — |
-| Ruth Livingston, 80 F | Adv. Med-Surg, ICU | POD 5 ORIF R hip → deterioration | 0930 | **Transfer to ICU** (NS bolus, norepinephrine, Foley, vancomycin, DC pip-tazo/LR) |
-| Carl Shapiro, 54 M | Adv. Med-Surg | NSTEMI | 1400 | **Repeat troponin resulted** (0.06 → 0.1) |
-| Karl Sharp, 64 M | Adv. Med-Surg | NSTEMI, **DNR** (look-alike of Shapiro) | 1400 | — |
+| Ruth Livingston, 80 F | ICU | POD 5 ORIF R hip → deterioration | 0930 | **Transfer to ICU** (NS bolus, norepinephrine, Foley, vancomycin, DC pip-tazo/LR) |
+| Carl Shapiro, 54 M | ICU | NSTEMI | 1400 | **Repeat troponin resulted** (0.06 → 0.1) |
+| Karl Sharp, 64 M | Adv. Med-Surg | NSTEMI, **DNR** (look-alike of Shapiro — kept in a different experience so students never see both) | 1400 | — |
 | Vernon Watkins, 69 M | Adv. Med-Surg | POD 4 hemicolectomy → STAT orders | 1000 | **STAT orders — nurse-driven heparin protocol** |
 | David Carter, 28 M | Psych | Schizophrenia, involuntary hold | 1000 | — |
 

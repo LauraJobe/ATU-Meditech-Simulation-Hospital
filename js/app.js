@@ -107,14 +107,21 @@
       const r = route();
       const s = Store.session();
       App.current = null;
-      if (!s) {
+      if (s && !Screens.experience()) { Store.clearSession(); }
+      if (!Store.session()) {
         app.innerHTML = Screens.login.render();
         Screens.login.bind(app);
         return;
       }
       if (r.page === 'patient' && r.pid) {
+        const base = Model.base(r.pid);
+        if (!base) { location.hash = '#/census'; return; }
+        if (!Screens.canSee(base)) {
+          location.hash = '#/census';
+          UI.toast('That patient is not part of your sim experience.', 'warn');
+          return;
+        }
         const p = Model.get(r.pid);
-        if (!p) { location.hash = '#/census'; return; }
         const tab = TABS.includes(r.tab) && (r.tab !== 'heparin' || p.heparinFlowsheet) ? r.tab : 'summary';
         const doc = Store.doc(p.id);
         const view = Views[tab];

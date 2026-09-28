@@ -7,7 +7,17 @@
 
   const allergyText = p => p.nkda || !(p.allergies || []).length ? 'NKDA' : p.allergies.map(a => a.agent).join(', ');
 
-  Screens.experience = () => (Store.session() || {}).experience || 'all';
+  // Students are locked to the experience chosen at sign-in; only an unlocked
+  // instructor may switch experiences or view "all".
+  Screens.experience = () => {
+    const s = Store.session() || {};
+    if (Store.instructorUnlocked()) return s.viewExperience || s.experience || 'all';
+    return s.experience && s.experience !== 'all' ? s.experience : '';
+  };
+  Screens.canSee = p => {
+    const exp = Screens.experience();
+    return exp === 'all' || (p.experiences || []).includes(exp);
+  };
   Screens.experienceLabel = id => id === 'all' ? 'All Experiences' : ((C.experiences.find(x => x.id === id) || {}).label || id);
 
   /* ---------------- Sign in ---------------- */
@@ -24,7 +34,7 @@
           <label class="field"><span>Simulation experience</span><select name="experience" required>
             <option value="">— Select your sim experience —</option>
             ${C.experiences.map(x => `<option value="${esc(x.id)}">${esc(x.label)}</option>`).join('')}
-            <option value="all">All experiences (instructor)</option></select></label>
+</select></label>
           <label class="field"><span>Clinical group / cohort (optional)</span><input name="group" placeholder="e.g., Level 3 — Group A"></label>
           <button class="btn btn-primary btn-block" type="submit">Sign In</button>
           <p class="muted small">Your name is attached to every entry as your electronic signature.</p>
@@ -48,7 +58,8 @@
   Screens.census = {
     render() {
       const exp = Screens.experience();
-      const pts = Model.allPatients().filter(p => exp === 'all' || (p.experiences || []).includes(exp));
+      const pts = Model.allPatients().filter(Screens.canSee);
+      const instructor = Store.instructorUnlocked();
       const levels = [1, 2, 3];
       if (levelTab == null) levelTab = pts.some(p => p.level === 3) ? 3 : (pts[0] && pts[0].level) || 3;
       const shown = pts.filter(p => (p.level || 3) === levelTab);
@@ -71,20 +82,21 @@
       }).join('');
       return `<div class="page">
         <div class="page-head"><h1>Patient Census — ${esc(Screens.experienceLabel(exp))}</h1>
-          <label class="inline">Sim experience: <select data-action="experience">
+          ${instructor ? `<label class="inline">Instructor view: <select data-action="experience">
             ${C.experiences.map(x => `<option value="${esc(x.id)}" ${x.id === exp ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}
-            <option value="all" ${exp === 'all' ? 'selected' : ''}>All experiences</option></select></label>
+            <option value="all" ${exp === 'all' ? 'selected' : ''}>All experiences</option></select></label>` : ''}
           <div class="tabs">${levels.map(l => `<button class="tab ${l === levelTab ? 'tab-on' : ''}" data-level="${l}">Level ${l}</button>`).join('')}</div>
         </div>
         ${UI.panel(`Level ${levelTab} — ATU Simulation Hospital`, shown.length ? `<div class="scroll-x"><table class="grid census">
           <thead><tr><th>Location</th><th>Patient</th><th>Age/Sex</th><th>Diagnosis</th><th>Attending</th><th>Allergies</th><th>Code</th><th>Alerts</th></tr></thead>
           <tbody>${rows}</tbody></table></div>` : UI.empty(`No Level ${levelTab} patients have been added for ${Screens.experienceLabel(exp)} yet.`))}
-        <p class="muted">Select a patient to open the chart. Always verify two identifiers (name and date of birth).</p>
+        <p class="muted">Select a patient to open the chart. Always verify two identifiers (name and date of birth).${instructor ? '' : ' To change your sim experience, sign out (Suspend) and sign in again.'}</p>
       </div>`;
     },
     bind(root) {
-      root.querySelector('[data-action="experience"]').addEventListener('change', e => {
-        const sess = Store.session(); sess.experience = e.target.value; Store.setSession(sess); levelTab = null; App.render();
+      const sel = root.querySelector('[data-action="experience"]');
+      if (sel) sel.addEventListener('change', e => {
+        const sess = Store.session(); sess.viewExperience = e.target.value; Store.setSession(sess); levelTab = null; App.render();
       });
       root.querySelectorAll('[data-level]').forEach(b => b.addEventListener('click', () => { levelTab = Number(b.dataset.level); App.render(); }));
       root.querySelectorAll('[data-open]').forEach(r => {
@@ -161,7 +173,7 @@
       root.querySelectorAll('[data-delcustom]').forEach(b => b.addEventListener('click', () => UI.confirm('Remove patient', 'Remove this imported patient from this browser?', () => { Store.deleteCustomPatient(b.dataset.delcustom); Store.resetPatient(b.dataset.delcustom); App.render(); }, 'Remove')));
       root.querySelector('[data-action="export"]').addEventListener('click', () =>
         U.download(`SimEHR_export_${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.json`, JSON.stringify(Store.exportAll(pts()), null, 2)));
-      root.querySelector('[data-action="lock"]').addEventListener('click', () => { Store.setInstructor(false); location.hash = '#/census'; });
+      root.querySelector('[data-action="lock"]').addEventListener('click', () => { const sess = Store.session(); delete sess.viewExperience; Store.setSession(sess); Store.setInstructor(false); location.hash = '#/census'; });
       const readFile = (input, fn) => input.addEventListener('change', () => {
         const f = input.files[0]; if (!f) return;
         const r = new FileReader();

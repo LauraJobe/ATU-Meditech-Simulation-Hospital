@@ -235,7 +235,7 @@
           const v = q('[name="scanPt"]').value.trim().toUpperCase();
           if (!v) { setMsg('pt', false, ''); return; }
           if (v === String(p.mrn).toUpperCase()) { setMsg('pt', true, `✔ Patient verified: ${p.name.last}, ${p.name.first}`); return; }
-          const other = Model.allPatients().find(x => String(x.mrn).toUpperCase() === v);
+          const other = Model.allPatients().find(x => String(x.mrn).toUpperCase() === v && Screens.canSee(x));
           setMsg('pt', false, other ? `✖ WRONG PATIENT — this wristband belongs to ${other.name.last}, ${other.name.first}` : '✖ Wristband does not match this patient');
         };
         const checkMed = () => {

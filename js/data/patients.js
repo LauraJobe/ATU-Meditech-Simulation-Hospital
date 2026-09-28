@@ -114,13 +114,13 @@ window.SIM_PATIENTS = [
   {
     id: 'livingston',
     level: 3,
-    experiences: ['advms', 'icu'],
+    experiences: ['icu'],
     name: { first: 'Ruth', last: 'Livingston' },
     mrn: 'ATU-L3-1008', // not listed in Notion — placeholder for wristband scanning
     dob: '1945-10-08',
     age: '80 years',
     sex: 'F',
-    unit: 'Orthopedic Med-Surg Unit',
+    unit: 'Intensive Care Unit',
     room: '—',
     service: 'Orthopedics',
     attending: 'Dr. Marcus',
@@ -227,13 +227,13 @@ window.SIM_PATIENTS = [
   {
     id: 'shapiro',
     level: 3,
-    experiences: ['advms'],
+    experiences: ['icu'],
     name: { first: 'Carl', last: 'Shapiro' },
     mrn: 'PCS71900',
     dob: '1972-07-19',
     age: '54 years',
     sex: 'M',
-    unit: 'Progressive Care Unit',
+    unit: 'Intensive Care Unit',
     room: '—',
     service: 'Cardiology',
     attending: 'Dr. Chin A. Revis',
@@ -258,14 +258,14 @@ window.SIM_PATIENTS = [
       Insurance: 'Self pay',
       'Cultural considerations': 'None'
     },
-    hpi: '54-year-old male who presented to the Emergency Department a couple of hours ago by ambulance with complaints of chest pain, diaphoresis, and shortness of breath. Initial ECG shows sinus tachycardia with some PVCs and no ST elevation. Initial troponin slightly elevated. Admitted to the Progressive Care Unit for NSTEMI.',
+    hpi: '54-year-old male who presented to the Emergency Department a couple of hours ago by ambulance with complaints of chest pain, diaphoresis, and shortness of breath. Initial ECG shows sinus tachycardia with some PVCs and no ST elevation. Initial troponin slightly elevated. Admitted to the Intensive Care Unit for NSTEMI.',
     pmh: ['Hypertension'],
     psh: ['None'],
     familyHx: ['None'],
     socialHx: ['Businessman; travels for work', 'Smokes < 1/2 pack per day', 'Drinks alcohol occasionally'],
     homeMeds: [{ name: '"Water pill" (diuretic — name not known)', dose: '', route: 'PO', freq: '' }],
     orders: [
-      { id: 'sha-o1', cat: 'Admission', text: 'Transfer to Progressive Care Unit', time: '12:00', by: 'Dr. C. Revis' },
+      { id: 'sha-o1', cat: 'Admission', text: 'Transfer to Intensive Care Unit', time: '12:00', by: 'Dr. C. Revis' },
       { id: 'sha-o2', cat: 'Nursing', text: 'Vital signs every 2 hours', time: '12:00', by: 'Dr. C. Revis' },
       { id: 'sha-o3', cat: 'Nursing', text: 'Continuous ECG and SpO2 monitoring', time: '12:00', by: 'Dr. C. Revis' },
       { id: 'sha-o4', cat: 'Respiratory', text: 'Oxygen for SpO2 less than 90% or respiratory distress', time: '12:00', by: 'Dr. C. Revis' },
@@ -321,7 +321,7 @@ window.SIM_PATIENTS = [
     ],
     notes: [
       { id: 'sha-n1', type: 'ER Note', author: 'Dr. Williams (ER)', time: '11:40', text: 'CHIEF COMPLAINT: Chest pain, diaphoresis, and shortness of breath.\n\nHPI: Mr. Shapiro presents to the ER with complaints of chest pain, diaphoresis, and shortness of breath.\nPMH: No history of surgeries. History of hypertension.\nFamily history: None. Allergies: NKDA.\nSocial: Businessman; travels for work; smokes < 1/2 pack/day; drinks alcohol occasionally.\n\nROS: General — cooperative, pleasant. CV — no palpitations, some chest pain. Resp — shortness of breath. GI/GU — no nausea, vomiting, or abdominal pain. MSK — no pain, ROM WDL. Neuro — no headache, no focal deficits.\n\nEXAM: Appears uncomfortable, in moderate distress due to pain of 9/10. T 98.7 °F, HR 101, RR 20, BP 140/84, SpO2 97% RA. HEENT: no oropharyngeal lesions; no cervical lymphadenopathy. Resp: clear bilaterally, regular rate, equal expansion. CV: S1 S2 RR, no murmurs/gallops; diaphoretic; chest pain 9/10; no peripheral edema; CR < 3 sec all extremities. Abd: soft, round, non-tender; active bowel sounds x4. MSK: no joint swelling or erythema. Neuro: no focal deficits.\n\nLABS/IMAGING: CBC, BMP, troponin pending. 12-lead ECG: no ST elevation; sinus tachycardia with some PVCs.\n\nPLAN: Consult cardiology.' },
-      { id: 'sha-n2', type: 'Cardiology Admit Note', author: 'Dr. C. Revis', time: '12:00', text: 'ASSESSMENT: Carl Shapiro is a 54-year-old male with a history of hypertension who presents to the ER with complaints of chest pain, diaphoresis, and shortness of breath. Initial ECG shows sinus tachycardia with some PVCs. Initial troponin slightly elevated.\n\nPLAN:\n1. Admission: NSTEMI — admit to Progressive Care Unit.\n2. Medication: continue home medications.\n3. Labs: trend troponins.' },
+      { id: 'sha-n2', type: 'Cardiology Admit Note', author: 'Dr. C. Revis', time: '12:00', text: 'ASSESSMENT: Carl Shapiro is a 54-year-old male with a history of hypertension who presents to the ER with complaints of chest pain, diaphoresis, and shortness of breath. Initial ECG shows sinus tachycardia with some PVCs. Initial troponin slightly elevated.\n\nPLAN:\n1. Admission: NSTEMI — admit to Intensive Care Unit.\n2. Medication: continue home medications.\n3. Labs: trend troponins.' },
       { id: 'sha-n3', type: 'Nursing Note', author: 'LJ, RN', time: '12:30', text: 'Pt arrived in ER complaining of chest pain. He came to the ED by ambulance when the symptoms began. No family is present. He was treated with oxygen 2 L via nasal cannula, aspirin, two doses of sublingual nitroglycerin, and a normal saline bolus required after the second dose of nitroglycerin with no recurrent chest pain. 12-lead ECG in ED showed no ST elevation. Antiplatelet and anticoagulation meds were started and documented in the MAR.' }
     ],
     io: [],
@@ -366,7 +366,7 @@ window.SIM_PATIENTS = [
     allergies: [],
     heightCm: 175,
     weightKg: 110,
-    flags: ['DNR', 'Name alert — similar name on unit', 'Continuous ECG'],
+    flags: ['DNR', 'Continuous ECG'],
     assessmentForms: ['wdl-adult', 'pain', 'braden', 'morse'],
     emergencyContact: 'Not documented',
     demographics: {

@@ -29,7 +29,7 @@
   }
 
   Views.vitals = {
-    label: 'Vital Signs',
+    label: 'Flowsheets',
     render(p, doc) {
       const rows = Model.vitals(p, doc);
       const cols = rows.slice(0, 24);

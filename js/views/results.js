@@ -5,7 +5,7 @@
   window.Views = window.Views || {};
 
   Views.results = {
-    label: 'Results',
+    label: 'Diagnostics',
     render(p, doc) {
       const pending = Model.unreviewedResults(p, doc);
       const byPanel = {};

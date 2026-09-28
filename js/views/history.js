@@ -7,7 +7,7 @@
   const list = arr => arr && arr.length ? `<ul class="plain bullets">${arr.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : UI.empty('None documented.');
 
   Views.history = {
-    label: 'History',
+    label: 'History & Problems',
     render(p) {
       const demo = p.demographics ? `<dl class="kv">${Object.entries(p.demographics).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>` : '';
       const meds = p.homeMeds && p.homeMeds.length ? `<table class="grid"><thead><tr><th>Medication</th><th>Dose</th><th>Route</th><th>Frequency</th></tr></thead><tbody>

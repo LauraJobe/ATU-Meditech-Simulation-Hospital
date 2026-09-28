@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Wristbands & Med Labels</title>
+  <style>
+    :root { --nav: #13304d; --danger: #b3261e; --border: #c6d3e0; }
+    * { box-sizing: border-box; }
+    body { font: 13px/1.4 "Segoe UI", Roboto, Arial, sans-serif; margin: 0; padding: 16px; background: #edf1f5; color: #1b2733; }
+    .controls { background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin-bottom: 16px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .controls h1 { font-size: 18px; margin: 0 auto 0 0; color: var(--nav); }
+    button, select { font: inherit; padding: 6px 12px; border-radius: 4px; border: 1px solid #9fb3c8; background: #fff; cursor: pointer; }
+    button.primary { background: #1b6fb5; color: #fff; border-color: #135589; }
+    .patient { background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin-bottom: 16px; page-break-inside: avoid; }
+    .patient h2 { font-size: 15px; margin: 0 0 8px; color: var(--nav); }
+    .band { display: flex; align-items: center; gap: 16px; border: 2px solid #1b2733; border-radius: 18px; padding: 8px 18px; max-width: 760px; margin-bottom: 12px; }
+    .band.allergy { border-color: var(--danger); box-shadow: inset 0 0 0 4px #fdecea; }
+    .band .who { flex: 1; }
+    .band .nm { font-size: 16px; font-weight: 800; }
+    .band .al { color: var(--danger); font-weight: 800; }
+    .labels { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+    .label { border: 1px dashed #7d8b99; border-radius: 4px; padding: 6px 8px; text-align: center; page-break-inside: avoid; background: #fff; }
+    .label .mn { font-weight: 800; }
+    .label .pt { font-size: 11px; color: #5a6b7c; }
+    .label.ha { border: 2px solid var(--danger); }
+    .code { font-family: monospace; font-size: 12px; letter-spacing: .05em; }
+    svg { max-width: 100%; height: 48px; }
+    .note { color: #5a6b7c; font-size: 12px; }
+    @media print { body { background: #fff; padding: 0; } .controls { display: none; } .patient { border: none; padding: 0 0 12px; } }
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <h1>Wristbands & Medication Labels</h1>
+    <label>Patient: <select id="pick"><option value="">All patients</option></select></label>
+    <button class="primary" onclick="window.print()">Print</button>
+    <span class="note">Barcodes are Code 128. A USB barcode scanner types into the eMAR scan boxes like a keyboard. Labels include meds from scenario events.</span>
+  </div>
+  <div id="out"></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/data/patients.js"></script>
+  <script src="js/util.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/model.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+  <script>
+    (function () {
+      const esc = U.esc;
+      const pts = Model.allPatients();
+      const pick = document.getElementById('pick');
+      pts.forEach(p => { const o = document.createElement('option'); o.value = p.id; o.textContent = `${p.name.last}, ${p.name.first}`; pick.appendChild(o); });
+
+      function draw() {
+        const list = pick.value ? pts.filter(p => p.id === pick.value) : pts;
+        document.getElementById('out').innerHTML = list.map(p => {
+          const meds = [...(p.meds || []), ...(p.events || []).flatMap(e => e.meds || [])].filter(m => m.status !== 'Do Not Administer');
+          const allergy = p.nkda || !(p.allergies || []).length ? '' : p.allergies.map(a => a.agent).join(', ');
+          return `<section class="patient">
+            <h2>${esc(p.name.last)}, ${esc(p.name.first)}</h2>
+            <div class="band ${allergy ? 'allergy' : ''}">
+              <div class="who"><div class="nm">${esc(p.name.last.toUpperCase())}, ${esc(p.name.first)}</div>
+                <div>DOB ${esc(U.fmtDOB(p.dob))} · ${esc(p.age)} ${esc(p.sex)} · MRN ${esc(p.mrn)}</div>
+                <div>${esc(p.attending)} · ${esc(window.EHR_CONFIG.hospitalName)}</div>
+                ${allergy ? `<div class="al">ALLERGY: ${esc(allergy)}</div>` : '<div>NKDA</div>'}
+                ${p.codeStatus === 'DNR' ? '<div class="al">DNR</div>' : ''}</div>
+              <div><svg class="bc" data-code="${esc(p.mrn)}"></svg><div class="code">${esc(p.mrn)}</div></div>
+            </div>
+            <div class="labels">${meds.map(m => `<div class="label ${m.highAlert ? 'ha' : ''}">
+                <div class="mn">${esc(m.name)}</div><div>${esc([m.dose, m.route].filter(x => x && x !== '—').join(' · '))}</div>
+                ${m.highAlert ? '<div class="al" style="color:#b3261e;font-weight:800;font-size:11px">HIGH ALERT</div>' : ''}
+                <svg class="bc" data-code="${esc(Model.barcodeFor(m))}"></svg>
+                <div class="code">${esc(Model.barcodeFor(m))}</div>
+                <div class="pt">For: ${esc(p.name.last)}, ${esc(p.name.first)} · ${esc(p.mrn)}</div>
+              </div>`).join('')}</div>
+          </section>`;
+        }).join('');
+        if (window.JsBarcode) {
+          document.querySelectorAll('svg.bc').forEach(svg => {
+            try { JsBarcode(svg, svg.dataset.code, { format: 'CODE128', displayValue: false, height: 40, margin: 0, width: 1.4 }); } catch (e) { svg.remove(); }
+          });
+        } else {
+          document.querySelectorAll('svg.bc').forEach(svg => svg.remove());
+        }
+      }
+      pick.addEventListener('change', draw);
+      draw();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+{
+  "id": "example",
+  "level": 1,
+  "name": { "first": "Jane", "last": "Example" },
+  "mrn": "ATU-L1-0001",
+  "dob": "1960-01-15",
+  "age": "66 years",
+  "sex": "F",
+  "unit": "Medical-Surgical Unit",
+  "room": "101",
+  "service": "Medicine",
+  "attending": "Dr. Example",
+  "admitted": { "time": "07:00", "day": -1 },
+  "scenarioStart": "09:00",
+  "admitDx": "Community-acquired pneumonia",
+  "codeStatus": "Full Code",
+  "isolation": "Droplet",
+  "allergies": [{ "agent": "Sulfa", "reaction": "Rash", "severity": "Mild", "tags": ["sulfa"] }],
+  "heightCm": 165,
+  "weightKg": 70,
+  "flags": ["Fall Risk"],
+  "assessmentForms": ["wdl-adult", "pain", "braden", "morse"],
+  "emergencyContact": "Spouse — phone on file",
+  "hpi": "Write the history of present illness here.",
+  "pmh": ["Hypertension"],
+  "psh": ["None"],
+  "familyHx": ["None"],
+  "socialHx": ["Lives with spouse"],
+  "homeMeds": [{ "name": "Lisinopril", "dose": "10 mg", "route": "PO", "freq": "Daily" }],
+  "orders": [
+    { "id": "ex-o1", "cat": "Admission", "text": "Admit to Medical-Surgical Unit", "time": "07:00", "day": -1, "by": "Dr. Example" },
+    { "id": "ex-o2", "cat": "Nursing", "text": "Vital signs every 4 hours", "time": "07:00", "day": -1, "by": "Dr. Example" }
+  ],
+  "meds": [
+    { "id": "ex-lisinopril", "name": "Lisinopril", "dose": "10 mg", "route": "PO", "freq": "Daily", "type": "scheduled",
+      "preAssess": ["SBP", "DBP"], "holdIf": [{ "p": "SBP", "op": "<", "v": 100 }], "doses": [{ "time": "09:00" }] },
+    { "id": "ex-apap", "name": "Acetaminophen", "dose": "650 mg", "route": "PO", "freq": "Every 6 hours PRN", "type": "prn",
+      "indication": "Pain or temp > 100.4 °F", "minIntervalHr": 6, "preAssess": ["Pain"] }
+  ],
+  "vitals": [
+    { "time": "08:00", "temp": 100.9, "tempRoute": "Oral", "hr": 104, "rr": 22, "sbp": 128, "dbp": 76, "spo2": 92, "o2": "Nasal cannula", "o2Flow": 2, "pain": 3, "by": "Night shift RN" }
+  ],
+  "labs": [
+    { "id": "ex-cbc", "panel": "CBC", "time": "06:00", "results": [
+      { "t": "WBC", "v": 15.2, "u": "k/uL", "lo": 4.5, "hi": 11.0 },
+      { "t": "Hemoglobin", "v": 12.8, "u": "g/dL", "lo": 12.0, "hi": 16.0 }
+    ] }
+  ],
+  "imaging": [],
+  "notes": [],
+  "io": [],
+  "events": [
+    { "id": "ex-event1", "title": "Provider callback — new orders",
+      "instructorNotes": "Release after the student's SBAR call.",
+      "orders": [{ "id": "ex-e-o1", "cat": "Lab", "text": "Blood cultures x2", "priority": "STAT", "by": "Dr. Example" }],
+      "meds": [{ "id": "ex-ceftriaxone", "name": "Ceftriaxone", "dose": "1 g", "route": "IVPB", "freq": "Every 24 hours", "type": "scheduled", "doses": [{ "at": 15 }] }]
+    }
+  ]
+}

@@ -111,7 +111,7 @@
     }
   };
 
-  function open(p, formId) {
+  function open(p, formId, after) {
     const form = FORMS()[formId];
     UI.modal({
       title: form.title,
@@ -155,6 +155,7 @@
           Store.add(p.id, 'assess', data, time, p.clock.now());
           UI.toast(form.title + ' saved.');
           App.render();
+          if (after) setTimeout(after, 0);
         } }
       ]
     });

@@ -48,7 +48,15 @@
       </div>
       ${p ? `<div class="tb-group tb-center">
         ${tool('chart', 'Chart', `#/patient/${esc(p.id)}/summary`)}
-        ${tool('document', 'Document', `#/patient/${esc(p.id)}/notes`)}
+        <div class="tb-split">${tool('document', 'Document', `#/patient/${esc(p.id)}/worklist`)}<button class="tb-caret" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Documentation menu">▾</button>
+          <div class="tb-menu" hidden role="menu">
+            <a role="menuitem" href="#/patient/${esc(p.id)}/worklist" data-docmenu="worklist">Worklist</a>
+            <a role="menuitem" href="#/patient/${esc(p.id)}/mar" data-docmenu="mar">Mar</a>
+            <a role="menuitem" href="#/patient/${esc(p.id)}/mar" data-docmenu="tar">Transfusion Administration Record (TAR)</a>
+            <a role="menuitem" href="#/patient/${esc(p.id)}/careplan" data-docmenu="careplan">Plan Of Care</a>
+            <a role="menuitem" href="#/patient/${esc(p.id)}/${p.heparinFlowsheet ? 'heparin' : 'assess'}" data-docmenu="specialty">Specialty Care</a>
+            <a role="menuitem" href="#/patient/${esc(p.id)}/notes" data-docmenu="note">Write Note</a>
+          </div></div>
         ${tool('orders', 'Orders', `#/patient/${esc(p.id)}/orders`)}
       </div>` : '<div class="tb-center tb-title">' + esc(C.hospitalName) + ' · ' + esc(C.systemName) + '</div>'}
       <div class="tb-group tb-right">
@@ -169,6 +177,24 @@
         document.title = `Census · ${C.hospitalName}`;
       }
       App._lastKey = location.hash;
+      const caret = app.querySelector('.tb-caret');
+      if (caret) {
+        const menu = app.querySelector('.tb-menu');
+        const close = () => { menu.hidden = true; caret.setAttribute('aria-expanded', 'false'); };
+        caret.addEventListener('click', e => {
+          e.stopPropagation();
+          menu.hidden = !menu.hidden;
+          caret.setAttribute('aria-expanded', String(!menu.hidden));
+          if (!menu.hidden) setTimeout(() => document.addEventListener('click', close, { once: true }), 0);
+        });
+        menu.querySelectorAll('[data-docmenu]').forEach(a => a.addEventListener('click', () => {
+          const k = a.dataset.docmenu;
+          if (k === 'tar') Views.mar.setFilter('tar');
+          else if (k === 'mar') Views.mar.setFilter('all');
+          if (k === 'note' && App.current) { const pt = App.current; setTimeout(() => Views.notes.write(Model.get(pt.id), 'Nursing Narrative'), 50); }
+          close();
+        }));
+      }
       app.querySelector('[data-action="logout"]').addEventListener('click', e => {
         e.preventDefault();
         UI.confirm('Suspend session', 'Sign out of the simulation EHR? Your documentation stays saved on this computer.', () => {

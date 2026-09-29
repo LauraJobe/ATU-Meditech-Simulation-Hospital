@@ -448,3 +448,52 @@ details.prior summary { cursor: pointer; font-weight: 600; }
 .sb-side-h { font-weight: 700; margin: 4px 0 2px; display: flex; flex-direction: column; gap: 4px; }
 .sb-sep { border-top: 1px solid #b9bcc2; margin: 8px 0; }
 @media (max-width: 900px) { .sb-body { flex-direction: column-reverse; } .sb-side { width: 100%; flex-direction: row; flex-wrap: wrap; gap: 8px; } }
+
+/* ---------- Document split button + menu ---------- */
+.tb-split { position: relative; display: flex; align-items: stretch; }
+.tb-caret { background: none; border: none; border-left: 1px solid rgba(255,255,255,.12); color: #fff; font-size: 14px; padding: 0 8px; cursor: pointer; }
+.tb-caret:hover, .tb-caret[aria-expanded="true"] { background: rgba(255,255,255,.14); }
+.tb-menu { position: absolute; top: 100%; left: 40px; z-index: 50; min-width: 320px; background: #fff; border: 2px solid #1b1d20; border-radius: 8px; padding: 8px 0; box-shadow: 0 10px 24px rgba(0,0,0,.3); }
+.tb-menu a { display: block; padding: 7px 18px; color: #1b2733; text-decoration: none; font-size: 15px; }
+.tb-menu a:hover, .tb-menu a:focus { background: #e3eef9; }
+
+/* ---------- Expanse documentation worklist ---------- */
+.wl-band { display: grid; grid-template-columns: minmax(220px, auto) 1fr auto; gap: 4px 24px; background: #6cc27a; color: #10301a; padding: 6px 12px; margin: 0 -20px; font-size: 14px; }
+.wb-id { display: flex; gap: 10px; align-items: center; }
+.wb-avatar { width: 44px; height: 52px; border-radius: 2px; font-size: 16px; box-shadow: none; border: none; }
+.wb-name { font-weight: 700; font-size: 16px; }
+.wb-mid { line-height: 1.45; }
+.wb-resus { color: #b3261e; }
+.wb-dnr { color: #5b0f84; font-weight: 700; }
+.wb-allergy { color: #8b0000; font-weight: 700; }
+.wb-right { text-align: right; }
+.wl-bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: stretch; background: #dff0e2; margin: 0 -20px; padding: 6px 12px; border-bottom: 1px solid #b9d6bf; }
+.wl-bar > div { display: flex; }
+.wl-bar-right { margin-left: auto; }
+.wl-btn { font: inherit; font-size: 13px; line-height: 1.15; min-width: 56px; padding: 5px 10px; background: #fff; border: 1px solid #b9c4cf; color: #1b2733; cursor: pointer; }
+.wl-btn:hover:not(:disabled) { background: #eef5ff; }
+.wl-btn:disabled { color: #b5bcc4; background: #f3f5f7; cursor: default; }
+.wl-btn[data-wl="document"]:not(:disabled) { background: #1b6fb5; color: #fff; border-color: #135589; font-weight: 700; }
+.wl-filter { margin: 10px 0; display: flex; flex-direction: column; gap: 6px; }
+.wl-filterbtn { display: inline-block; border: 1px solid #9fb3c8; padding: 3px 10px; background: #fff; margin-right: 8px; }
+.worklist { font-size: 13px; }
+.worklist thead th { background: #d6e7f7; color: #1b2733; text-align: center; font-weight: 400; font-size: 12px; }
+.worklist .wl-item-h { font-size: 15px; font-weight: 600; text-align: left; }
+.worklist th.wl-time { color: #d0271d; min-width: 74px; }
+.worklist th.wl-time.wl-past { color: #7b8894; }
+.worklist td { padding: 3px 8px; }
+.wl-row { cursor: pointer; }
+.wl-row:nth-child(even) { background: #f1f2f4; }
+.wl-row:hover { background: #e6f2ff !important; }
+.wl-row.wl-checked { background: #fff6c2 !important; }
+.wl-a { width: 32px; text-align: center; color: #34495e; }
+.wl-check { color: #1e7b34; font-weight: 800; font-size: 15px; }
+.wl-item { display: flex; justify-content: space-between; gap: 16px; min-width: 330px; }
+.wl-freq { color: #34495e; white-space: nowrap; }
+.wl-last { text-align: right; color: #34495e; }
+.wl-status { text-align: right; }
+.wl-status.wl-late { color: #d0271d; }
+.wl-cell { text-align: center; border-left: 1px solid #e3e9ef; }
+.wl-clock { width: 18px; height: 18px; fill: none; stroke: #5a6b7c; stroke-width: 1.6; stroke-linecap: round; }
+.wl-past .wl-clock { stroke: #d0271d; }
+@media (max-width: 1000px) { .wl-band, .wl-bar { margin: 0 -16px; } .wl-band { grid-template-columns: 1fr; } .wl-item { min-width: 240px; } }

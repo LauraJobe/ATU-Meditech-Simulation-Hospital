@@ -4,13 +4,19 @@
   const esc = U.esc;
   const C = window.EHR_CONFIG;
 
-  // Folder tabs, in rows like the Expanse chart (bottom row sits on the page).
-  const TAB_ROWS = [
-    ['results', 'notes', 'assess', 'mar'],
-    ['history', 'careplan', 'io', 'heparin', 'report'],
-    ['summary', 'worklist', 'vitals', 'orders']
+  // Chart tabs laid out like MEDITECH Expanse: 3 rows x 4 tabs. Each tab holds
+  // one or more screens (shown as sub-tabs). null = empty tab slot.
+  const GROUPS = [
+    [{ label: 'Diagnostics', views: ['results'] }, { label: 'Provider Notes', views: ['provnotes'] },
+     { label: 'Nurse/Allied Health', views: ['assess', 'notes'] }, { label: 'Medications', views: ['mar'] }],
+    [{ label: 'History & Problems', views: ['history'] }, { label: 'Administrative', views: ['orders'] },
+     { label: 'Other Clinical', views: ['report'] }, null],
+    [{ label: 'Summary', views: ['summary'] }, { label: 'Activity', views: ['activity'] },
+     { label: 'Flowsheets', views: ['vitals', 'io', 'heparin'] }, { label: 'Health Mgmt', views: ['careplan'] }]
   ];
-  const TABS = TAB_ROWS.flat();
+  const TABS = GROUPS.flat().filter(Boolean).flatMap(g => g.views).concat(['worklist']); // worklist is its own screen
+  const viewsOf = (g, p) => g.views.filter(v => v !== 'heparin' || p.heparinFlowsheet);
+  const groupOf = tab => GROUPS.flat().find(g => g && g.views.includes(tab));
 
   const ICON = {
     back: '<path d="M10 4 4 10l6 6M4 10h12"/>',
@@ -23,14 +29,14 @@
     suspend: '<circle cx="10" cy="10" r="7"/><path d="M7.5 7.5l5 5M12.5 7.5l-5 5"/>'
   };
   const svg = name => `<svg viewBox="0 0 20 20" aria-hidden="true">${ICON[name]}</svg>`;
-  const tool = (name, label, href, attrs) => `<a class="tb-btn" href="${href}" ${attrs || ''}>${svg(name)}<span>${esc(label)}</span></a>`;
+  const tool = (name, label, href, attrs, cls) => `<a class="tb-btn${cls ? ' ' + cls : ''}" href="${href}" ${attrs || ''}>${svg(name)}<span>${esc(label)}</span></a>`;
 
   function route() {
     const parts = location.hash.replace(/^#\/?/, '').split('/');
     return { page: parts[0] || 'census', pid: parts[1], tab: parts[2] || 'summary' };
   }
 
-  function toolbar(p) {
+  function toolbar(p, mode) {
     const s = Store.session();
     const clock = p ? p.clock.now() : Date.now();
     const exp = Screens.experienceLabel(Screens.experience());
@@ -41,8 +47,16 @@
         ${tool('workload', 'Workload', p ? `#/patient/${esc(p.id)}/worklist` : '#/census')}
       </div>
       ${p ? `<div class="tb-group tb-center">
-        ${tool('chart', 'Chart', `#/patient/${esc(p.id)}/summary`)}
-        ${tool('document', 'Document', `#/patient/${esc(p.id)}/notes`)}
+        ${tool('chart', 'Chart', `#/patient/${esc(p.id)}/${App.lastChartTab && App.lastChartTab[p.id] || 'summary'}`, mode === 'chart' ? 'aria-current="page"' : '', mode === 'chart' ? 'tb-on' : '')}
+        <div class="tb-split ${mode === 'document' ? 'tb-split-on' : ''}">${tool('document', 'Document', `#/patient/${esc(p.id)}/worklist`)}<button class="tb-caret" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Documentation menu">▾</button>
+          <div class="tb-menu" hidden role="menu">
+            <a role="menuitem" href="#/patient/${esc(p.id)}/worklist" data-docmenu="worklist">Worklist</a>
+            <a role="menuitem" href="#/patient/${esc(p.id)}/mar" data-docmenu="mar">Mar</a>
+            <a role="menuitem" href="#/patient/${esc(p.id)}/mar" data-docmenu="tar">Transfusion Administration Record (TAR)</a>
+            <a role="menuitem" href="#/patient/${esc(p.id)}/careplan" data-docmenu="careplan">Plan Of Care</a>
+            <a role="menuitem" href="#/patient/${esc(p.id)}/${p.heparinFlowsheet ? 'heparin' : 'assess'}" data-docmenu="specialty">Specialty Care</a>
+            <a role="menuitem" href="#/patient/${esc(p.id)}/notes" data-docmenu="note">Write Note</a>
+          </div></div>
         ${tool('orders', 'Orders', `#/patient/${esc(p.id)}/orders`)}
       </div>` : '<div class="tb-center tb-title">' + esc(C.hospitalName) + ' · ' + esc(C.systemName) + '</div>'}
       <div class="tb-group tb-right">
@@ -61,13 +75,26 @@
       results: Model.unreviewedResults(p, doc).length,
       mar: (c => c.due + c.overdue)(Model.dueCounts(p, doc))
     };
-    const rows = TAB_ROWS.map(r => r.filter(t => t !== 'heparin' || p.heparinFlowsheet));
-    // Like Expanse, the row holding the active tab moves down next to the page.
-    const activeRow = rows.findIndex(r => r.includes(tab));
-    const ordered = rows.filter((_, i) => i !== activeRow).concat([rows[activeRow]]);
-    return `<nav class="folder-tabs" aria-label="Chart sections">${ordered.map((r, i) => `<div class="tab-row" style="padding-left:${(ordered.length - 1 - i) * 18}px">
-      ${r.map(t => `<a href="#/patient/${esc(p.id)}/${t}" class="ftab ${t === tab ? 'ftab-on' : ''}" ${t === tab ? 'aria-current="page"' : ''}>${esc(Views[t].label)}${counts[t] ? `<span class="count">${counts[t]}</span>` : ''}</a>`).join('')}
-    </div>`).join('')}</nav>`;
+    const active = groupOf(tab);
+    // Like Expanse, the row holding the active tab moves down next to the page and turns tan.
+    const activeRow = GROUPS.findIndex(r => r.includes(active));
+    const ordered = GROUPS.filter((_, i) => i !== activeRow).concat([GROUPS[activeRow]]);
+    const cell = g => {
+      if (!g) return '<span class="ftab ftab-empty" aria-hidden="true"></span>';
+      const n = viewsOf(g, p).reduce((a, v) => a + (counts[v] || 0), 0);
+      const on = g === active;
+      return `<a href="#/patient/${esc(p.id)}/${viewsOf(g, p)[0]}" class="ftab ${on ? 'ftab-on' : ''}" ${on ? 'aria-current="page"' : ''}><span>${esc(g.label)}</span>${n ? `<span class="count">${n}</span>` : ''}</a>`;
+    };
+    return `<nav class="folder-tabs" aria-label="Chart sections">${ordered.map((r, i) =>
+      `<div class="tab-row ${i === ordered.length - 1 ? 'tab-row-on' : ''}">${r.map(cell).join('')}</div>`).join('')}</nav>`;
+  }
+
+  function paneHead(p, doc, tab) {
+    const g = groupOf(tab);
+    const views = viewsOf(g, p);
+    const sub = views.length > 1 ? `<div class="subtabs">${views.map(v => `<a href="#/patient/${esc(p.id)}/${v}" class="subtab ${v === tab ? 'subtab-on' : ''}">${esc(Views[v].label)}</a>`).join('')}</div>` : '';
+    return `<div class="pane-head"><span class="pane-up" aria-hidden="true">↑</span><h1 class="view-title">${esc(g.label)}</h1>
+      <span class="pane-icons" aria-hidden="true"><svg viewBox="0 0 20 20"><rect x="3" y="4" width="14" height="12" rx="1"/><path d="M3 8h14M10 11v3M8.5 12.5 10 11l1.5 1.5"/></svg>${svg('gear')}</span></div>${sub}`;
   }
 
   function sidePanel(p) {
@@ -82,13 +109,14 @@
       ...(p.flags || []).map(f => `<p>${esc(f)}</p>`)
     ].join('');
     const problems = [p.admitDx, ...(p.pmh || [])].map(x => `<p>${esc(x)}</p>`).join('');
+    const resus = /not documented/i.test(p.codeStatus || '') ? '<div class="resus">Resus Status Needs Review</div>' : '';
     return `<aside class="side" aria-label="Patient">
-      <div class="side-id">
+      <div class="side-id"><button class="side-refresh" type="button" title="Refresh" onclick="App.render()" aria-label="Refresh chart">↻</button>
         <div class="avatar" aria-hidden="true">${esc(initials)}</div>
         <div><div class="side-name">${esc(p.name.last)},${esc(p.name.first)}</div>
           <div>${esc(p.age.replace(' years', ''))}, ${esc(p.sex)} — ${esc(U.fmtDOB(p.dob))}</div>
           <div>MRN# ${esc(p.mrn)}</div></div>
-      </div>
+      </div>${resus}
       <div class="side-facts">
         <div>${esc(p.unit)}${p.room && p.room !== '—' ? ' · ' + esc(p.room) : ''}</div>
         <div>${p.heightCm ? esc(p.heightCm) + ' cm' : 'Ht —'} · ${p.weightKg ? esc(p.weightKg) + ' kg' : 'Wt —'}${bmi ? ' · BMI ' + bmi : ''}</div>
@@ -126,10 +154,14 @@
         const doc = Store.doc(p.id);
         const view = Views[tab];
         App.current = p;
+        if (tab !== 'worklist') { App.lastChartTab = App.lastChartTab || {}; App.lastChartTab[p.id] = tab; }
         const scroll = window.scrollY;
-        app.innerHTML = `${toolbar(p)}<div class="chart">
+        app.innerHTML = tab === 'worklist'
+          // The documentation worklist is a separate screen (no chart folders); Chart returns to the tabs.
+          ? `${toolbar(p, 'document')}<main class="content worklist-screen" id="content">${view.render(p, doc)}</main>`
+          : `${toolbar(p, 'chart')}<div class="chart">
           <div class="chart-main">${tabs(p, doc, tab)}
-            <main class="content" id="content"><div class="pane-head"><h1 class="view-title">${esc(view.label)}</h1></div>${view.render(p, doc)}</main>
+            <main class="content" id="content">${paneHead(p, doc, tab)}${view.render(p, doc)}</main>
           </div>${sidePanel(p)}</div>`;
         if (view.bind) view.bind(app.querySelector('#content'), p, doc);
         document.title = `${p.name.last}, ${p.name.first} — ${view.label} · ${C.systemName}`;
@@ -149,6 +181,24 @@
         document.title = `Census · ${C.hospitalName}`;
       }
       App._lastKey = location.hash;
+      const caret = app.querySelector('.tb-caret');
+      if (caret) {
+        const menu = app.querySelector('.tb-menu');
+        const close = () => { menu.hidden = true; caret.setAttribute('aria-expanded', 'false'); };
+        caret.addEventListener('click', e => {
+          e.stopPropagation();
+          menu.hidden = !menu.hidden;
+          caret.setAttribute('aria-expanded', String(!menu.hidden));
+          if (!menu.hidden) setTimeout(() => document.addEventListener('click', close, { once: true }), 0);
+        });
+        menu.querySelectorAll('[data-docmenu]').forEach(a => a.addEventListener('click', () => {
+          const k = a.dataset.docmenu;
+          if (k === 'tar') Views.mar.setFilter('tar');
+          else if (k === 'mar') Views.mar.setFilter('all');
+          if (k === 'note' && App.current) { const pt = App.current; setTimeout(() => Views.notes.write(Model.get(pt.id), 'Nursing Narrative'), 50); }
+          close();
+        }));
+      }
       app.querySelector('[data-action="logout"]').addEventListener('click', e => {
         e.preventDefault();
         UI.confirm('Suspend session', 'Sign out of the simulation EHR? Your documentation stays saved on this computer.', () => {

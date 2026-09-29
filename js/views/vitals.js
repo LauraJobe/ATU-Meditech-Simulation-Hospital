@@ -28,13 +28,7 @@
     return `<span class="${f ? 'abn' : ''}">${esc(v)}</span>${UI.flag(f)}`;
   }
 
-  Views.vitals = {
-    label: 'Flowsheets',
-    render(p, doc) {
-      const rows = Model.vitals(p, doc);
-      const cols = rows.slice(0, 24);
-      const r = Model.ranges(p);
-      const form = `<form class="vitals-form" autocomplete="off">
+  const formHtml = p => `<form class="vitals-form" autocomplete="off">
         <div class="form-grid g4">
           ${UI.timeField(p)}
           <label class="field"><span>Temp (°F)</span><input type="number" step="0.1" name="temp"></label>
@@ -55,6 +49,26 @@
         <div class="form-actions"><button class="btn btn-primary" type="submit">Save Vital Signs</button></div>
       </form>`;
 
+  function save(p, f) {
+    const v = U.formValues(f);
+    delete v._time;
+    const any = ['temp', 'hr', 'rr', 'sbp', 'dbp', 'spo2', 'pain', 'glucose', 'weight'].some(k => !U.isEmpty(v[k]));
+    if (!any) { UI.formError(f, 'Enter at least one measurement.'); return false; }
+    if (U.isEmpty(v.sbp) !== U.isEmpty(v.dbp)) { UI.formError(f, 'Enter both systolic and diastolic blood pressure.'); return false; }
+    Object.keys(v).forEach(k => { if (v[k] === '') delete v[k]; });
+    Store.add(p.id, 'vitals', v, UI.readTime(p, f), p.clock.now());
+    UI.toast('Vital signs saved.');
+    return true;
+  }
+
+  Views.vitals = {
+    label: 'Vital Signs',
+    render(p, doc) {
+      const rows = Model.vitals(p, doc);
+      const cols = rows.slice(0, 24);
+      const r = Model.ranges(p);
+      const form = formHtml(p);
+
       const table = cols.length ? `<div class="scroll-x"><table class="grid flowsheet">
         <thead><tr><th>Parameter</th>${cols.map(c => `<th class="${c.source === 'student' ? 'col-student' : ''} ${c.entry && c.entry.status === 'error' ? 'struck' : ''}">${U.fmtDate(c.time).slice(0, 5)}<br>${U.fmtTime(c.time)}</th>`).join('')}</tr></thead>
         <tbody>${ROWS.map(([k, label]) => `<tr><th>${label}</th>${cols.map(c => `<td class="${c.entry && c.entry.status === 'error' ? 'struck' : ''}">${k === 'by' ? esc(c.by || '') : cell(p, c, k)}</td>`).join('')}</tr>`).join('')}
@@ -67,18 +81,23 @@
     bind(root, p) {
       root.querySelector('.vitals-form').addEventListener('submit', e => {
         e.preventDefault();
-        const f = e.target;
-        const v = U.formValues(f);
-        delete v._time;
-        const any = ['temp', 'hr', 'rr', 'sbp', 'dbp', 'spo2', 'pain', 'glucose', 'weight'].some(k => !U.isEmpty(v[k]));
-        if (!any) { UI.formError(f, 'Enter at least one measurement.'); return; }
-        if (U.isEmpty(v.sbp) !== U.isEmpty(v.dbp)) { UI.formError(f, 'Enter both systolic and diastolic blood pressure.'); return; }
-        Object.keys(v).forEach(k => { if (v[k] === '') delete v[k]; });
-        Store.add(p.id, 'vitals', v, UI.readTime(p, f), p.clock.now());
-        UI.toast('Vital signs saved.');
-        App.render();
+        if (save(p, e.target)) App.render();
       });
       root.querySelectorAll('[data-err]').forEach(b => b.addEventListener('click', () => UI.errorEntry(p, 'vitals', b.dataset.err)));
     }
+  };
+
+  // Vital signs as a dialog (used by the Worklist's Document button).
+  Views.vitals.modal = function (p, after) {
+    UI.modal({
+      title: 'Vital Signs', wide: true,
+      body: formHtml(p).replace('<div class="form-actions"><button class="btn btn-primary" type="submit">Save Vital Signs</button></div>', ''),
+      onOpen(api) { api.el.querySelector('form').addEventListener('submit', e => e.preventDefault()); },
+      buttons: [{ label: 'Cancel' }, { label: 'Sign & Save', cls: 'btn-primary', onClick: api => {
+        if (!save(p, api.el.querySelector('form'))) return false;
+        App.render();
+        if (after) setTimeout(after, 0);
+      } }]
+    });
   };
 })();

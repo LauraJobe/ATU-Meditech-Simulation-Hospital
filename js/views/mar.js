@@ -15,6 +15,7 @@
   };
 
   let filter = 'all';
+  const BLOOD = /PRBC|packed red|blood|plasma|FFP|platelet|cryo|albumin/i;
 
   function typeOf(m) { return m.type === 'once' ? 'scheduled' : m.type; }
 
@@ -90,14 +91,16 @@
   }
 
   Views.mar = {
+    setFilter(f) { filter = f; },
     label: 'Medications',
     render(p, doc) {
       const groups = [
-        ['all', 'All'], ['scheduled', 'Scheduled'], ['prn', 'PRN'], ['continuous', 'Continuous / IV'], ['inactive', 'Held / DC\'d']
+        ['all', 'All'], ['scheduled', 'Scheduled'], ['prn', 'PRN'], ['continuous', 'Continuous / IV'], ['inactive', 'Held / DC\'d'], ['tar', 'Transfusions (TAR)']
       ];
       const meds = p.meds.filter(m => {
         if (filter === 'all') return true;
         if (filter === 'inactive') return m.status !== 'Active';
+        if (filter === 'tar') return BLOOD.test(m.name);
         return typeOf(m) === filter && m.status === 'Active';
       });
       const order = { continuous: 0, scheduled: 1, prn: 2 };
@@ -111,7 +114,7 @@
           </div>
         </div>
         <p class="muted">Due window: ${C.medWindowMinutes} minutes before or after the scheduled time. Scan the patient wristband and each medication before charting.</p>
-        ${meds.length ? meds.map(m => medCard(p, doc, m)).join('') : UI.empty('No medications in this view.')}`;
+        ${meds.length ? meds.map(m => medCard(p, doc, m)).join('') : UI.empty(filter === 'tar' ? 'No blood products are ordered for this patient.' : 'No medications in this view.')}`;
     },
     bind(root, p, doc) {
       root.querySelectorAll('[data-filter]').forEach(b => b.addEventListener('click', () => { filter = b.dataset.filter; App.render(); }));

@@ -39,7 +39,7 @@
   }
 
   Views.notes = {
-    label: 'Notes',
+    label: 'Nursing Notes',
     render(p, doc) {
       const items = [
         ...p.notes.map(n => ({ kind: 'prior', time: n.time, n })),
@@ -84,7 +84,7 @@
     }
   };
 
-  function write(p, type) {
+  function write(p, type, after) {
     UI.modal({
       title: type,
       wide: true,
@@ -97,9 +97,11 @@
         Store.add(p.id, 'notes', Object.assign({ type }, v), time, p.clock.now());
         UI.toast('Note signed.');
         App.render();
+        if (after) setTimeout(after, 0);
       } }]
     });
   }
 
   Views.notes.noteBody = noteBody;
+  Views.notes.write = write;
 })();

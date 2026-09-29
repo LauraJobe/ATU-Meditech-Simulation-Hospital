@@ -58,7 +58,18 @@
 
   const ago = ms => ms < H ? Math.max(0, Math.round(ms / 60000)) + 'm' : ms < 48 * H ? Math.round(ms / H) + 'h' : Math.round(ms / 24 / H) + 'd';
 
+  // Care items with next due time (used by the status board's Interventions column).
+  function due(p, doc) {
+    const now = p.clock.now();
+    return items(p).map(it => {
+      const last = lastDone(p, doc, it);
+      const time = last == null ? now : last + it.ms;
+      return { name: it.name, time, overdue: time <= now };
+    }).sort((a, b) => a.time - b.time);
+  }
+
   Views.worklist = {
+    due,
     label: 'Worklist',
     render(p, doc) {
       const now = p.clock.now();

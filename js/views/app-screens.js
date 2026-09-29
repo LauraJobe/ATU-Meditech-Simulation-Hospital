@@ -53,56 +53,101 @@
     }
   };
 
-  /* ---------------- Census / status board ---------------- */
+  /* ---------------- Status board (census) ---------------- */
   let levelTab = null;
+  let selected = null;
+
+  function nextMeds(p, doc) {
+    const out = [];
+    p.meds.forEach(m => (m.doseTimes || []).forEach(dt => {
+      const st = Model.doseStatus(p, doc, m, dt).code;
+      if (st === 'due' || st === 'overdue' || st === 'future') out.push({ time: dt.time, text: `${m.name} ${m.dose}`, overdue: st === 'overdue' });
+    }));
+    return out.sort((x, y) => x.time - y.time).slice(0, 3);
+  }
+  const lines = (list, empty) => list.length ? list.map(x => `<div class="sb-line"><span class="${x.overdue ? 'sb-late' : ''}">${U.fmtTime(x.time)}</span> ${esc(x.text || x.name)}</div>`).join('') : (empty || '');
+
   Screens.census = {
     render() {
       const exp = Screens.experience();
+      const s = Store.session();
       const pts = Model.allPatients().filter(Screens.canSee);
       const instructor = Store.instructorUnlocked();
       const levels = [1, 2, 3];
       if (levelTab == null) levelTab = pts.some(p => p.level === 3) ? 3 : (pts[0] && pts[0].level) || 3;
       const shown = pts.filter(p => (p.level || 3) === levelTab);
+      const now = Date.now();
       const rows = shown.map(base => {
         const p = Model.get(base.id);
         const doc = Store.doc(p.id);
-        const c = Model.dueCounts(p, doc);
-        const newOrders = Model.unackedOrders(p, doc).length;
-        const newRes = Model.unreviewedResults(p, doc).length;
-        return `<tr class="census-row" data-open="${esc(p.id)}" tabindex="0">
-          <td>${esc(p.unit)}${p.room && p.room !== '—' ? ' · ' + esc(p.room) : ''}</td>
-          <td><strong>${esc(p.name.last)}, ${esc(p.name.first)}</strong>${p.flags && p.flags.some(f => /name alert/i.test(f)) ? ' ' + UI.badge('NAME ALERT', 'warn') : ''}<div class="muted small">MRN ${esc(p.mrn)} · DOB ${esc(U.fmtDOB(p.dob))}</div></td>
-          <td>${esc(p.age)} ${esc(p.sex)}</td>
-          <td>${esc(p.admitDx)}</td>
-          <td>${esc(p.attending)}</td>
-          <td class="${p.nkda || !(p.allergies || []).length ? '' : 'text-danger strong'}">${esc(allergyText(p))}</td>
-          <td class="${p.codeStatus === 'DNR' ? 'text-danger strong' : ''}">${esc(p.codeStatus)}</td>
-          <td class="nowrap">${c.overdue ? UI.badge(c.overdue + ' overdue', 'danger') : ''} ${c.due ? UI.badge(c.due + ' due', 'warn') : ''} ${newOrders ? UI.badge(newOrders + ' new order', 'new') : ''} ${newRes ? UI.badge(newRes + ' new result', 'new') : ''}</td>
+        const unacked = Model.unackedOrders(p, doc);
+        const stat = unacked.some(o => /stat/i.test(o.priority || ''));
+        const results = Model.unreviewedResults(p, doc);
+        const allergy = !(p.nkda || !(p.allergies || []).length);
+        const initials = (p.name.first[0] + p.name.last[0]).toUpperCase();
+        return `<tr class="census-row ${selected === p.id ? 'sb-selected' : ''}" data-open="${esc(p.id)}" tabindex="0">
+          <td class="sb-rm">${esc(p.room && p.room !== '—' ? p.room : p.unit)}</td>
+          <td class="sb-pix"><div class="avatar sb-avatar" aria-hidden="true">${esc(initials)}</div></td>
+          <td class="sb-name"><a href="#/patient/${esc(p.id)}/summary" class="sb-link"><strong>${esc(p.name.last)},${esc(p.name.first)}</strong></a>
+            <div>${esc(p.admitDx)}</div><div class="muted">ADM IN · ${esc(p.age.replace(' years', ''))} ${esc(p.sex)} · DOB ${esc(U.fmtDOB(p.dob))}</div></td>
+          <td class="sb-alerts">${allergy ? `<span class="sb-chip sb-red" title="Allergies: ${esc(allergyText(p))}">ALLERGY</span>` : '<span class="sb-chip sb-plain">NKDA</span>'}
+            ${p.codeStatus === 'DNR' ? '<span class="sb-chip sb-purple">DNR</span>' : ''}
+            ${p.isolation && !/^(none|standard)$/i.test(p.isolation) ? `<span class="sb-chip sb-plain">${esc(p.isolation)}</span>` : ''}</td>
+          <td class="${(p.homeMeds || []).length ? 'sb-green' : 'sb-gray'}">${(p.homeMeds || []).length ? 'Confirmed' : 'None'}</td>
+          <td class="sb-list">${lines(Views.worklist.due(p, doc).slice(0, 3))}</td>
+          <td class="sb-list">${lines(nextMeds(p, doc))}</td>
+          <td class="${stat ? 'sb-redcell' : unacked.length ? 'sb-newcell' : ''}">${stat ? 'Stat' : unacked.length ? 'New' : 'Ack'}</td>
+          <td class="sb-results">${results.map(r => { const crit = (r.results || []).some(x => /\*/.test(Model.labFlag(x))); return `<div class="sb-res ${crit ? 'sb-res-crit' : ''}">${esc(r.panel || r.study)}</div>`; }).join('')}</td>
         </tr>`;
       }).join('');
-      return `<div class="page">
-        <div class="page-head"><h1>Patient Census — ${esc(Screens.experienceLabel(exp))}</h1>
-          ${instructor ? `<label class="inline">Instructor view: <select data-action="experience">
-            ${C.experiences.map(x => `<option value="${esc(x.id)}" ${x.id === exp ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}
-            <option value="all" ${exp === 'all' ? 'selected' : ''}>All experiences</option></select></label>` : ''}
-          <div class="tabs">${levels.map(l => `<button class="tab ${l === levelTab ? 'tab-on' : ''}" data-level="${l}">Level ${l}</button>`).join('')}</div>
+      const title = `${Screens.experienceLabel(exp)} - ${s.cred}*`;
+      return `<div class="sb">
+        <div class="sb-titlebar"><span class="sb-e" aria-hidden="true">E</span><h1>PCS Status Board</h1></div>
+        <div class="sb-band"><span>Dept: <b>Patient Care</b></span><span>Site: <b>${esc(C.hospitalName)}</b></span><span>Level: <b>${levelTab}</b></span></div>
+        <div class="sb-body">
+          <div class="sb-main">
+            <div class="sb-head"><strong>${esc(title)}</strong><div>${shown.length} patient${shown.length === 1 ? '' : 's'} as of ${U.fmtDT(now)}</div></div>
+            <div class="scroll-x">${shown.length ? `<table class="grid census sb-table">
+              <thead><tr><th>Rm/ Bed</th><th>Pix</th><th>Name ▾<br>Diagnosis<br>Reg Status</th><th>Alerts</th><th>Home Meds</th><th>Interventions</th><th>Next Meds</th><th>Orders</th><th>New Results</th></tr></thead>
+              <tbody>${rows}</tbody></table>` : `<p class="empty sb-empty">No Level ${levelTab} patients have been added for ${esc(Screens.experienceLabel(exp))} yet.</p>`}</div>
+            <div class="sb-foot">
+              <button class="btn btn-sm" data-action="refresh">Refresh</button>
+              <button class="btn btn-sm" data-action="open" ${selected && shown.some(p => p.id === selected) ? '' : 'disabled'}>Open Chart</button>
+              <span class="muted small">Click a patient to select, double-click (or Open Chart) to open. Always verify two identifiers.${instructor ? '' : ' To change your sim experience, Suspend and sign in again.'}</span>
+            </div>
+          </div>
+          <nav class="sb-side" aria-label="Status board menu">
+            <div class="sb-side-h">Lists</div>
+            ${levels.map(l => `<a href="#" class="${l === levelTab ? 'on' : ''}" data-level="${l}">Level ${l} Patients</a>`).join('')}
+            <div class="sb-sep"></div>
+            <a href="#" class="on">Status Board</a>
+            <a href="#" data-action="open">Open Chart</a>
+            ${instructor ? `<div class="sb-sep"></div><label class="sb-side-h">Instructor view
+              <select data-action="experience">${C.experiences.map(x => `<option value="${esc(x.id)}" ${x.id === exp ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}
+              <option value="all" ${exp === 'all' ? 'selected' : ''}>All experiences</option></select></label>
+              <a href="#/instructor">Instructor Tools</a>` : ''}
+          </nav>
         </div>
-        ${UI.panel(`Level ${levelTab} — ATU Simulation Hospital`, shown.length ? `<div class="scroll-x"><table class="grid census">
-          <thead><tr><th>Location</th><th>Patient</th><th>Age/Sex</th><th>Diagnosis</th><th>Attending</th><th>Allergies</th><th>Code</th><th>Alerts</th></tr></thead>
-          <tbody>${rows}</tbody></table></div>` : UI.empty(`No Level ${levelTab} patients have been added for ${Screens.experienceLabel(exp)} yet.`))}
-        <p class="muted">Select a patient to open the chart. Always verify two identifiers (name and date of birth).${instructor ? '' : ' To change your sim experience, sign out (Suspend) and sign in again.'}</p>
       </div>`;
     },
     bind(root) {
       const sel = root.querySelector('[data-action="experience"]');
       if (sel) sel.addEventListener('change', e => {
-        const sess = Store.session(); sess.viewExperience = e.target.value; Store.setSession(sess); levelTab = null; App.render();
+        const sess = Store.session(); sess.viewExperience = e.target.value; Store.setSession(sess); levelTab = null; selected = null; App.render();
       });
-      root.querySelectorAll('[data-level]').forEach(b => b.addEventListener('click', () => { levelTab = Number(b.dataset.level); App.render(); }));
+      root.querySelectorAll('[data-level]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); levelTab = Number(b.dataset.level); selected = null; App.render(); }));
+      root.querySelector('[data-action="refresh"]').addEventListener('click', () => App.render());
+      const open = id => { if (id) location.hash = `#/patient/${id}/summary`; };
+      root.querySelectorAll('[data-action="open"]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); open(selected); }));
       root.querySelectorAll('[data-open]').forEach(r => {
-        const go = () => { location.hash = `#/patient/${r.dataset.open}/summary`; };
-        r.addEventListener('click', go);
-        r.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+        r.addEventListener('click', e => {
+          if (e.target.closest('a')) return;
+          selected = r.dataset.open;
+          root.querySelectorAll('.census-row').forEach(x => x.classList.toggle('sb-selected', x === r));
+          root.querySelectorAll('button[data-action="open"]').forEach(b => { b.disabled = false; });
+        });
+        r.addEventListener('dblclick', () => open(r.dataset.open));
+        r.addEventListener('keydown', e => { if (e.key === 'Enter') open(r.dataset.open); });
       });
     }
   };

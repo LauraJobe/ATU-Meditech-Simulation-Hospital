@@ -39,7 +39,7 @@
   }
 
   Views.notes = {
-    label: 'Notes',
+    label: 'Nursing Notes',
     render(p, doc) {
       const items = [
         ...p.notes.map(n => ({ kind: 'prior', time: n.time, n })),

@@ -1,6 +1,6 @@
 # ATU Simulation Hospital — SimEHR
 
-A simulation electronic health record for nursing students to document in during simulation. It's laid out like MEDITECH Expanse: a dark icon toolbar (Return To, Home, Workload, Chart, Document, Orders, Suspend), folder-style chart tabs, a right-hand patient panel (Special Indicators, Allergies, Problems), and yellow-highlighted abnormal values, plus an eMAR with barcode scanning, flowsheets, and notes. It's an independent teaching tool, not affiliated with MEDITECH, and never holds real patient data.
+A simulation electronic health record for nursing students to document in during simulation. It's laid out like MEDITECH Expanse: a dark icon toolbar (Return To, Home, Workload, Chart, Document, Orders, Suspend), Expanse's 3 × 4 folder tabs (Diagnostics · Provider Notes · Nurse/Allied Health · Medications / History & Problems · Administrative · Other Clinical / Summary · Activity · Flowsheets · Health Mgmt, with the active row in tan), a right-hand patient panel (Special Indicators, Allergies, Problems), and yellow-highlighted abnormal values, plus an eMAR with barcode scanning, flowsheets, and notes. It's an independent teaching tool, not affiliated with MEDITECH, and never holds real patient data.
 
 It's a static website with no server, database, or build step. Host it free on GitHub Pages and open it in any browser on the sim lab workstations.
 

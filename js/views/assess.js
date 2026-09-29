@@ -81,7 +81,7 @@
   }
 
   Views.assess = {
-    label: 'Nurse/Allied Health',
+    label: 'Assessments',
     render(p, doc) {
       const forms = (p.assessmentForms || ['wdl-adult', 'pain']).filter(id => FORMS()[id]);
       const buttons = forms.map(id => `<button class="btn ${id.startsWith('wdl') || id === 'mse' ? 'btn-primary' : ''}" data-form="${id}">+ ${esc(FORMS()[id].title)}</button>`).join('');

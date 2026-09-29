@@ -185,7 +185,7 @@
               ${custom ? `<button class="btn btn-sm btn-danger" data-delcustom="${esc(p.id)}">Remove Patient</button>` : ''}
             </div></header>
           <div class="panel-body">
-            <p>Chart clock: <strong>${U.fmtDT(p.clock.now())}</strong> (scenario start ${esc(p.scenarioStart || '—')}) · ${count} student entr${count === 1 ? 'y' : 'ies'} · MRN barcode <code>${esc(p.mrn)}</code></p>
+            <p>Chart clock: <strong>${U.fmtDT(p.clock.now())}</strong> (real time; scenario written for ${esc(p.scenarioStart || "—")}, shifted ${p.clock.shift / 3600000 >= 0 ? "+" : ""}${Math.round(p.clock.shift / 3600000)} h) · ${count} student entr${count === 1 ? 'y' : 'ies'} · MRN barcode <code>${esc(p.mrn)}</code></p>
             ${p.labsPending ? `<p class="warn-box">${esc(p.labsPending)}</p>` : ''}
             ${(base.events || []).length ? `<h3>Scenario events</h3>${base.events.map(ev => `<div class="event ${rel[ev.id] ? 'event-on' : ''}">
                 <div><strong>${esc(ev.title)}</strong>

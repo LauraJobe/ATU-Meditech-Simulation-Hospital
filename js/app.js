@@ -60,7 +60,7 @@
         ${tool('orders', 'Orders', `#/patient/${esc(p.id)}/orders`)}
       </div>` : '<div class="tb-center tb-title">' + esc(C.hospitalName) + ' · ' + esc(C.systemName) + '</div>'}
       <div class="tb-group tb-right">
-        <div class="tb-info"><div class="tb-clock">${p ? 'Sim ' : ''}<span id="clock">${U.fmtDT(clock)}</span></div>
+        <div class="tb-info"><div class="tb-clock"><span id="clock">${U.fmtDT(clock)}</span></div>
           <div class="tb-user">${esc(s.name)}, ${esc(s.cred)} · ${esc(exp)}</div></div>
         ${tool('gear', 'Instructor', '#/instructor')}
         <a class="tb-btn" href="#" data-action="logout">${svg('suspend')}<span>Suspend</span></a>

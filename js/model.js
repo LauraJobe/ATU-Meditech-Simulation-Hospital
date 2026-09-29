@@ -6,6 +6,7 @@
   'use strict';
   const C = window.EHR_CONFIG;
   const MIN = 60000;
+  const HOUR = 3600000;
 
   const M = {};
 
@@ -19,28 +20,34 @@
     return m ? [Number(m[1]), Number(m[2])] : [0, 0];
   }
 
-  // Scenario clock for a patient.
+  // Scenario clock for a patient. The chart clock is the real current time.
+  // The scenario (written for p.scenarioStart, e.g. 14:00) is moved to start
+  // when the chart is first opened, rounded to the nearest hour so scheduled
+  // med times stay on the hour; every order, dose, and result keeps the same
+  // spacing it has in the scenario.
   M.clock = function (p) {
     const realStart = Store.scenarioStart(p.id);
     const d = new Date(realStart);
-    const [h, mi] = parseHM(p.scenarioStart || U.fmtTime(realStart).replace(/(\d\d)(\d\d)/, '$1:$2'));
+    const [h, mi] = p.scenarioStart ? parseHM(p.scenarioStart) : [d.getHours(), d.getMinutes()];
     d.setHours(h, mi, 0, 0);
-    const simStart = d.getTime();
-    const offset = simStart - realStart;
-    const dayStart = new Date(simStart); dayStart.setHours(0, 0, 0, 0);
+    const written = d.getTime();                       // scenario start as written, today
+    const shift = Math.round((realStart - written) / HOUR) * HOUR;
+    const simStart = written + shift;
+    const dayStart = new Date(written); dayStart.setHours(0, 0, 0, 0);
     return {
       simStart,
-      offset,
-      now: () => Date.now() + offset,
-      toSim: real => real + offset,
-      // Resolve {time, day} or {at} to a sim timestamp. ref = base for "at".
+      offset: 0,
+      shift,
+      now: () => Date.now(),
+      toSim: real => real,
+      // Resolve {time, day} or {at} to a chart timestamp. ref = base for "at".
       at(item, ref) {
         if (item && item.time) {
           const [hh, mm] = parseHM(item.time);
           const t = new Date(dayStart.getTime());
           t.setDate(t.getDate() + (Number(item.day) || 0));
           t.setHours(hh, mm, 0, 0);
-          return t.getTime();
+          return t.getTime() + shift;
         }
         return (ref == null ? simStart : ref) + (Number(item && item.at) || 0) * MIN;
       }

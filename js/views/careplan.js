@@ -27,7 +27,7 @@
           ${evals(e.id).map(v => `<div class="addendum ${v.status === 'error' ? 'struck' : ''}"><strong>Evaluation: ${esc(v.data.status)}</strong> — ${U.nl2br(v.data.text)}${UI.entryMeta(v)}</div>`).join('')}
           ${e.status === 'active' ? `<div class="note-actions"><button class="btn btn-sm" data-eval="${e.id}">Evaluate</button> <button class="btn btn-sm btn-link" data-err="${e.id}">Mark in error</button></div>` : ''}
         </article>`).join('') : UI.empty('No care plan problems added yet.');
-      return `<div class="toolbar"><button class="btn btn-primary" data-action="new">+ Add Nursing Diagnosis</button></div>${list}`;
+      return `<div class="view-actions"><button class="btn btn-primary" data-action="new">+ Add Nursing Diagnosis</button></div>${list}`;
     },
     bind(root, p) {
       root.querySelector('[data-action="new"]').addEventListener('click', () => UI.modal({

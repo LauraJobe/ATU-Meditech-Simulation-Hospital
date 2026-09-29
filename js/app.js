@@ -9,12 +9,12 @@
   const GROUPS = [
     [{ label: 'Diagnostics', views: ['results'] }, { label: 'Provider Notes', views: ['provnotes'] },
      { label: 'Nurse/Allied Health', views: ['assess', 'notes'] }, { label: 'Medications', views: ['mar'] }],
-    [{ label: 'History & Problems', views: ['history'] }, { label: 'Administrative', views: ['orders'] },
+    [{ label: 'History & Problems', views: ['history'] }, { label: 'Administrative', views: ['admin'] },
      { label: 'Other Clinical', views: ['report'] }, null],
     [{ label: 'Summary', views: ['summary'] }, { label: 'Activity', views: ['activity'] },
      { label: 'Flowsheets', views: ['vitals', 'io', 'heparin'] }, { label: 'Health Mgmt', views: ['careplan'] }]
   ];
-  const TABS = GROUPS.flat().filter(Boolean).flatMap(g => g.views).concat(['worklist']); // worklist is its own screen
+  const TABS = GROUPS.flat().filter(Boolean).flatMap(g => g.views).concat(['worklist', 'orders']); // worklist and orders are their own screens
   const viewsOf = (g, p) => g.views.filter(v => v !== 'heparin' || p.heparinFlowsheet);
   const groupOf = tab => GROUPS.flat().find(g => g && g.views.includes(tab));
 
@@ -54,13 +54,13 @@
             <a role="menuitem" href="#/patient/${esc(p.id)}/mar" data-docmenu="mar">Mar</a>
             <a role="menuitem" href="#/patient/${esc(p.id)}/mar" data-docmenu="tar">Transfusion Administration Record (TAR)</a>
             <a role="menuitem" href="#/patient/${esc(p.id)}/careplan" data-docmenu="careplan">Plan Of Care</a>
-            <a role="menuitem" href="#/patient/${esc(p.id)}/${p.heparinFlowsheet ? 'heparin' : 'assess'}" data-docmenu="specialty">Specialty Care</a>
+            <a role="menuitem" href="#/patient/${esc(p.id)}/${p.heparinFlowsheet ? 'heparin' : 'worklist'}" data-docmenu="specialty">Specialty Care</a>
             <a role="menuitem" href="#/patient/${esc(p.id)}/notes" data-docmenu="note">Write Note</a>
           </div></div>
-        ${tool('orders', 'Orders', `#/patient/${esc(p.id)}/orders`)}
+        ${tool('orders', 'Orders', `#/patient/${esc(p.id)}/orders`, mode === 'orders' ? 'aria-current="page"' : '', mode === 'orders' ? 'tb-on' : '')}
       </div>` : '<div class="tb-center tb-title">' + esc(C.hospitalName) + ' · ' + esc(C.systemName) + '</div>'}
       <div class="tb-group tb-right">
-        <div class="tb-info"><div class="tb-clock">${p ? 'Sim ' : ''}<span id="clock">${U.fmtDT(clock)}</span></div>
+        <div class="tb-info"><div class="tb-clock"><span id="clock">${U.fmtDT(clock)}</span></div>
           <div class="tb-user">${esc(s.name)}, ${esc(s.cred)} · ${esc(exp)}</div></div>
         ${tool('gear', 'Instructor', '#/instructor')}
         <a class="tb-btn" href="#" data-action="logout">${svg('suspend')}<span>Suspend</span></a>
@@ -154,11 +154,17 @@
         const doc = Store.doc(p.id);
         const view = Views[tab];
         App.current = p;
-        if (tab !== 'worklist') { App.lastChartTab = App.lastChartTab || {}; App.lastChartTab[p.id] = tab; }
+        const solo = tab === 'worklist' || tab === 'orders';
+        if (!solo) { App.lastChartTab = App.lastChartTab || {}; App.lastChartTab[p.id] = tab; }
         const scroll = window.scrollY;
         app.innerHTML = tab === 'worklist'
           // The documentation worklist is a separate screen (no chart folders); Chart returns to the tabs.
           ? `${toolbar(p, 'document')}<main class="content worklist-screen" id="content">${view.render(p, doc)}</main>`
+          : tab === 'orders'
+          // Orders open from the Orders toolbar button, also outside the chart folders.
+          ? `${toolbar(p, 'orders')}<main class="content worklist-screen" id="content">${Views.worklist.band(p)}
+              <div class="wl-bar"><div class="wl-bar-right"><a class="wl-btn" href="#/patient/${esc(p.id)}/${App.lastChartTab && App.lastChartTab[p.id] || 'summary'}">Close</a></div></div>
+              <h2 class="solo-title">Orders</h2>${view.render(p, doc)}</main>`
           : `${toolbar(p, 'chart')}<div class="chart">
           <div class="chart-main">${tabs(p, doc, tab)}
             <main class="content" id="content">${paneHead(p, doc, tab)}${view.render(p, doc)}</main>

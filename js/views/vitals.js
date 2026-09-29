@@ -67,7 +67,6 @@
       const rows = Model.vitals(p, doc);
       const cols = rows.slice(0, 24);
       const r = Model.ranges(p);
-      const form = formHtml(p);
 
       const table = cols.length ? `<div class="scroll-x"><table class="grid flowsheet">
         <thead><tr><th>Parameter</th>${cols.map(c => `<th class="${c.source === 'student' ? 'col-student' : ''} ${c.entry && c.entry.status === 'error' ? 'struck' : ''}">${U.fmtDate(c.time).slice(0, 5)}<br>${U.fmtTime(c.time)}</th>`).join('')}</tr></thead>
@@ -76,13 +75,11 @@
         </tbody></table></div>` : UI.empty('No vital signs recorded yet.');
 
       const ranges = `Flags: HR ${r.hr[0]}–${r.hr[1]} · RR ${r.rr[0]}–${r.rr[1]} · SBP ${r.sbp[0]}–${r.sbp[1]} · SpO₂ ${r.spo2[0]}–${r.spo2[1]}% · Temp ${r.temp[0]}–${r.temp[1]} °F`;
-      return UI.panel('Enter Vital Signs', form) + UI.panel('Vital Signs Flowsheet', `<p class="muted">${ranges}. Student entries are shaded.</p>${table}`);
+      // Vital signs are charted only from the Worklist (Document); this tab is the flowsheet.
+      const how = `<div class="alerts"><div class="alert alert-info">Vital signs are documented from the <a href="#/patient/${esc(p.id)}/worklist"><strong>Worklist</strong></a>: check the Vital Signs box for the time, then click <strong>Document</strong>.</div></div>`;
+      return how + UI.panel('Vital Signs Flowsheet', `<p class="muted">${ranges}. Student entries are shaded.</p>${table}`);
     },
     bind(root, p) {
-      root.querySelector('.vitals-form').addEventListener('submit', e => {
-        e.preventDefault();
-        if (save(p, e.target)) App.render();
-      });
       root.querySelectorAll('[data-err]').forEach(b => b.addEventListener('click', () => UI.errorEntry(p, 'vitals', b.dataset.err)));
     }
   };

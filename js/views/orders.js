@@ -51,7 +51,7 @@
         </tr>`).join('')}</tbody></table>` : UI.empty('No verbal or telephone orders entered.');
 
       return `
-        <div class="toolbar">
+        <div class="view-actions">
           <button class="btn btn-primary" data-action="verbal">+ Enter Verbal / Telephone Order</button>
           ${pending.length ? `<button class="btn" data-action="ackall">Acknowledge All New (${pending.length})</button>` : ''}
         </div>

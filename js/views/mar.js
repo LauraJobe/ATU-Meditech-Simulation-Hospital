@@ -106,7 +106,7 @@
       const order = { continuous: 0, scheduled: 1, prn: 2 };
       meds.sort((a, b) => (a.status !== 'Active') - (b.status !== 'Active') || order[typeOf(a)] - order[typeOf(b)]);
       return `
-        <div class="toolbar">
+        <div class="view-actions">
           <div class="chips">${groups.map(([k, l]) => `<button class="chip ${filter === k ? 'chip-on' : ''}" data-filter="${k}">${l}</button>`).join('')}</div>
           <div class="legend">
             <span class="dose dose-due">Due</span><span class="dose dose-overdue">Overdue</span><span class="dose dose-given">Given</span>

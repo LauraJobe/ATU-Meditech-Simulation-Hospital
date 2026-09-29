@@ -84,7 +84,8 @@
     label: 'Assessments',
     render(p, doc) {
       const forms = (p.assessmentForms || ['wdl-adult', 'pain']).filter(id => FORMS()[id]);
-      const buttons = forms.map(id => `<button class="btn ${id.startsWith('wdl') || id === 'mse' ? 'btn-primary' : ''}" data-form="${id}">+ ${esc(FORMS()[id].title)}</button>`).join('');
+      // Assessments are charted only from the Worklist (Document); this tab shows what was documented.
+      const how = `<div class="alerts"><div class="alert alert-info">Assessments (${esc(forms.map(id => FORMS()[id].title).join(', '))}) are documented from the <a href="#/patient/${esc(p.id)}/worklist"><strong>Worklist</strong></a>: check the assessment's box for the time, then click <strong>Document</strong>.</div></div>`;
       const entries = [...doc.assess].sort((a, b) => b.time - a.time);
       const hist = entries.length ? `<table class="grid"><thead><tr><th>Date/time</th><th>Assessment</th><th>Summary</th><th>Documented by</th><th></th></tr></thead><tbody>
         ${entries.map(e => { const f = FORMS()[e.data.formId]; return `<tr class="${e.status === 'error' ? 'error-row' : ''}">
@@ -96,12 +97,11 @@
       const prior = (p.priorAssessments || []).map(a => `<details class="prior"><summary>${esc(a.title)} — ${esc(U.fmtDT(a.time))} · ${esc(a.author)}</summary>
           ${a.sections.map(([t, x]) => `<div class="detail-row"><strong>${esc(t)}:</strong> ${esc(x)}</div>`).join('')}</details>`).join('');
 
-      return `<div class="toolbar">${buttons}</div>
+      return `${how}
         ${UI.panel('Assessment History', hist)}
         ${prior ? UI.panel('Prior Assessments (previous shift)', prior) : ''}`;
     },
     bind(root, p, doc) {
-      root.querySelectorAll('[data-form]').forEach(b => b.addEventListener('click', () => open(p, b.dataset.form)));
       root.querySelectorAll('[data-err]').forEach(b => b.addEventListener('click', () => UI.errorEntry(p, 'assess', b.dataset.err)));
       root.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => {
         const e = doc.assess.find(x => x.id === b.dataset.view);

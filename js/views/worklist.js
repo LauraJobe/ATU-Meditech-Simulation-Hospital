@@ -222,4 +222,5 @@
   }
 
   Views.worklist.run = run;
+  Views.worklist.band = patientBand;
 })();

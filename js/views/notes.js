@@ -63,7 +63,7 @@
         </article>`;
       }).join('') : UI.empty('No notes yet.');
 
-      return `<div class="toolbar">
+      return `<div class="view-actions">
           <label class="inline">New note: <select class="note-type">${Object.keys(TEMPLATES).map(t => `<option>${esc(t)}</option>`).join('')}</select></label>
           <button class="btn btn-primary" data-action="new">+ Write Note</button>
         </div>${list}`;

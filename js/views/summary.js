@@ -86,7 +86,7 @@
         ${alerts.length ? `<div class="alerts">${alerts.join('')}</div>` : ''}
         <div class="grid-2">
           ${UI.panel('Patient Information', info)}
-          ${UI.panel('Latest Vital Signs', vitals, { actions: `<a class="btn btn-sm" href="#/patient/${p.id}/vitals">Chart Vitals</a>` })}
+          ${UI.panel('Latest Vital Signs', vitals, { actions: `<a class="btn btn-sm" href="#/patient/${p.id}/worklist">Document in Worklist</a>` })}
           ${UI.panel('Medications Due', meds, { actions: `<a class="btn btn-sm" href="#/patient/${p.id}/mar">Open eMAR</a>` })}
           ${UI.panel('Abnormal Results', labs, { actions: `<a class="btn btn-sm" href="#/patient/${p.id}/results">All Results</a>` })}
           ${UI.panel('History of Present Illness', `<p>${U.nl2br(p.hpi)}</p>`)}

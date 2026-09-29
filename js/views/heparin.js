@@ -25,7 +25,18 @@
         </div>
         <p class="muted">Weight used for protocol: ${p.weightKg ? esc(p.weightKg + ' kg') : 'see order'}. Both RNs must verify the bolus, initial rate, and every rate change.</p>
         <div class="form-actions"><button class="btn btn-primary" type="submit">Save Row</button></div></form>`;
-      return UI.panel('Add Heparin Flowsheet Entry', form) + UI.panel('Heparin Flowsheet', table);
+      // The signed protocol order appears once the heparin orders are released.
+      const hp = p.heparinProtocol;
+      const released = p.meds.some(m => /heparin/i.test(m.name) && m.status === 'Active');
+      const protocol = hp ? UI.panel(hp.title, released ? `<dl class="kv">
+          <dt>Indication</dt><dd>${esc(hp.indication)}</dd><dt>Patient weight</dt><dd>${esc(hp.weight)}</dd>
+          <dt>Concentration</dt><dd>${esc(hp.concentration)}</dd><dt>Initial bolus</dt><dd>${esc(hp.bolus)}</dd>
+          <dt>Initial infusion</dt><dd>${esc(hp.infusion)}</dd><dt>Labs</dt><dd>${esc(hp.before)}</dd><dt>Signed</dt><dd>${esc(hp.signedBy)}</dd></dl>
+        <h4>Heparin Dosing Nomogram (maintenance — all indications)</h4>
+        <div class="scroll-x"><table class="grid"><thead><tr><th>aPTT result (sec)</th><th>Bolus</th><th>Hold infusion</th><th>Dose change</th><th>Repeat aPTT</th></tr></thead>
+          <tbody>${hp.nomogram.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`
+        : UI.empty('No heparin protocol ordered yet.')) : '';
+      return protocol + UI.panel('Add Heparin Flowsheet Entry', form) + UI.panel('Heparin Flowsheet', table);
     },
     bind(root, p) {
       root.querySelector('.hep-form').addEventListener('submit', e => {

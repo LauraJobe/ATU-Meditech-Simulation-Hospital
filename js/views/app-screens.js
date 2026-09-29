@@ -96,7 +96,7 @@
           <td class="${(p.homeMeds || []).length ? 'sb-green' : 'sb-gray'}">${(p.homeMeds || []).length ? 'Confirmed' : 'None'}</td>
           <td class="sb-list">${lines(Views.worklist.due(p, doc).slice(0, 3))}</td>
           <td class="sb-list">${lines(nextMeds(p, doc))}</td>
-          <td class="${stat ? 'sb-redcell' : unacked.length ? 'sb-newcell' : ''}">${stat ? 'Stat' : unacked.length ? 'New' : 'Ack'}</td>
+          <td class="${stat ? 'sb-redcell' : unacked.length ? 'sb-newcell' : ''}" title="${unacked.length ? unacked.length + ' order(s) to acknowledge' : 'No new orders to acknowledge'}">${unacked.length ? `${stat ? 'Stat' : 'New'} (${unacked.length})` : ''}</td>
           <td class="sb-results">${results.map(r => { const crit = (r.results || []).some(x => /\*/.test(Model.labFlag(x))); return `<div class="sb-res ${crit ? 'sb-res-crit' : ''}">${esc(r.panel || r.study)}</div>`; }).join('')}</td>
         </tr>`;
       }).join('');

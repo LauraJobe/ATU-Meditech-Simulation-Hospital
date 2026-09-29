@@ -497,3 +497,8 @@ details.prior summary { cursor: pointer; font-weight: 600; }
 .wl-clock { width: 18px; height: 18px; fill: none; stroke: #5a6b7c; stroke-width: 1.6; stroke-linecap: round; }
 .wl-past .wl-clock { stroke: #d0271d; }
 @media (max-width: 1000px) { .wl-band, .wl-bar { margin: 0 -16px; } .wl-band { grid-template-columns: 1fr; } .wl-item { min-width: 240px; } }
+
+/* Worklist is its own screen (Document); Chart returns to the folder tabs */
+.tb-btn.tb-on, .tb-split-on > .tb-btn, .tb-split-on > .tb-caret { background: rgba(255,255,255,.18); box-shadow: inset 0 -3px 0 #8fd19b; }
+.content.worklist-screen { padding: 0 20px 32px; max-width: none; }
+@media (max-width: 1000px) { .content.worklist-screen { padding: 0 16px 24px; } }

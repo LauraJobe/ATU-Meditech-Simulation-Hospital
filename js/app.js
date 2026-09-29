@@ -9,12 +9,12 @@
   const GROUPS = [
     [{ label: 'Diagnostics', views: ['results'] }, { label: 'Provider Notes', views: ['provnotes'] },
      { label: 'Nurse/Allied Health', views: ['assess', 'notes'] }, { label: 'Medications', views: ['mar'] }],
-    [{ label: 'History & Problems', views: ['history'] }, { label: 'Administrative', views: ['orders', 'report'] },
-     { label: 'Other Clinical', views: ['worklist'] }, null],
+    [{ label: 'History & Problems', views: ['history'] }, { label: 'Administrative', views: ['orders'] },
+     { label: 'Other Clinical', views: ['report'] }, null],
     [{ label: 'Summary', views: ['summary'] }, { label: 'Activity', views: ['activity'] },
      { label: 'Flowsheets', views: ['vitals', 'io', 'heparin'] }, { label: 'Health Mgmt', views: ['careplan'] }]
   ];
-  const TABS = GROUPS.flat().filter(Boolean).flatMap(g => g.views);
+  const TABS = GROUPS.flat().filter(Boolean).flatMap(g => g.views).concat(['worklist']); // worklist is its own screen
   const viewsOf = (g, p) => g.views.filter(v => v !== 'heparin' || p.heparinFlowsheet);
   const groupOf = tab => GROUPS.flat().find(g => g && g.views.includes(tab));
 
@@ -29,14 +29,14 @@
     suspend: '<circle cx="10" cy="10" r="7"/><path d="M7.5 7.5l5 5M12.5 7.5l-5 5"/>'
   };
   const svg = name => `<svg viewBox="0 0 20 20" aria-hidden="true">${ICON[name]}</svg>`;
-  const tool = (name, label, href, attrs) => `<a class="tb-btn" href="${href}" ${attrs || ''}>${svg(name)}<span>${esc(label)}</span></a>`;
+  const tool = (name, label, href, attrs, cls) => `<a class="tb-btn${cls ? ' ' + cls : ''}" href="${href}" ${attrs || ''}>${svg(name)}<span>${esc(label)}</span></a>`;
 
   function route() {
     const parts = location.hash.replace(/^#\/?/, '').split('/');
     return { page: parts[0] || 'census', pid: parts[1], tab: parts[2] || 'summary' };
   }
 
-  function toolbar(p) {
+  function toolbar(p, mode) {
     const s = Store.session();
     const clock = p ? p.clock.now() : Date.now();
     const exp = Screens.experienceLabel(Screens.experience());
@@ -47,8 +47,8 @@
         ${tool('workload', 'Workload', p ? `#/patient/${esc(p.id)}/worklist` : '#/census')}
       </div>
       ${p ? `<div class="tb-group tb-center">
-        ${tool('chart', 'Chart', `#/patient/${esc(p.id)}/summary`)}
-        <div class="tb-split">${tool('document', 'Document', `#/patient/${esc(p.id)}/worklist`)}<button class="tb-caret" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Documentation menu">▾</button>
+        ${tool('chart', 'Chart', `#/patient/${esc(p.id)}/${App.lastChartTab && App.lastChartTab[p.id] || 'summary'}`, mode === 'chart' ? 'aria-current="page"' : '', mode === 'chart' ? 'tb-on' : '')}
+        <div class="tb-split ${mode === 'document' ? 'tb-split-on' : ''}">${tool('document', 'Document', `#/patient/${esc(p.id)}/worklist`)}<button class="tb-caret" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Documentation menu">▾</button>
           <div class="tb-menu" hidden role="menu">
             <a role="menuitem" href="#/patient/${esc(p.id)}/worklist" data-docmenu="worklist">Worklist</a>
             <a role="menuitem" href="#/patient/${esc(p.id)}/mar" data-docmenu="mar">Mar</a>
@@ -154,8 +154,12 @@
         const doc = Store.doc(p.id);
         const view = Views[tab];
         App.current = p;
+        if (tab !== 'worklist') { App.lastChartTab = App.lastChartTab || {}; App.lastChartTab[p.id] = tab; }
         const scroll = window.scrollY;
-        app.innerHTML = `${toolbar(p)}<div class="chart">
+        app.innerHTML = tab === 'worklist'
+          // The documentation worklist is a separate screen (no chart folders); Chart returns to the tabs.
+          ? `${toolbar(p, 'document')}<main class="content worklist-screen" id="content">${view.render(p, doc)}</main>`
+          : `${toolbar(p, 'chart')}<div class="chart">
           <div class="chart-main">${tabs(p, doc, tab)}
             <main class="content" id="content">${paneHead(p, doc, tab)}${view.render(p, doc)}</main>
           </div>${sidePanel(p)}</div>`;

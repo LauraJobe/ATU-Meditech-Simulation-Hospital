@@ -229,7 +229,7 @@
       document.body.classList.toggle('mode-observer', Screens.mode() === 'observer');
       app.querySelector('[data-action="logout"]').addEventListener('click', e => {
         e.preventDefault();
-        UI.confirm('Suspend session', 'Sign out of the simulation EHR? Your documentation stays saved on this computer.', () => {
+        UI.confirm('Suspend session', 'Sign out of the simulation EHR? Your documentation stays saved on this device.', () => {
           Store.clearSession(); Store.setInstructor(false); location.hash = '#/'; App.render();
         }, 'Sign Out');
       });

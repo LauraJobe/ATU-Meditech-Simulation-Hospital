@@ -7,7 +7,7 @@ window.EHR_CONFIG = {
   systemName: 'SimEHR',
   // Shown on the sign-in screen. Also bump ?v= in index.html and labels.html when files change,
   // so browsers (older iPads especially) load the new files instead of a saved copy.
-  version: '2026.09.30-2',
+  version: '2026.09.30-3',
 
   // Simulation experiences students choose from at sign-in. Each patient in
   // js/data/patients.js lists the experience ids it belongs to.

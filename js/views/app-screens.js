@@ -73,6 +73,7 @@
           <label class="field"><span>Clinical group / cohort (optional)</span><input name="group" placeholder="e.g., Level 3 — Group A"></label>
           <button class="btn btn-primary btn-block" type="submit">Sign In</button>
           <p class="muted small">Your name is attached to every entry as your electronic signature.</p>
+          <p class="muted small">Version ${U.esc(C.version || '')}</p>
         </form></div>`;
     },
     bind(root) {

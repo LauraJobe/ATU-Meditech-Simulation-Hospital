@@ -51,7 +51,7 @@
       const list = items.length ? items.map(it => {
         if (it.kind === 'prior') {
           const n = it.n;
-          return `<article class="note ${n.isNew ? 'note-new' : ''}"><header><strong>${esc(n.type)}</strong>${n.isNew ? ' ' + UI.badge('NEW', 'new') : ''}<span class="muted"> — ${esc(U.fmtDT(n.time))} · ${esc(n.author)}</span></header><div class="note-body">${U.nl2br(n.text)}</div></article>`;
+          return `<article class="note ${n.isNew ? 'note-new' : ''}"><header><strong>${esc(n.type)}</strong>${n.isNew ? ' ' + UI.badge('NEW', 'new') : ''}<span class="muted"> — ${esc(U.fmtDT(n.time))} · ${esc(n.author)}</span></header><div class="note-body">${U.body(n)}</div></article>`;
         }
         const e = it.e;
         return `<article class="note note-student ${e.status === 'error' ? 'struck-note' : ''}">

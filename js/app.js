@@ -10,7 +10,7 @@
     [{ label: 'Diagnostics', views: ['results'] }, { label: 'Provider Notes', views: ['provnotes'] },
      { label: 'Nurse/Allied Health', views: ['assess', 'notes'] }, { label: 'Medications', views: ['meds'] }],
     [{ label: 'History & Problems', views: ['history'] }, { label: 'Administrative', views: ['admin'] },
-     { label: 'Other Clinical', views: ['report'] }, null],
+     { label: 'Other Clinical', views: ['documents', 'report'] }, null],
     [{ label: 'Summary', views: ['summary'] }, { label: 'Activity', views: ['activity'] },
      { label: 'Flowsheets', views: ['vitals', 'io', 'heparin'] }, { label: 'Health Mgmt', views: ['careplan'] }]
   ];

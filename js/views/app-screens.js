@@ -229,6 +229,7 @@
                 <div>${rel[ev.id] ? `<span class="badge badge-ok">Released ${U.fmtTime(p.clock.toSim(rel[ev.id]))}</span> <button class="btn btn-sm" data-unrelease="${esc(p.id)}|${esc(ev.id)}">Undo</button>`
                   : `<button class="btn btn-sm btn-primary" data-release="${esc(p.id)}|${esc(ev.id)}">Release Now</button>`}</div>
               </div>`).join('')}` : '<p class="muted">No scripted events for this patient.</p>'}
+            ${(base.facultyGuide || []).map(g => `<details class="faculty-guide"><summary>📘 ${esc(g.title)} (instructor only)</summary><div class="note-body">${U.md(g.md)}</div></details>`).join('')}
           </div></section>`;
       }).join('');
 

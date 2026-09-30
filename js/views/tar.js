@@ -97,7 +97,7 @@
           <label class="field"><span>Product</span><select name="product" required>${UI.options(PRODUCTS)}</select></label>
         </div>
         <div class="form-grid g4">
-          <label class="field"><span>Unit / donor number (scan or type)</span><input name="unitNo" required></label>
+          <label class="field"><span>Unit / donor number (scan or type)</span><span class="cam-row"><input name="unitNo" required><button type="button" class="btn btn-sm cam-btn" data-cam="unit" aria-label="Scan unit with camera">📷</button></span></label>
           <label class="field"><span>Unit ABO/Rh</span><select name="unitABO" required>${UI.options(ABO)}</select></label>
           <label class="field"><span>Patient ABO/Rh (type &amp; crossmatch)</span><select name="patientABO" required>${UI.options(ABO)}</select></label>
           <label class="field"><span>Unit expiration</span><input type="datetime-local" name="expires" required></label>
@@ -116,7 +116,10 @@
         <h4>Pre-transfusion vital signs (within 30 minutes before starting)</h4>
         <div class="form-grid g6">${vitalsFields('pre_')}</div>
       </form>`,
-      onOpen(api) { api.el.querySelector('form').addEventListener('submit', e => e.preventDefault()); },
+      onOpen(api) {
+        api.el.querySelector('form').addEventListener('submit', e => e.preventDefault());
+        api.el.querySelector('[data-cam="unit"]').addEventListener('click', () => CameraScan.open(code => { api.el.querySelector('[name="unitNo"]').value = code; }, { title: 'Scan Blood Unit Number' }));
+      },
       buttons: [{ label: 'Cancel' }, { label: 'Verify & Start', cls: 'btn-primary', onClick: api => {
         const f = api.el.querySelector('form');
         if (!f.reportValidity()) return false;

@@ -43,7 +43,21 @@ Documentation follows legal-record rules. Entries are never deleted; they are **
 | Vernon Watkins, 69 M | Adv. Med-Surg | POD 4 hemicolectomy → STAT orders | 1000 | **STAT orders — nurse-driven heparin protocol** |
 | David Carter, 28 M | Psych | Schizophrenia, involuntary hold | 1000 | — |
 
-Level 1 and Level 2 tabs are ready; their patients just need to be added (see below).
+## Level 1 and Level 2 patients (imported)
+
+Imported from [laurablasdel/ATU-Simulation-Hospital](https://laurablasdel.github.io/ATU-Simulation-Hospital/), which was built from the Notion Level 1 and Level 2 charts, using `tools/import-atu-sim-hospital.cjs`. Images (echo, ECG, CT, consents) are copied into `assets/imported/`. Faculty guides from that repo appear only in **Instructor Tools**. Consents, prenatal records, APGAR, the newborn glucose policy, PEWS and head-to-toe forms, and I&O records are on **Other Clinical → Documents**.
+
+| Patient | Level / experience | Scenario | Instructor events |
+|---|---|---|---|
+| Charles Jones, 68 M | 1 · Med-Surg | CHF exacerbation (EF 35%), 4-shift unfolding case | **Shift 2** (BMP, chest X-ray: R pleural effusion), **Shift 3** (A1c 9.5, remove Foley, AC/HS glucose), **Shift 4** (UA positive nitrites/WBC, WBC 18,000, lactate ≥ 2: sepsis workup) |
+| Jane Fowler, 79 F | 1 · Med-Surg | Pre-op TAH-BSO for ovarian cancer → post-op opioid respiratory depression | **Post-op orders** (morphine, ondansetron), **Postoperative MAR**, **Naloxone**, **Ketorolac**, **Shift 2** (post-op vitals: RR 0, SpO₂ 70%) |
+| Amelia Sung, 36 F | 2 · OB | G2P1 39 wk, active labor, GDM (diet), GBS+, PCN/shellfish allergy; oxytocin, clindamycin | **Shift 2** (shoulder dystocia / newborn resuscitation document) |
+| Baby Boy Sung | 2 · OB | Newborn after shoulder dystocia; vitamin K, erythromycin, glucose protocol | **Newborn labs**, **Chest X-ray order**, **Chest X-ray result** (left clavicle fracture), **New results** |
+| Fatima Sanogo, 23 F | 2 · OB | Postpartum hemorrhage after vaginal delivery | **Blood bank forms**, **Critical CBC** (Hgb 6), **PPH medication orders**, **Follow-up orders**, each uterotonic (**methylergonovine, carboprost, misoprostol, TXA**), **Shift 2** |
+| Molly Thomas, 7 mo F | 2 · Peds | Croup / upper airway obstruction (SpO₂ 87%) | **Radiology** (aspiration pneumonia), **MD orders**, **Shift 2 respiratory orders**, **racepinephrine**, **dexamethasone 0.6 mg/kg**, **ampicillin 50 mg/kg**, **D5 ½NS** |
+| Stephanie Smith, 16 F | 2 · Peds | Sickle cell crisis (Hgb 5, A−) | **Chest X-ray** order and result (LLL pneumonia), **Infuse 2 units PRBC** (TAR), **ceftriaxone**, **acetaminophen**, **CBC in AM** |
+
+To refresh after that repository changes: `node tools/import-atu-sim-hospital.cjs <path-to-ATU-Simulation-Hospital>` (then review `js/data/patients-imported.js`).
 
 ## Running a simulation
 
@@ -78,6 +92,14 @@ While moving the Notion charts over, I found these items. I kept your content as
 - **Lab results stored as PDFs** in Notion couldn't be imported for Brody (`Brody_Labs.pdf`); his chart shows a notice until the values are added. Ruth Livingston's labs were entered from `Ruth_Livingston_lab2.pdf`. If `Ruth_Livingston_lab_1.pdf` has different results, send it too. Watkins' labs (pre-op, POD 3, POD 4), STAT labs, and heparin protocol order were entered from the PDFs you uploaded. Shapiro's and Sharp's labs were images and are entered.
 - **Livingston (lab2 PDF):** MRN **PCS10800**, 160 cm, 54 kg, blood type **A+** (the TAR checks it), yesterday's and today's CBC, today's BMP, lactate 5.0, and blood culture positive for *Enterobacter cloacae*, all in the chart at the start. The sheet lists the admitting provider as **Hans Olsson, MD**, but the Notion orders say Dr. Marcus, so the chart still shows Dr. Marcus. The Hb and HCT ranges printed (14–18, 42–50) are male ranges; they're used as printed. Repeat urinalysis still shows as pending.
 - **Norepinephrine protocol (Ruth):** built from her ICU order (start after bolus if MAP < 65 or SBP < 100, 2 mcg/min, titrate 2 mcg/min every 5 minutes, maximum 30). The "notify provider" line combines her existing notify order with "goal not met at maximum dose." The bag concentration isn't in Notion, so students calculate mL/hr from the pharmacy label; send the concentration if you want it on the order.
+- **Imported Level 1/2 patients:** the source is converted Notion text, so check each chart once. Things I noticed:
+  - Pediatric and newborn vital-sign flag ranges were added (infant HR 100–160, RR 30–53; newborn HR 110–160, RR 30–60, temp 97.7–99.5 °F); adjust in `tools/import-atu-sim-hospital.cjs`.
+  - Baby Boy Sung's weight is 4.37 kg on the patient record but 4.08 kg in the overview; the chest X-ray image is missing from the source (the text report is included).
+  - Charles Jones' source "Progress Notes" record contains Stephanie Smith's note and was left out.
+  - A phone number in Stephanie Smith's overview is shown as "phone on file".
+  - Amelia Sung's vital-sign table is blank in the source (for students to fill in).
+  - Times are placed before the chart clock start (0800) when the source gives none.
+- **Livingston (from the ATU-Simulation-Hospital repo):** her vital signs (1329, 1340, last set T 100.9) came from that repo's copy of the Notion flowsheet, which is now blank in Notion. Her scenario start moved to 1345 to fit them. The blood culture now starts as **Pending**, with events for the positive culture, the ICU repeat labs (source chloride printed as 1.5, left out), and transfusion orders (type and cross, transfuse 2 units PRBC).
 - **Watkins:** the PDFs give MRN **PCS40900**, height 182 cm, and Standard precautions; the chart now uses those. The STAT event releases the ABG (pH 7.49, PaCO₂ 31, PaO₂ 58), D-dimer 0.9, CK-MB, and troponin T, adds the signed protocol (box **B. DVT/PE/AFib** checked: 80 units/kg bolus, 18 units/kg/hr), shows the nomogram on the Heparin Flowsheet, and discontinues enoxaparin. The answer key (6,500-unit bolus = 6.5 mL; 1,440 units/hr = 28.8 mL/hr) is only in the instructor event notes. The pre-op Cl 95 and HCO₃ 30 weren't starred on the PDF but flag by the listed ranges.
 - **MRNs:** Brody had no MRN, so placeholders were assigned (`ATU-L3-0628`; Livingston now uses `PCS10800` and Watkins `PCS40900` from their PDFs). **Sharp's lab sheet uses Shapiro's MRN (PCS71900)**; Sharp was given `PCS71901` so wristband scanning can tell them apart.
 - **Emergency contact phone 479-968-0383** appears on several charts and may be a real number, so it shows as "phone on file."

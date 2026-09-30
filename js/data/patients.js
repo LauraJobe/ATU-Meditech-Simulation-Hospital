@@ -125,7 +125,7 @@ window.SIM_PATIENTS = [
     service: 'Orthopedics',
     attending: 'Dr. Marcus',
     admitted: { time: '08:00', day: -6 },
-    scenarioStart: '09:30',
+    scenarioStart: '13:45', // vitals on the source flowsheet are charted at 1329 and 1340
     admitDx: 'Post-op ORIF right hip (POD 5) — right femoral neck fracture after fall at home',
     codeStatus: 'Full Code',
     advanceDirective: 'None',
@@ -204,7 +204,12 @@ window.SIM_PATIENTS = [
       { id: 'liv-apap', name: 'Acetaminophen', dose: '650 mg', route: 'PO', freq: 'Every 6 hours PRN', type: 'prn', indication: 'Temp > 101 °F', minIntervalHr: 6, preAssess: ['Temp'], lastGiven: { time: '06:00', by: 'LJ' } },
       { id: 'liv-ketorolac', name: 'Ketorolac', dose: '30 mg', route: 'IV push', freq: 'Every 6 hours PRN', type: 'prn', indication: 'Pain', instructions: 'Not to exceed 120 mg daily.', minIntervalHr: 6, preAssess: ['Pain'] }
     ],
-    vitals: [],
+    // From the Livingston vital signs flowsheet (ATU-Simulation-Hospital / Notion revision).
+    vitals: [
+      { at: -60, temp: 100.9, tempRoute: 'Oral', hr: 110, rr: 20, sbp: 110, dbp: 60, spo2: 94, o2: 'Nasal cannula', o2Flow: 2, pain: 0, note: 'Last set charted', by: 'Prior RN' },
+      { time: '13:29', temp: 99.0, tempRoute: 'Oral', hr: 111, rr: 24, sbp: 95, dbp: 57, spo2: 93, o2: 'Nasal cannula', o2Flow: 2, pain: 0, by: 'Prior RN' },
+      { time: '13:40', temp: 99.0, tempRoute: 'Oral', hr: 113, rr: 24, sbp: 95, dbp: 56, spo2: 91, o2: 'Nasal cannula', o2Flow: 4, pain: 0, by: 'Prior RN' }
+    ],
     // From "Ruth_Livingston_lab2.pdf" (reference ranges as printed on the report).
     labs: [
       { id: 'liv-cbc-y', panel: 'Complete Blood Count', time: '06:00', day: -1, results: [
@@ -231,17 +236,47 @@ window.SIM_PATIENTS = [
       ] },
       { id: 'liv-misc-t', panel: 'Miscellaneous', time: '06:00', results: [
         { t: 'Lactate (venous)', v: '5.0', u: 'mmol/L', lo: 0.5, hi: 2.2 },
-        { t: 'Blood culture', v: 'Positive — Enterobacter cloacae', ref: 'No growth', flag: 'A' },
+        { t: 'Blood culture', v: 'Pending', ref: 'No growth' },
         { t: 'ABO/Rh (blood type)', v: 'A+' }
       ] }
     ],
-    labsPending: 'Repeat urinalysis sent at 0600 — pending.',
+    labsPending: 'Repeat urinalysis sent at 0600 — pending. Blood culture pending.',
     imaging: [],
     notes: [
       { id: 'liv-n1', type: 'Nursing Note', author: 'VR, RN', time: '06:00', text: 'Patient started yelling and was found confused in bed with the indwelling catheter lying on the floor. The patient has been incontinent. Scant urethral bleeding and minimal external trauma were noted. Received a complete bath and linen change. A repeat urinalysis was sent to lab and is pending.' }
     ],
     io: [],
     events: [
+      {
+        id: 'liv-culture',
+        title: 'Blood culture resulted — Enterobacter cloacae',
+        instructorNotes: 'From "Culture Results — Ruth" (ATU-Simulation-Hospital). The baseline culture shows Pending until released.',
+        labs: [{ id: 'liv-culture-r', panel: 'Microbiology', results: [{ t: 'Blood culture', v: 'Positive — Enterobacter cloacae', ref: 'No growth', flag: 'A' }] }]
+      },
+      {
+        id: 'liv-icu-labs',
+        title: 'ICU repeat labs resulted',
+        instructorNotes: 'From "ICU Lab Results — Ruth". The source prints the repeat chloride as 1.5 (not physiologic) — it is left out here; add the correct value in patients.js if you have it. Collection time is not specified in the source.',
+        labs: [
+          { id: 'liv-cbc-icu', panel: 'Complete Blood Count', results: [
+            { t: 'Hgb', v: 10.2, u: 'g/dL', lo: 14, hi: 18 }, { t: 'HCT', v: 29.5, u: '%', lo: 42, hi: 50 },
+            { t: 'Platelets', v: 170, u: 'x10⁹/L', lo: 150, hi: 400 }, { t: 'WBC', v: '16.0', u: 'x10⁹/L', lo: 4, hi: 11 } ] },
+          { id: 'liv-bmp-icu', panel: 'Basic Metabolic Panel', results: [
+            { t: 'Sodium', v: 136, u: 'mEq/L', lo: 136, hi: 145 }, { t: 'Potassium', v: 3.6, u: 'mEq/L', lo: 3.5, hi: 5.0 },
+            { t: 'Calcium', v: 8.5, u: 'mg/dL', lo: 8.6, hi: 10.2 }, { t: 'HCO3', v: 19, u: 'mEq/L', lo: 23, hi: 28 },
+            { t: 'BUN', v: 25, u: 'mg/dL', lo: 8, hi: 20 }, { t: 'Creatinine', v: 1.5, u: 'mg/dL', lo: 0.7, hi: 1.3 },
+            { t: 'Glucose', v: 100, u: 'mg/dL', lo: 70, hi: 99 }, { t: 'Lactate (venous)', v: 5.1, u: 'mmol/L', lo: 0.5, hi: 2.2 } ] }
+        ]
+      },
+      {
+        id: 'liv-transfuse',
+        title: 'Transfusion orders — 2 units PRBC',
+        instructorNotes: 'From "Transfusion Orders — Ruth". Patient blood type A+ (on file; the TAR checks it). Date/time not entered in the source.',
+        orders: [
+          { id: 'liv-tx-o1', cat: 'Lab', text: 'Type and cross 2 units PRBC', by: 'Dr. Marcus' },
+          { id: 'liv-tx-o2', cat: 'Blood Products', text: 'Transfuse 2 units PRBC', by: 'Dr. Marcus' }
+        ]
+      },
       {
         id: 'liv-icu',
         title: 'Change in condition — Transfer to ICU (ICU Orders)',
@@ -674,7 +709,7 @@ window.SIM_PATIENTS = [
       {
         id: 'wat-stat',
         title: 'STAT orders — Nurse Driven Heparin Protocol',
-        instructorNotes: 'From Notion "Stat Orders (Watkins)", "Heparin_1.pdf", and "watkin_stat_lab.pdf". Releases the STAT ABG / D-dimer / cardiac results (respiratory alkalosis with hypoxemia, D-dimer 0.9 — suspected PE). Protocol box checked: B. DVT/PE/AFib. ANSWER KEY (80 kg, 25,000 units/500 mL = 50 units/mL; vial 10,000 units/10 mL = 1,000 units/mL): bolus 80 units/kg = 6,400 → round to nearest 500 = 6,500 units IV (6.5 mL); infusion 18 units/kg/hr = 1,440 units/hr = 28.8 mL/hr; repeat aPTT in 6 hours. Enoxaparin is discontinued by the protocol — patient received enoxaparin 40 mg at 0900.',
+        instructorNotes: 'From Notion "Stat Orders (Watkins)", "Heparin_1.pdf", and "watkin_stat_lab.pdf". Releases the STAT ABG / D-dimer / cardiac results (respiratory alkalosis with hypoxemia, D-dimer 0.9 — suspected PE). Protocol box checked: B. DVT/PE/AFib. The bolus order is written as 6,500 units (80 units/kg × 80 kg = 6,400, rounded) = 6.5 mL. ANSWER KEY for the drip (80 kg, 25,000 units/500 mL = 50 units/mL): infusion 18 units/kg/hr = 1,440 units/hr = 28.8 mL/hr; repeat aPTT in 6 hours. Enoxaparin is discontinued by the protocol — patient received enoxaparin 40 mg at 0900.',
         discontinue: ['wat-enox'],
         orders: [
           { id: 'wat-s1', cat: 'Activity', text: 'Bed rest', priority: 'STAT', by: 'Dr. Nelson' },
@@ -701,7 +736,7 @@ window.SIM_PATIENTS = [
           ] }
         ],
         meds: [
-          { id: 'wat-hep-bolus', protocol: 'heparin', weightDose: { unit: 'units', perMl: 1000, source: '10,000 units/10 mL vial', max: 10000 }, name: 'Heparin bolus (from 10,000 units/10 mL vial)', dose: 'Per Nurse Driven Heparin Protocol — 80 kg', route: 'IV push', freq: 'Once — per protocol', type: 'once', highAlert: true, preAssess: ['lab:aPTT', 'lab:Platelets'], instructions: 'Calculate bolus per the protocol (P) using 80 kg. Independent double check with a second RN.', doses: [{ at: 0 }] },
+          { id: 'wat-hep-bolus', protocol: 'heparin', weightDose: { unit: 'units', perMl: 1000, source: '10,000 units/10 mL vial', max: 10000 }, name: 'Heparin bolus (from 10,000 units/10 mL vial)', dose: '6,500 units', route: 'IV push', freq: 'Once — STAT per protocol', type: 'once', highAlert: true, preAssess: ['lab:aPTT', 'lab:Platelets'], instructions: 'Protocol bolus 80 units/kg × 80 kg = 6,400 units, rounded to the nearest 500 = 6,500 units IV once (maximum 10,000 units). Draw up 6.5 mL from the 10,000 units/10 mL vial. Independent double check with a second RN.', doses: [{ at: 0 }] },
           { id: 'wat-hep-drip', protocol: 'heparin', weightRate: { unit: 'units/kg/hr', perMl: 50, source: '25,000 units/500 mL D5W', startMax: 2250 }, name: 'Heparin infusion (premixed bag)', dose: 'Per Nurse Driven Heparin Protocol — units/kg/hr', route: 'IV', freq: 'Continuous — titrate per aPTT', type: 'continuous', highAlert: true, preAssess: ['lab:aPTT'], instructions: 'Initial rate and titration per the Nurse Driven Heparin Protocol using 80 kg. Independent double check with a second RN for start and every rate change. Document each aPTT, bolus, hold, and rate change with Titrate (aPTT) on this MAR entry.' }
         ]
       }

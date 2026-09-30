@@ -29,7 +29,7 @@
     </div>`;
   };
 
-  UI.modal = function ({ title, body, wide, buttons, onOpen }) {
+  UI.modal = function ({ title, body, wide, buttons, onOpen, onClose }) {
     const root = document.getElementById('modal-root');
     const wrap = document.createElement('div');
     wrap.className = 'modal-backdrop';
@@ -39,10 +39,11 @@
         <div class="modal-foot"></div>
       </div>`;
     const foot = wrap.querySelector('.modal-foot');
-    const onKey = e => { if (e.key === 'Escape') api.close(); };
+    // Escape closes only the top dialog (e.g., the camera over an administration).
+    const onKey = e => { if (e.key === 'Escape' && root.lastElementChild === wrap) api.close(); };
     const api = {
       el: wrap,
-      close() { wrap.remove(); document.removeEventListener('keydown', onKey); }
+      close() { if (!wrap.isConnected) return; wrap.remove(); document.removeEventListener('keydown', onKey); if (onClose) onClose(); }
     };
     (buttons || [{ label: 'Close' }]).forEach(b => {
       const btn = document.createElement('button');

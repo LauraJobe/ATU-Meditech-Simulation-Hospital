@@ -247,6 +247,7 @@
       const vLine = v ? `<div class="pt-verified">✔ Patient verified — wristband scanned ${esc(U.fmtTime(v))}</div>` : '<div class="pt-unverified">Wristband not scanned</div>';
       return `${Views.worklist.band(p, vLine)}
         <div class="mg-scanbar"><label>Scan <input id="mar-scan" autocomplete="off" placeholder="${v ? 'Scan medication barcode' : 'Scan patient wristband'}"></label>
+          <button type="button" class="btn btn-sm cam-btn" data-cam="mar" title="Use the tablet camera as a scanner">📷 Camera</button>
           <span class="muted small">${v ? 'Scan each medication unit; the order opens automatically.' : 'Scan the wristband first, then each medication.'}</span></div>
         <div class="mg-include">Include: ${chk('active', 'Active')}${chk('stat', 'STAT/ONE')}${chk('iv', 'IVs')}${chk('prn', 'PRNs')}${chk('dc', 'Discontinued')}</div>
         <p class="muted small">Click a time cell to administer (red = overdue, yellow = due within ${C.medWindowMinutes} minutes, green = given). PRN: click <strong>PRN ⊕</strong>. Infusions: click today's cell to document, <strong>⇅</strong> to titrate, <strong>P</strong> for the protocol. Click a medication for Medication Detail (history, protocol, corrections).</p>
@@ -269,6 +270,11 @@
           scanOnMar(p, Store.doc(p.id), code);
         });
       }
+      const cam = root.querySelector('[data-cam="mar"]');
+      if (cam) cam.addEventListener('click', () => {
+        if (Screens.mode() === 'observer') { UI.toast('Observer mode is view only. You cannot document.', 'warn'); return; }
+        CameraScan.open(code => scanOnMar(p, Store.doc(p.id), code), { title: verified[p.id] ? 'Scan Medication' : 'Scan Patient Wristband' });
+      });
       root.querySelectorAll('[data-inc]').forEach(b => b.addEventListener('change', () => { include[b.dataset.inc] = b.checked; App.render(); }));
       root.querySelectorAll('[data-select]').forEach(c => {
         const open = () => medDetail(p, doc, p.meds.find(m => m.id === c.dataset.select));
@@ -407,8 +413,8 @@
     const scan = `<fieldset class="scan">
         <legend>Barcode verification</legend>
         <div class="form-grid">
-          <label class="field"><span>1. Scan patient wristband</span><input name="scanPt" autocomplete="off" ${opts.ptVerified ? `value="${esc(p.mrn)}"` : 'autofocus'} placeholder="Scan or type MRN"><small class="scan-msg" data-msg="pt"></small></label>
-          <label class="field"><span>2. Scan medication barcode${mode === 'infusion' ? '' : ' (scan each unit)'}</span><input name="scanMed" autocomplete="off" ${opts.ptVerified ? 'autofocus' : ''} placeholder="Scan medication label, then Enter"><small class="scan-msg" data-msg="med"></small></label>
+          <label class="field"><span>1. Scan patient wristband</span><span class="cam-row"><input name="scanPt" autocomplete="off" ${opts.ptVerified ? `value="${esc(p.mrn)}"` : 'autofocus'} placeholder="Scan or type MRN"><button type="button" class="btn btn-sm cam-btn" data-cam="pt" aria-label="Scan wristband with camera">📷</button></span><small class="scan-msg" data-msg="pt"></small></label>
+          <label class="field"><span>2. Scan medication barcode${mode === 'infusion' ? '' : ' (scan each unit)'}</span><span class="cam-row"><input name="scanMed" autocomplete="off" ${opts.ptVerified ? 'autofocus' : ''} placeholder="Scan medication label, then Enter"><button type="button" class="btn btn-sm cam-btn" data-cam="med" aria-label="Scan medication with camera">📷</button></span><small class="scan-msg" data-msg="med"></small></label>
         </div>
         <div class="scan-tally" aria-live="polite"></div>
         <label class="check"><input type="checkbox" name="noScan" data-single="1"> Unable to scan</label>
@@ -437,14 +443,14 @@
     } else {
       body = `<div class="form-grid">
           ${mode === 'dose' ? `<label class="field"><span>Administration</span><select name="action"><option>Given</option><option>Not Given</option></select></label>` : '<input type="hidden" name="action" value="Given">'}
-          ${med.weightDose ? `<label class="field"><span>Dose given (${esc(med.weightDose.unit)})</span><input name="dose" type="number" step="any" placeholder="Calculate from weight"></label>`
+          ${med.weightDose ? `<label class="field"><span>Dose given (${esc(med.weightDose.unit)})</span><input name="dose" type="number" step="any" value="${esc((Scan.parseDose(med.dose) || {}).value || '')}"></label>`
             : `<label class="field"><span>Dose given</span><input name="dose" value="${esc(med.dose)}"></label>`}
           <label class="field"><span>Route</span><input name="route" value="${esc(med.route)}"></label>
           <label class="field"><span>Site</span><select name="site">${UI.options(SITES, '', false)}</select></label>
           ${UI.timeField(p, 'Date/time administered')}
           ${mode === 'prn' ? `<label class="field"><span>PRN reason</span><input name="prnReason" value="${esc(med.indication || '')}"></label>` : ''}
         </div>
-        ${med.weightDose ? '<div class="wcalc" data-wcalc>Enter the dose you calculated from the protocol weight.</div>' : ''}
+        ${med.weightDose ? `<div class="wcalc" data-wcalc>= ${esc(Views.protocol.bolusCalc(p, med, (Scan.parseDose(med.dose) || {}).value))}</div>` : ''}
         <label class="field not-given" hidden><span>Reason not given</span><select name="reason">${UI.options(NOT_GIVEN)}</select></label>
         ${med.highAlert ? `<label class="check"><input type="checkbox" name="doubleCheck" data-single="1"> Independent double check completed (high-alert medication)</label>
           <label class="field"><span>Second RN / verifier</span><input name="verifier"></label>` : ''}`;
@@ -519,6 +525,8 @@
         ['input', 'change'].forEach(ev => q('[name="scanPt"]').addEventListener(ev, checkPt));
         q('[name="scanPt"]').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); medIn.focus(); } });
         if (opts.ptVerified) checkPt();
+        q('[data-cam="pt"]').addEventListener('click', () => CameraScan.open(code => { q('[name="scanPt"]').value = code; checkPt(); medIn.focus(); }, { title: 'Scan Patient Wristband' }));
+        q('[data-cam="med"]').addEventListener('click', () => CameraScan.open(code => addScan(code), { title: 'Scan Medication' }));
         q('[name="noScan"]').addEventListener('change', e => { q('.scan-reason').hidden = !e.target.checked; });
         const act = q('select[name="action"]');
         if (act && mode === 'dose') act.addEventListener('change', () => { q('.not-given').hidden = act.value !== 'Not Given'; });
@@ -560,7 +568,10 @@
     let weightNote = '';
     if (given && mode !== 'infusion' && med.weightDose) {
       const n = Number(v.dose);
-      if (!n) return fail(`Enter the ${med.weightDose.unit} you calculated from the protocol weight (${p.weightKg} kg).`);
+      if (!n) return fail(`Enter the dose given in ${med.weightDose.unit}.`);
+      const ord = Scan.parseDose(med.dose);
+      if (ord && n > ord.value) return fail(`${n.toLocaleString('en-US')} ${med.weightDose.unit} exceeds the ordered bolus of ${Scan.fmt(ord)}.`);
+      if (ord && n < ord.value && !v.comment) return fail(`${n.toLocaleString('en-US')} ${med.weightDose.unit} is less than the ordered bolus of ${Scan.fmt(ord)}. Explain in the Comment.`);
       if (med.weightDose.max && n > med.weightDose.max) return fail(`${n.toLocaleString('en-US')} ${med.weightDose.unit} exceeds the protocol maximum of ${med.weightDose.max.toLocaleString('en-US')} ${med.weightDose.unit}.`);
       weightNote = Views.protocol.bolusCalc(p, med, n);
       v.dose = `${n.toLocaleString('en-US')} ${med.weightDose.unit}`;

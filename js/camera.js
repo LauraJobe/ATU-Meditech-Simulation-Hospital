@@ -1,0 +1,75 @@
+/*
+ * Camera barcode scanning for tablets and phones. Uses the browser's built-in
+ * BarcodeDetector when it supports Code 128 (Chrome on Android), otherwise loads
+ * the html5-qrcode library on demand (iPad Safari and others). Needs HTTPS
+ * (GitHub Pages) and camera permission.
+ */
+(function () {
+  'use strict';
+  const LIB = 'https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js';
+  let libLoading = null;
+  const loadLib = () => libLoading || (libLoading = new Promise((ok, fail) => {
+    if (window.Html5Qrcode) return ok();
+    const sc = document.createElement('script');
+    sc.src = LIB; sc.onload = () => ok(); sc.onerror = () => { libLoading = null; fail(new Error('Scanner library could not load')); };
+    document.head.appendChild(sc);
+  }));
+
+  async function nativeSupported() {
+    if (!('BarcodeDetector' in window)) return false;
+    try { return (await window.BarcodeDetector.getSupportedFormats()).includes('code_128'); } catch (e) { return false; }
+  }
+
+  // Open the camera; onCode(text) is called once with the first barcode read, then the camera closes.
+  function open(onCode, opts) {
+    opts = opts || {};
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      UI.modal({ title: 'Camera Not Available', body: '<p>This browser cannot use the camera. Open the EHR from the GitHub Pages (https) link in Safari or Chrome, or use a USB/Bluetooth scanner.</p>', buttons: [{ label: 'OK' }] });
+      return;
+    }
+    let stop = () => {};
+    let done = false;
+    const finish = (api, text) => { if (done) return; done = true; if (navigator.vibrate) navigator.vibrate(80); api.close(); onCode(String(text).trim()); };
+    UI.modal({
+      title: opts.title || 'Scan with Camera',
+      body: `<div class="cam-wrap"><video class="cam-video" playsinline muted hidden></video><div id="cam-reader" class="cam-reader"></div>
+          <div class="cam-guide" aria-hidden="true"></div></div>
+        <p class="muted small cam-msg">Hold the barcode flat inside the box, 4–8 inches from the camera. Allow camera access if asked.</p>`,
+      onClose: () => { done = true; stop(); },
+      buttons: [{ label: 'Cancel' }],
+      async onOpen(api) {
+        const msg = api.el.querySelector('.cam-msg');
+        try {
+          if (await nativeSupported()) {
+            const video = api.el.querySelector('.cam-video');
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+            stop = () => stream.getTracks().forEach(t => t.stop());
+            if (done) return stop();
+            video.srcObject = stream; video.hidden = false; await video.play();
+            const det = new window.BarcodeDetector({ formats: ['code_128', 'qr_code', 'code_39'] });
+            const tick = async () => {
+              if (done) return;
+              try { const found = await det.detect(video); if (found.length) return finish(api, found[0].rawValue); } catch (e) { /* keep trying */ }
+              setTimeout(tick, 150);
+            };
+            tick();
+          } else {
+            await loadLib();
+            if (done) return;
+            const F = window.Html5QrcodeSupportedFormats;
+            const reader = new window.Html5Qrcode('cam-reader', { formatsToSupport: [F.CODE_128, F.CODE_39, F.QR_CODE], verbose: false });
+            let running = false;
+            stop = () => { if (running) { running = false; reader.stop().then(() => reader.clear()).catch(() => {}); } };
+            await reader.start({ facingMode: 'environment' }, { fps: 10, qrbox: { width: 300, height: 120 } }, text => finish(api, text), () => {});
+            running = true;
+            if (done) stop();
+          }
+        } catch (e) {
+          msg.innerHTML = `<strong class="abn">Camera could not start:</strong> ${U.esc(e && e.name === 'NotAllowedError' ? 'camera permission was denied. Allow camera access for this site in the browser settings.' : (e && e.message) || 'unknown error')}`;
+        }
+      }
+    });
+  }
+
+  window.CameraScan = { open };
+})();

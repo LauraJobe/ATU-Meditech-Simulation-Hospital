@@ -674,7 +674,7 @@ window.SIM_PATIENTS = [
       {
         id: 'wat-stat',
         title: 'STAT orders — Nurse Driven Heparin Protocol',
-        instructorNotes: 'From Notion "Stat Orders (Watkins)", "Heparin_1.pdf", and "watkin_stat_lab.pdf". Releases the STAT ABG / D-dimer / cardiac results (respiratory alkalosis with hypoxemia, D-dimer 0.9 — suspected PE). Protocol box checked: B. DVT/PE/AFib. ANSWER KEY (80 kg, 25,000 units/500 mL = 50 units/mL; vial 10,000 units/10 mL = 1,000 units/mL): bolus 80 units/kg = 6,400 → round to nearest 500 = 6,500 units IV (6.5 mL); infusion 18 units/kg/hr = 1,440 units/hr = 28.8 mL/hr; repeat aPTT in 6 hours. Enoxaparin is discontinued by the protocol — patient received enoxaparin 40 mg at 0900.',
+        instructorNotes: 'From Notion "Stat Orders (Watkins)", "Heparin_1.pdf", and "watkin_stat_lab.pdf". Releases the STAT ABG / D-dimer / cardiac results (respiratory alkalosis with hypoxemia, D-dimer 0.9 — suspected PE). Protocol box checked: B. DVT/PE/AFib. The bolus order is written as 6,500 units (80 units/kg × 80 kg = 6,400, rounded) = 6.5 mL. ANSWER KEY for the drip (80 kg, 25,000 units/500 mL = 50 units/mL): infusion 18 units/kg/hr = 1,440 units/hr = 28.8 mL/hr; repeat aPTT in 6 hours. Enoxaparin is discontinued by the protocol — patient received enoxaparin 40 mg at 0900.',
         discontinue: ['wat-enox'],
         orders: [
           { id: 'wat-s1', cat: 'Activity', text: 'Bed rest', priority: 'STAT', by: 'Dr. Nelson' },
@@ -701,7 +701,7 @@ window.SIM_PATIENTS = [
           ] }
         ],
         meds: [
-          { id: 'wat-hep-bolus', protocol: 'heparin', weightDose: { unit: 'units', perMl: 1000, source: '10,000 units/10 mL vial', max: 10000 }, name: 'Heparin bolus (from 10,000 units/10 mL vial)', dose: 'Per Nurse Driven Heparin Protocol — 80 kg', route: 'IV push', freq: 'Once — per protocol', type: 'once', highAlert: true, preAssess: ['lab:aPTT', 'lab:Platelets'], instructions: 'Calculate bolus per the protocol (P) using 80 kg. Independent double check with a second RN.', doses: [{ at: 0 }] },
+          { id: 'wat-hep-bolus', protocol: 'heparin', weightDose: { unit: 'units', perMl: 1000, source: '10,000 units/10 mL vial', max: 10000 }, name: 'Heparin bolus (from 10,000 units/10 mL vial)', dose: '6,500 units', route: 'IV push', freq: 'Once — STAT per protocol', type: 'once', highAlert: true, preAssess: ['lab:aPTT', 'lab:Platelets'], instructions: 'Protocol bolus 80 units/kg × 80 kg = 6,400 units, rounded to the nearest 500 = 6,500 units IV once (maximum 10,000 units). Draw up 6.5 mL from the 10,000 units/10 mL vial. Independent double check with a second RN.', doses: [{ at: 0 }] },
           { id: 'wat-hep-drip', protocol: 'heparin', weightRate: { unit: 'units/kg/hr', perMl: 50, source: '25,000 units/500 mL D5W', startMax: 2250 }, name: 'Heparin infusion (premixed bag)', dose: 'Per Nurse Driven Heparin Protocol — units/kg/hr', route: 'IV', freq: 'Continuous — titrate per aPTT', type: 'continuous', highAlert: true, preAssess: ['lab:aPTT'], instructions: 'Initial rate and titration per the Nurse Driven Heparin Protocol using 80 kg. Independent double check with a second RN for start and every rate change. Document each aPTT, bolus, hold, and rate change with Titrate (aPTT) on this MAR entry.' }
         ]
       }

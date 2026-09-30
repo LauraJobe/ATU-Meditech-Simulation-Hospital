@@ -637,3 +637,17 @@ button.mg-ico:hover { background: #e6f2ff; }
 .mode-observer [data-err], .mode-observer [data-tar], .mode-observer [data-review], .mode-observer [data-wl="document"], .mode-observer [data-add],
 .mode-observer [data-eval], .mode-observer [data-docmenu="note"] { opacity: .45; cursor: not-allowed !important; }
 .mode-observer .wl-row { cursor: default; }
+
+/* MAR scanning */
+.pt-verified { color: #0f5b2a; font-weight: 800; background: #e3f6e8; display: inline-block; padding: 1px 6px; border-radius: 3px; margin-top: 2px; }
+.pt-unverified { color: #6b4300; font-weight: 700; font-size: 12px; margin-top: 2px; }
+.mg-scanbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 10px 0 0; padding: 8px 10px; background: #fff; border: 1px solid #c9d3dd; border-radius: 4px; }
+.mg-scanbar label { font-weight: 700; display: flex; gap: 6px; align-items: center; }
+.mg-scanbar input { font: inherit; width: 280px; padding: 5px 8px; border: 2px solid #1b6fb5; border-radius: 4px; }
+.scan-tally { margin-top: 6px; }
+.tally-list { font-size: 13px; }
+.tally-unit { display: inline-block; background: #eef5ff; border: 1px solid #9fb3c8; border-radius: 3px; padding: 1px 6px; }
+.tally-ok { color: #0f5b2a; font-weight: 700; margin-top: 4px; }
+.tally-low { color: #6b4300; background: #fff3d6; border-left: 4px solid #d69500; padding: 4px 8px; font-weight: 700; margin-top: 4px; }
+.tally-high { color: #fff; background: var(--danger); padding: 4px 8px; font-weight: 700; margin-top: 4px; }
+input.field-alert { border: 2px solid var(--danger) !important; background: #fdecea; }

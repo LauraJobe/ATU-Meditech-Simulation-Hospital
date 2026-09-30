@@ -62,11 +62,19 @@
       <div class="tb-group tb-right">
         <div class="tb-info"><div class="tb-clock"><span id="clock">${U.fmtDT(clock)}</span></div>
           <div class="tb-user">${esc(s.name)}, ${esc(s.cred)} · ${esc(exp)}</div></div>
-        ${tool('gear', 'Instructor', '#/instructor')}
+        <div class="tb-split tb-mode">
+          <a class="tb-btn tb-mode-btn" href="#" data-action="mode" aria-haspopup="true">${svg('gear')}<span>${esc(Screens.MODE_LABEL[Screens.mode()])} ▾</span></a>
+          <div class="tb-menu tb-mode-menu" hidden role="menu">
+            <div class="ml-menu-h">Chart mode</div>
+            ${['student', 'observer', 'faculty'].map(m => `<a role="menuitem" href="#" data-setmode="${m}" class="${Screens.mode() === m ? 'ml-on' : ''}">${Screens.MODE_LABEL[m]}${m === 'observer' ? ' (view only)' : m === 'faculty' ? ' (PIN)' : ' (documenting)'}</a>`).join('')}
+            ${Screens.mode() === 'faculty' ? '<a role="menuitem" href="#/instructor">Instructor Tools…</a>' : ''}
+          </div></div>
         <a class="tb-btn" href="#" data-action="logout">${svg('suspend')}<span>Suspend</span></a>
       </div>
     </header>
-    <div class="sim-strip">SIMULATION — FOR EDUCATIONAL USE ONLY · NOT A REAL MEDICAL RECORD</div>`;
+    <div class="sim-strip">SIMULATION — FOR EDUCATIONAL USE ONLY · NOT A REAL MEDICAL RECORD</div>
+    ${Screens.mode() === 'observer' ? '<div class="observer-strip" role="status">OBSERVER MODE — VIEW ONLY. You can review the chart but cannot document, give medications, or acknowledge orders or results.</div>' : ''}
+    ${Screens.mode() === 'faculty' ? '<div class="faculty-strip" role="status">FACULTY MODE — all experiences visible. Switch back to Student before handing this computer to a student.</div>' : ''}`;
   }
 
   function tabs(p, doc, tab) {
@@ -201,6 +209,14 @@
           close();
         }));
       }
+      const modeBtn = app.querySelector('[data-action="mode"]');
+      if (modeBtn) {
+        const menu = app.querySelector('.tb-mode-menu');
+        const close = () => { menu.hidden = true; };
+        modeBtn.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); menu.hidden = !menu.hidden; if (!menu.hidden) setTimeout(() => document.addEventListener('click', close, { once: true }), 0); });
+        menu.querySelectorAll('[data-setmode]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); close(); Screens.setMode(a.dataset.setmode); }));
+      }
+      document.body.classList.toggle('mode-observer', Screens.mode() === 'observer');
       app.querySelector('[data-action="logout"]').addEventListener('click', e => {
         e.preventDefault();
         UI.confirm('Suspend session', 'Sign out of the simulation EHR? Your documentation stays saved on this computer.', () => {
@@ -211,6 +227,24 @@
   };
 
   window.App = App;
+
+  // Observer mode: block every charting or acknowledging action before its handler runs.
+  const BLOCK = ['[data-ack]', '[data-action="ackall"]', '[data-action="verbal"]', '[data-action="new"]', '[data-dose]', '[data-prn]', '[data-infusion]', '[data-titrate]',
+    '[data-effect]', '[data-err]', '[data-tar]', '[data-review]', '[data-wl="document"]', '.wl-row', '[data-docmenu="note"]', '[data-add]', '[data-eval]'].join(',');
+  const observing = () => Screens.mode() === 'observer';
+  document.addEventListener('click', e => {
+    if (!observing() || !e.target.closest) return;
+    const hit = e.target.closest(BLOCK);
+    if (hit && hit.closest('#app, #modal-root')) {
+      e.preventDefault(); e.stopImmediatePropagation();
+      UI.toast('Observer mode is view only. You cannot document or acknowledge.', 'warn');
+    }
+  }, true);
+  document.addEventListener('submit', e => {
+    if (!observing() || !e.target.closest('#app, #modal-root') || e.target.closest('.login-card')) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    UI.toast('Observer mode is view only. You cannot document.', 'warn');
+  }, true);
   window.addEventListener('hashchange', () => App.render());
   // Keep the clock current; refresh due/overdue colors each minute.
   let lastMinute = null;

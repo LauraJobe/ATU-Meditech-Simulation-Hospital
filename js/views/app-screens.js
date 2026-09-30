@@ -18,6 +18,37 @@
     const exp = Screens.experience();
     return exp === 'all' || (p.experiences || []).includes(exp);
   };
+  // Chart mode: faculty (PIN unlocked), observer (view only), or student (documenting).
+  Screens.mode = () => Store.instructorUnlocked() ? 'faculty' : ((Store.session() || {}).observer ? 'observer' : 'student');
+  Screens.MODE_LABEL = { student: 'Student', observer: 'Observer', faculty: 'Faculty' };
+
+  // Switch modes. Faculty needs the PIN; leaving Observer also needs the PIN so observers can't start charting on their own.
+  Screens.setMode = function (to) {
+    const from = Screens.mode();
+    if (to === from) return;
+    const apply = () => {
+      const s = Store.session();
+      if (to === 'faculty') { Store.setInstructor(true); }
+      else { Store.setInstructor(false); if (s) { s.observer = to === 'observer'; delete s.viewExperience; Store.setSession(s); } }
+      UI.toast(`Switched to ${Screens.MODE_LABEL[to]} mode${to === 'observer' ? ' — view only' : ''}.`);
+      App.render();
+    };
+    if (to === 'faculty' || from === 'observer') {
+      UI.modal({
+        title: to === 'faculty' ? 'Switch to Faculty' : 'Leave Observer Mode',
+        body: `<p>${to === 'faculty' ? 'Faculty mode shows every experience and the instructor tools.' : 'An instructor must enter the PIN to change an observer to a documenting student.'}</p>
+          <label class="field"><span>Instructor PIN</span><input type="password" name="pin" autofocus inputmode="numeric"></label>`,
+        buttons: [{ label: 'Cancel' }, { label: 'Switch', cls: 'btn-primary', onClick: api => {
+          if (U.formValues(api.el).pin !== String(C.instructorPin)) { UI.formError(api.el.querySelector('.modal-body'), 'Incorrect PIN.'); return false; }
+          if (to === 'faculty') { Store.setInstructor(true); UI.toast('Switched to Faculty mode.'); App.render(); }
+          else { Store.setInstructor(false); const s = Store.session(); s.observer = false; Store.setSession(s); UI.toast('Switched to Student mode.'); App.render(); }
+        } }]
+      });
+      return;
+    }
+    apply();
+  };
+
   Screens.experienceLabel = id => id === 'all' ? 'All Experiences' : ((C.experiences.find(x => x.id === id) || {}).label || id);
 
   /* ---------------- Sign in ---------------- */
@@ -35,6 +66,10 @@
             <option value="">— Select your sim experience —</option>
             ${C.experiences.map(x => `<option value="${esc(x.id)}">${esc(x.label)}</option>`).join('')}
 </select></label>
+          <fieldset class="field login-mode"><legend>Sign in as</legend>
+            <label class="check"><input type="radio" name="mode" value="student" checked> <span><strong>Documenting nurse</strong> — I am charting in this simulation</span></label>
+            <label class="check"><input type="radio" name="mode" value="observer"> <span><strong>Observer (view only)</strong> — I am watching; I can read the chart but not document or acknowledge</span></label>
+          </fieldset>
           <label class="field"><span>Clinical group / cohort (optional)</span><input name="group" placeholder="e.g., Level 3 — Group A"></label>
           <button class="btn btn-primary btn-block" type="submit">Sign In</button>
           <p class="muted small">Your name is attached to every entry as your electronic signature.</p>
@@ -46,7 +81,7 @@
         const v = U.formValues(e.target);
         if (!v.name) return;
         if (!v.experience) { UI.formError(e.target, 'Choose your simulation experience.'); return; }
-        Store.setSession({ name: v.name, cred: v.cred, group: v.group, experience: v.experience, signedIn: Date.now() });
+        Store.setSession({ name: v.name, cred: v.cred, group: v.group, experience: v.experience, observer: v.mode === 'observer', signedIn: Date.now() });
         location.hash = '#/census';
         App.render();
       });

@@ -50,8 +50,9 @@
 
     // time = when the event happened (chart time); recorded = when it was charted
     add(pid, section, data, time, recorded) {
-      const d = Store.doc(pid);
       const s = Store.session() || { name: 'Unknown', cred: '' };
+      if (s.observer && !Store.instructorUnlocked()) { if (window.UI) UI.toast('Observer mode is view only — nothing was saved.', 'warn'); return null; }
+      const d = Store.doc(pid);
       const entry = {
         id: U.uid(), time, recorded, data, status: 'active',
         user: { name: s.name, cred: s.cred, group: s.group || '' }

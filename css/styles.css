@@ -625,3 +625,15 @@ button.mg-ico:hover { background: #e6f2ff; }
 .dx-abn { background: #fff39a; }
 .dx-crit { background: #f9c9c9; }
 @media (max-width: 800px) { .dx-lab { grid-template-columns: 1fr; } .dx-side { flex-direction: row; flex-wrap: wrap; } }
+
+/* Chart modes */
+.observer-strip { background: #5b2a86; color: #fff; text-align: center; font-size: 12px; font-weight: 700; letter-spacing: .03em; padding: 4px 8px; }
+.faculty-strip { background: #1f5f5c; color: #fff; text-align: center; font-size: 12px; font-weight: 700; padding: 3px 8px; }
+.tb-mode-menu { left: auto; right: 0; min-width: 240px; }
+.login-mode { border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; }
+.login-mode legend { font-size: 12px; padding: 0 4px; }
+.mode-observer [data-ack], .mode-observer [data-action="ackall"], .mode-observer [data-action="verbal"], .mode-observer [data-action="new"],
+.mode-observer [data-dose], .mode-observer [data-prn], .mode-observer [data-infusion], .mode-observer [data-titrate], .mode-observer [data-effect],
+.mode-observer [data-err], .mode-observer [data-tar], .mode-observer [data-review], .mode-observer [data-wl="document"], .mode-observer [data-add],
+.mode-observer [data-eval], .mode-observer [data-docmenu="note"] { opacity: .45; cursor: not-allowed !important; }
+.mode-observer .wl-row { cursor: default; }

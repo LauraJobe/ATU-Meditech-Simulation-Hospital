@@ -54,14 +54,64 @@
     };
   };
 
-  function prepMed(clock, m, ref, extra) {
+  // Standard administration times by frequency (hospital schedule).
+  const STD = [
+    [/\b(ac\s*(&|and|\/)\s*hs)\b/i, ['07:30', '11:30', '16:30', '21:00']],
+    [/every\s*4\s*h|\bq\s*4\s*h/i, ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00']],
+    [/every\s*6\s*h|\bq\s*6\s*h/i, ['00:00', '06:00', '12:00', '18:00']],
+    [/every\s*8\s*h|\bq\s*8\s*h/i, ['06:00', '14:00', '22:00']],
+    [/every\s*12\s*h|\bq\s*12\s*h|\bbid\b|twice (a )?daily/i, ['09:00', '21:00']],
+    [/\btid\b|three times/i, ['09:00', '13:00', '17:00']],
+    [/\bqid\b|four times/i, ['09:00', '13:00', '17:00', '21:00']],
+    [/\bhs\b|bedtime/i, ['21:00']],
+    [/daily|every day|once a day|every 24|\bqd\b|weekly/i, ['09:00']]
+  ];
+  M.standardTimes = freq => { const hit = STD.find(([re]) => re.test(String(freq || ''))); return hit ? hit[1] : null; };
+
+  // ctx: { start, today (midnight of the scenario day), auto (doses before start documented as given), initials }
+  function prepMed(clock, m, ref, extra, ctx) {
+    ctx = ctx || {};
     const med = Object.assign({ status: 'Active', type: 'scheduled' }, JSON.parse(JSON.stringify(m)), extra || {});
     med.barcode = M.barcodeFor(med);
     med.orderTime = med.ordered ? clock.at(med.ordered, ref) : ref;
-    med.doseTimes = (med.doses || []).map((d, i) => {
-      const time = clock.at(d, ref);
+    const explicit = (med.doses || []).map(d => Object.assign({}, d, { t: clock.at(d, ref) }));
+    const std = med.type === 'scheduled' && !med.fixedTimes && ctx.today != null ? M.standardTimes(med.freq) : null;
+    let list = explicit;
+    if (std) {
+      // Scheduled meds follow the standard times for their frequency, from the order time on
+      // (tomorrow on if the order says so), plus documented off-schedule doses (e.g., given in the ER).
+      const H = 3600000, day0 = ctx.today;
+      const startAfter = /start (tomorrow|in (the )?am|in the morning)/i.test(med.freq) ? day0 + 24 * H : med.orderTime;
+      // A med released during the scenario may carry an explicit first dose ("at"); later doses align to the schedule.
+      const firstAt = extra && explicit.length && explicit[0].at != null ? explicit[0].t : null;
+      const from = Math.max(startAfter, ctx.auto ? ctx.start - 24 * H : day0) - 60000;
+      const grid = [];
+      for (let d = -1; d <= 1; d++) std.forEach(hm => {
+        const [hh, mm] = hm.split(':').map(Number);
+        const t = new Date(day0 + d * 24 * H); t.setHours(hh, mm, 0, 0);
+        grid.push(t.getTime());
+      });
+      const minGap = firstAt ? Math.min(4, 24 / std.length / 2) * H : 0;
+      // A written dose (from Notion) lines up with a slot by its written clock time and day; the chart clock is real time.
+      const slotOf = (t, d) => { const x = new Date(t); return `${d}|${String(x.getHours()).padStart(2, '0')}:${String(x.getMinutes()).padStart(2, '0')}`; };
+      const written = e => e.time ? `${e.day || 0}|${e.time}` : null;
+      const slots = [];
+      grid.forEach((t, gi) => slots.push({ t, key: slotOf(t, Math.floor(gi / std.length) - 1) }));
+      const documented = s => explicit.some(e => written(e) === s.key && (e.given || e.notGiven));
+      list = slots.filter(s => (s.t >= from && (!firstAt || s.t >= firstAt + minGap)) || documented(s))
+        .filter(s => med.weekday == null || new Date(s.t).getDay() === med.weekday)
+        .map(s => { const ex = explicit.find(e => written(e) === s.key); return Object.assign({}, ex || {}, { t: s.t }); });
+      if (firstAt) list.unshift(Object.assign({}, explicit[0]));
+      // Doses marked extra (e.g., given in the ER, or a first dose on admission) stay at their written time.
+      explicit.forEach(e => { if (e.extra && !list.includes(e)) list.push(e); });
+      list.sort((x, y) => x.t - y.t);
+    }
+    med.doseTimes = list.map((d, i) => {
+      const time = d.t;
       const dt = { key: med.id + '#' + i, time, priorBy: d.given || null, priorNotGiven: d.notGiven || null, priorNGBy: d.by || null };
-      if (med.weekday != null && new Date(time).getDay() !== med.weekday) dt.notToday = true;
+      if (!std && med.weekday != null && new Date(time).getDay() !== med.weekday) dt.notToday = true;
+      // Advanced Med-Surg / ICU: scheduled doses due before the scenario start were given by the prior shift.
+      if (ctx.auto && med.type === 'scheduled' && med.status === 'Active' && !extra && !dt.priorBy && !dt.priorNotGiven && !dt.notToday && time < ctx.start) dt.priorBy = ctx.initials;
       return dt;
     });
     if (med.lastGiven) med.lastGivenPrior = { time: clock.at(med.lastGiven, ref), by: med.lastGiven.by };
@@ -88,7 +138,10 @@
     p.ioPrior = stamp(p.io, start);
     p.priorAssessments = stamp(p.priorAssessments, start);
     p.documents = stamp(p.documents, start);
-    p.meds = (p.meds || []).map(m => prepMed(clock, m, p.admitTime));
+    const today = new Date(start); today.setHours(0, 0, 0, 0);
+    const auto = p.priorDosesGiven != null ? p.priorDosesGiven : (p.experiences || []).some(e => e === 'advms' || e === 'icu');
+    const ctx = { start, today: today.getTime(), auto, initials: p.priorRN || 'LJ' };
+    p.meds = (p.meds || []).map(m => prepMed(clock, m, p.admitTime, null, ctx));
 
     const rel = Store.released(pid);
     p.releasedEvents = [];
@@ -114,7 +167,7 @@
       p.notes.push(...stamp(ev.notes, rt, extra));
       p.documents.push(...stamp(ev.documents, rt, extra));
       p.vitalsPrior.push(...stamp(ev.vitals, rt, extra));
-      (ev.meds || []).forEach(m => p.meds.push(prepMed(clock, m, rt, extra)));
+      (ev.meds || []).forEach(m => p.meds.push(prepMed(clock, m, rt, extra, ctx)));
     });
     return p;
   };

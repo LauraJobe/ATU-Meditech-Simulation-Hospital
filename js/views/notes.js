@@ -42,7 +42,8 @@
     label: 'Nursing Notes',
     render(p, doc) {
       const items = [
-        ...p.notes.map(n => ({ kind: 'prior', time: n.time, n })),
+        // Provider notes live on the Provider Notes tab; this tab is nursing documentation only.
+        ...p.notes.filter(n => !(Views.isProviderNote && Views.isProviderNote(n))).map(n => ({ kind: 'prior', time: n.time, n })),
         ...doc.notes.filter(e => !e.data.addendumTo).map(e => ({ kind: 'student', time: e.time, e }))
       ].sort((a, b) => b.time - a.time);
       const addenda = id => doc.notes.filter(e => e.data.addendumTo === id);

@@ -108,7 +108,7 @@
     }).sort((a, b) => a.time - b.time);
   }
 
-  function patientBand(p) {
+  function patientBand(p, extra) {
     const allergies = p.nkda || !(p.allergies || []).length ? 'NKDA' : p.allergies.map(a => a.agent).join(', ');
     const resus = /not documented/i.test(p.codeStatus || '') ? '<span class="wb-resus">Resus Status Not Ordered</span>' : `<span class="${p.codeStatus === 'DNR' ? 'wb-dnr' : ''}">Code: ${esc(p.codeStatus)}</span>`;
     const bmi = Model.bmi(p);
@@ -116,7 +116,7 @@
       <div class="wb-id"><div class="avatar wb-avatar" aria-hidden="true">${esc((p.name.first[0] + p.name.last[0]).toUpperCase())}</div>
         <div><div class="wb-name">${esc(p.name.last)},${esc(p.name.first)}</div>
           <div>${esc(p.age.replace(' years', ''))} ${esc(p.sex)} ${esc(U.fmtDOB(p.dob))}</div>
-          <div>ADM IN ${esc(p.unit)}${p.room && p.room !== '—' ? ' ' + esc(p.room) : ''}</div></div></div>
+          <div>ADM IN ${esc(p.unit)}${p.room && p.room !== '—' ? ' ' + esc(p.room) : ''}</div>${extra || ''}</div></div>
       <div class="wb-mid">${resus}
         <div>${p.heightCm ? esc(p.heightCm) + ' cm' : ''} ${p.weightKg ? esc(p.weightKg) + ' kg' : ''}${bmi ? ' &nbsp;BMI: ' + bmi + ' kg/m²' : ''}</div>
         <div>Allergy/Adv: <span class="${allergies === 'NKDA' ? '' : 'wb-allergy'}">${esc(allergies)}</span></div></div>

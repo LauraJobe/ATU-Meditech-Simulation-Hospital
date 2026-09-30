@@ -500,7 +500,7 @@
             else status = `<div class="tally-high">⛔ Scanned ${Scan.fmt(tot)} EXCEEDS the ordered ${Scan.fmt(ordered)}. Edit the dose given before charting.</div>`;
           }
           tally.innerHTML = `<div class="tally-list">Scanned: ${scans.map(x => `<span class="tally-unit">${esc(x.label)}</span>`).join(' + ')}${tot && scans.length > 1 ? ` = <strong>${esc(Scan.fmt(tot))}</strong>` : ''}</div>${status}`;
-          if (doseField && tot) { doseField.value = Scan.fmt(tot); doseField.classList.toggle('field-alert', !!(ordered && tot.unit === ordered.unit && tot.value > ordered.value)); }
+          if (doseField && tot) { doseField.value = doseField.type === 'number' ? tot.value : Scan.fmt(tot); doseField.classList.toggle('field-alert', !!(ordered && tot.unit === ordered.unit && tot.value > ordered.value)); }
         };
         const addScan = code => {
           const c = String(code || '').trim().toUpperCase();

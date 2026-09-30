@@ -5,6 +5,9 @@
 window.EHR_CONFIG = {
   hospitalName: 'ATU Simulation Hospital',
   systemName: 'SimEHR',
+  // Shown on the sign-in screen. Also bump ?v= in index.html and labels.html when files change,
+  // so browsers (older iPads especially) load the new files instead of a saved copy.
+  version: '2026.09.30-1',
 
   // Simulation experiences students choose from at sign-in. Each patient in
   // js/data/patients.js lists the experience ids it belongs to.

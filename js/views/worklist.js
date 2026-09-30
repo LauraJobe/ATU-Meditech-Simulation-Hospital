@@ -21,7 +21,10 @@
   function vitalsInterval(p) {
     const orders = p.orders.filter(o => o.status === 'Active' && /vital signs/i.test(o.text)).sort((a, b) => b.time - a.time);
     for (const o of orders) {
-      const matches = [...o.text.matchAll(/\b(?:every|q)\s*(\d+)?\s*(minutes?|min|hours?|hrs?|hr)\b/gi)];
+      // exec loop instead of matchAll so older iPads (iOS 12) work
+      const re = /\b(?:every|q)\s*(\d+)?\s*(minutes?|min|hours?|hrs?|hr)\b/gi;
+      const matches = [];
+      for (let mm = re.exec(o.text); mm; mm = re.exec(o.text)) matches.push(mm);
       if (!matches.length) continue;
       // "every 5 min x3 ... then every 4 hours" -> use the last (maintenance) frequency
       const m = matches[matches.length - 1];

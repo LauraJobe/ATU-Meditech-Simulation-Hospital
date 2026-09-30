@@ -4,7 +4,7 @@
   const esc = U.esc;
   window.Views = window.Views || {};
 
-  const isProvider = n => /\bDr\.|\bMD\b|\bDO\b|\bNP\b|\bPA\b|Physician|Provider/i.test(n.author || '');
+  const isProvider = Views.isProviderNote = n => /\bDr\.|\bMD\b|\bDO\b|\bNP\b|\bPA\b|Physician|Provider/i.test(n.author || '');
 
   Views.provnotes = {
     label: 'Provider Notes',

@@ -31,6 +31,7 @@ It's a static website with no server, database, or build step. Host it free on G
 | **Chart Report** | A printable record of everything the student documented, including errors and late entries. Students can **Print / Save as PDF** or download JSON to submit. |
 
 **Older iPads (iOS 12.5.8):** the EHR runs on iOS 12. Camera scanning works only in **Safari** (on iOS 12–14.2 Chrome and other browsers cannot use the camera). Open the site in a Safari tab; a Home Screen shortcut is fine as long as it opens in Safari. A Bluetooth barcode scanner also works: tap the MAR scan box, then scan.
+
 Documentation follows legal-record rules. Entries are never deleted; they are **marked "entered in error"** with a reason and stay visible struck through. Entries charted more than 30 minutes after the event time are labeled **late entry**.
 
 ## Level 3 patients (from Notion)

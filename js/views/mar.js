@@ -67,7 +67,7 @@
     const pending = m => (m.doseTimes || []).filter(dt => ['due', 'overdue', 'future'].includes(Model.doseStatus(p, doc, m, dt).code)).sort((a, b) => a.time - b.time);
     const dueNow = m => pending(m).some(dt => ['due', 'overdue'].includes(Model.doseStatus(p, doc, m, dt).code));
     const med = active.find(exact) || active.find(dueNow) || active[0];
-    const opts = { ptVerified: true, scans: [c] };
+    const opts = { ptVerified: true, scans: [parsed.code] };
     const t = typeOf(med);
     if (t === 'continuous') return administer(p, doc, med, null, 'infusion', opts);
     if (t === 'prn') return administer(p, doc, med, null, 'prn', opts);
@@ -503,9 +503,9 @@
           if (doseField && tot) { doseField.value = doseField.type === 'number' ? tot.value : Scan.fmt(tot); doseField.classList.toggle('field-alert', !!(ordered && tot.unit === ordered.unit && tot.value > ordered.value)); }
         };
         const addScan = code => {
-          const c = String(code || '').trim().toUpperCase();
-          if (!c) return;
-          const parsed = Scan.parseCode(c);
+          if (!String(code || '').trim()) return;
+          const parsed = Scan.parseCode(code);
+          const c = parsed ? parsed.code : String(code).trim().toUpperCase();
           let unit = null;
           if (c === med.barcode.toUpperCase()) unit = { code: c, dose: Scan.parseDose(med.dose), label: `${med.name} ${med.dose}` };
           else if (parsed && parsed.kind === 'product' && parsed.key === Scan.drugKey(med)) unit = { code: c, dose: parsed.dose, label: `${med.name} ${Scan.fmt(parsed.dose)}` };

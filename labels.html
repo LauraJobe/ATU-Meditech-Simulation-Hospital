@@ -28,7 +28,7 @@
     .label.unit { border-style: solid; border-color: #9fb3c8; }
     h3.sub { font-size: 13px; margin: 14px 0 6px; color: var(--nav); }
     .code { font-family: monospace; font-size: 12px; letter-spacing: .05em; }
-    svg { max-width: 100%; height: 48px; }
+    svg.bc { display: block; margin: 2px auto; max-width: none; }
     .note { color: #5a6b7c; font-size: 12px; }
     @media print { body { background: #fff; padding: 0; } .controls { display: none; } .patient { border: none; padding: 0 0 12px; } }
   </style>
@@ -38,7 +38,7 @@
     <h1>Wristbands & Medication Labels</h1>
     <label>Patient: <select id="pick"><option value="">All patients</option></select></label>
     <button class="primary" onclick="window.print()">Print</button>
-    <span class="note">Barcodes are Code 128. A USB barcode scanner types into the MAR scan box like a keyboard. On the MAR, scan the wristband first, then medication labels. Labels include meds from scenario events.</span>
+    <span class="note">Barcodes are Code 128 with short 8-digit codes so tablet cameras read them easily; the text code under each barcode can also be typed. A USB barcode scanner types into the MAR scan box like a keyboard. On the MAR, scan the wristband first, then medication labels. Labels include meds from scenario events.</span>
   </div>
   <div id="out"></div>
 
@@ -78,21 +78,21 @@
             <div class="labels">${meds.map(m => `<div class="label ${m.highAlert ? 'ha' : ''}">
                 <div class="mn">${esc(m.name)}</div><div>${esc([m.dose, m.route].filter(x => x && x !== '—').join(' · '))}</div>
                 ${m.highAlert ? '<div class="al" style="color:#b3261e;font-weight:800;font-size:11px">HIGH ALERT</div>' : ''}
-                <svg class="bc" data-code="${esc(Model.barcodeFor(m))}"></svg>
-                <div class="code">${esc(Model.barcodeFor(m))}</div>
+                <svg class="bc" data-code="${esc(Scan.shortCode(Model.barcodeFor(m)))}"></svg>
+                <div class="code">${esc(Scan.shortCode(Model.barcodeFor(m)))} · ${esc(Model.barcodeFor(m))}</div>
                 <div class="pt">For: ${esc(p.name.last)}, ${esc(p.name.first)} · ${esc(p.mrn)}</div>
               </div>`).join('')}</div>
             <h3 class="sub">Unit-dose product labels <span class="note">— scan one or more per dose; the MAR adds them up (e.g., 2 × 325 mg = 650 mg). Other strengths are included for practice catching wrong doses.</span></h3>
             <div class="labels">${meds.filter(m => m.type !== 'continuous').flatMap(m => Scan.products(m).map((d, i) => ({ m, d, ordered: i === 0 }))).filter((x, i, arr) => arr.findIndex(y => Scan.productCode(y.m, y.d) === Scan.productCode(x.m, x.d)) === i).map(({ m, d }) => `<div class="label unit">
                 <div class="mn">${esc(m.name.split(/\s+\(|\s+—/)[0])}</div><div>${esc(Scan.fmt(d))} · 1 unit</div>
-                <svg class="bc" data-code="${esc(Scan.productCode(m, d))}"></svg>
-                <div class="code">${esc(Scan.productCode(m, d))}</div>
+                <svg class="bc" data-code="${esc(Scan.shortCode(Scan.productCode(m, d)))}"></svg>
+                <div class="code">${esc(Scan.shortCode(Scan.productCode(m, d)))} · ${esc(Scan.productCode(m, d))}</div>
               </div>`).join('')}</div>
           </section>`;
         }).join('');
         if (window.JsBarcode) {
           document.querySelectorAll('svg.bc').forEach(svg => {
-            try { JsBarcode(svg, svg.dataset.code, { format: 'CODE128', displayValue: false, height: 40, margin: 0, width: 1.4 }); } catch (e) { svg.remove(); }
+            try { JsBarcode(svg, svg.dataset.code, { format: 'CODE128', displayValue: false, height: 50, margin: 12, width: 2 }); } catch (e) { svg.remove(); }
           });
         } else {
           document.querySelectorAll('svg.bc').forEach(svg => svg.remove());

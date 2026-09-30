@@ -6,6 +6,10 @@
  *   RX-<MEDID>                 pharmacy label for one complete ordered dose (legacy)
  *   NDC-<DRUG>-<STRENGTH><U>   one unit-dose product, e.g. NDC-ACETAMINOPHEN-325MG.
  *                              Several can be scanned for one dose (2 × 325 mg = 650 mg).
+ *   <8 digits>                 short form of an RX- or NDC- code, printed as the barcode itself.
+ *                              Long text codes make wide, dense Code 128 barcodes that tablet
+ *                              cameras and some scanners miss; 8 digits encode in Code 128 set C
+ *                              as a short, wide-barred barcode. Both forms are accepted.
  */
 (function () {
   'use strict';
@@ -33,8 +37,28 @@
     return `NDC-${drugKey(med)}-${num}${dose.unit.toUpperCase()}`;
   }
 
+  // Stable 8-digit number for a text code (FNV-1a hash), so a printed label keeps working.
+  function shortCode(text) {
+    let h = 0x811c9dc5;
+    const t = String(text).toUpperCase();
+    for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+    return String(10000000 + h % 90000000);
+  }
+
+  // Every text code on every chart (base meds, event meds, unit-dose products), by short code.
+  function textCodes(p) {
+    const meds = [...(p.meds || []), ...(p.events || []).flatMap(e => e.meds || [])];
+    return meds.flatMap(m => [m.barcode || ('RX-' + String(m.id).toUpperCase()), ...(m.type !== 'continuous' ? products(m).map(d => productCode(m, d)) : [])]);
+  }
+  function expand(c) {
+    if (!/^\d{8}$/.test(c)) return c;
+    const pts = window.Model ? window.Model.allPatients() : (window.SIM_PATIENTS || []);
+    for (const p of pts) for (const t of textCodes(p)) if (shortCode(t) === c) return t.toUpperCase();
+    return c;
+  }
+
   function parseCode(code) {
-    const c = String(code || '').trim().toUpperCase();
+    const c = expand(String(code || '').trim().toUpperCase());
     let m = /^NDC-([A-Z]+)-(\d+(?:\.\d+)?)(MG|UNITS|ML|MEQ)$/.exec(c);
     if (m) return { kind: 'product', key: m[1], dose: { value: Number(m[2]), unit: m[3] === 'ML' ? 'mL' : m[3] === 'MEQ' ? 'mEq' : m[3].toLowerCase() }, code: c };
     m = /^RX-(.+)$/.exec(c);
@@ -58,5 +82,5 @@
     return list.filter(x => { const k = x.value + x.unit; if (seen.has(k)) return false; seen.add(k); return true; });
   }
 
-  window.Scan = { parseDose, fmt, drugKey, productCode, parseCode, products };
+  window.Scan = { parseDose, fmt, drugKey, productCode, parseCode, products, shortCode, textCodes };
 })();

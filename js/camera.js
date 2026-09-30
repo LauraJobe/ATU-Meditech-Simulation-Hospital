@@ -57,10 +57,10 @@
             await loadLib();
             if (done) return;
             const F = window.Html5QrcodeSupportedFormats;
-            const reader = new window.Html5Qrcode('cam-reader', { formatsToSupport: [F.CODE_128, F.CODE_39, F.QR_CODE], verbose: false });
+            const reader = new window.Html5Qrcode('cam-reader', { formatsToSupport: [F.CODE_128, F.CODE_39, F.QR_CODE], verbose: false, experimentalFeatures: { useBarCodeDetectorIfSupported: true } });
             let running = false;
             stop = () => { if (running) { running = false; reader.stop().then(() => reader.clear()).catch(() => {}); } };
-            await reader.start({ facingMode: 'environment' }, { fps: 10, qrbox: { width: 300, height: 120 } }, text => finish(api, text), () => {});
+            await reader.start({ facingMode: 'environment' }, { fps: 10, qrbox: (w, h) => ({ width: Math.max(200, Math.floor(w * 0.92)), height: Math.max(80, Math.floor(Math.min(h * 0.5, w * 0.4))) }) }, text => finish(api, text), () => {});
             running = true;
             if (done) stop();
           }

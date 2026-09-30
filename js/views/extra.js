@@ -13,8 +13,8 @@
       const reports = [...p.imaging].sort((a, b) => b.time - a.time);
       const list = notes.length ? notes.map(n => `<article class="note ${n.isNew ? 'note-new' : ''}">
           <header><strong>${esc(n.type)}</strong>${n.isNew ? ' ' + UI.badge('NEW', 'new') : ''}<span class="muted"> — ${esc(U.fmtDT(n.time))} · ${esc(n.author)}</span></header>
-          <div class="note-body">${U.nl2br(n.text)}</div></article>`).join('') : UI.empty('No provider notes on file.');
-      const rep = reports.length ? reports.map(i => `<article class="note"><header><strong>${esc(i.study)}</strong><span class="muted"> — ${esc(U.fmtDT(i.time))}</span></header><div class="note-body">${U.nl2br(i.text)}</div></article>`).join('') : '';
+          <div class="note-body">${U.body(n)}</div></article>`).join('') : UI.empty('No provider notes on file.');
+      const rep = reports.length ? reports.map(i => `<article class="note"><header><strong>${esc(i.study)}</strong><span class="muted"> — ${esc(U.fmtDT(i.time))}</span></header><div class="note-body">${U.body(i)}</div></article>`).join('') : '';
       return `${UI.panel('Provider Documentation', list)}${rep ? UI.panel('Reports (Imaging / ECG)', rep) : ''}
         <p class="muted">Provider notes are read-only. Nursing documentation is under Nurse/Allied Health → Nursing Notes.</p>`;
     }
@@ -31,6 +31,24 @@
     careplan: ['Care Plan', 'careplan', e => e.data.kind === 'plan' ? e.data.dx : 'Evaluation: ' + e.data.status],
     heparin: ['Heparin Flowsheet', 'heparin', e => [e.data.aptt && 'aPTT ' + e.data.aptt, e.data.newRate && 'Rate ' + e.data.newRate].filter(Boolean).join(', ')],
     tar: ['Transfusion (TAR)', 'tar', e => e.data.kind === 'start' ? `Started ${e.data.product}, unit ${e.data.unitNo}` : e.data.kind === 'vitals' ? `Vital signs — ${e.data.label}` : e.data.kind === 'end' ? `Completed — ${e.data.infused} mL` : 'Stopped — suspected reaction']
+  };
+
+  // Documents — consents, prenatal records, APGAR, policies, printable forms (read-only reference).
+  const DOC_GROUP = { documents: 'Consents & Forms', prenatal: 'Prenatal Record', labor: 'Labor & Delivery', io: 'Intake & Output (source record)', assessments: 'Assessment Tools', orders: 'Policies & Protocols' };
+  let openDoc = null;
+  Views.documents = {
+    label: 'Documents',
+    render(p) {
+      const docs = [...(p.documents || [])].sort((a, b) => (a.category || '').localeCompare(b.category || '') || a.time - b.time);
+      if (!docs.length) return UI.empty('No documents on file for this patient.');
+      if (openDoc && !docs.some(d => d.id === openDoc)) openDoc = null;
+      const cur = docs.find(d => d.id === openDoc) || docs[0];
+      const groups = {};
+      docs.forEach(d => { const g = DOC_GROUP[d.category] || 'Other'; (groups[g] = groups[g] || []).push(d); });
+      return `<div class="doc-layout"><nav class="dx-side">${Object.entries(groups).map(([g, list]) => `<div class="doc-group">${esc(g)}</div>${list.map(d => `<button type="button" class="dx-side-btn ${d === cur ? 'dx-side-on' : ''}" data-doc="${esc(d.id)}">${esc(d.title)}${d.isNew ? ' ' + UI.badge('NEW', 'new') : ''}</button>`).join('')}`).join('')}</nav>
+        <article class="note doc-body"><header><strong>${esc(cur.title)}</strong></header><div class="note-body">${U.md(cur.md || '')}</div></article></div>`;
+    },
+    bind(root) { root.querySelectorAll('[data-doc]').forEach(b => b.addEventListener('click', () => { openDoc = b.dataset.doc; App.render(); })); }
   };
 
   Views.activity = {

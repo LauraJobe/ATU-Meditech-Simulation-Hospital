@@ -73,6 +73,7 @@
     const base = M.base(pid);
     if (!base) return null;
     const p = JSON.parse(JSON.stringify(base));
+    if (p.dob === 'today') { const d = new Date(); p.dob = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
     const clock = M.clock(p);
     p.clock = clock;
     p.admitTime = p.admitted ? clock.at(p.admitted) : clock.simStart;
@@ -86,6 +87,7 @@
     p.vitalsPrior = stamp(p.vitals, start);
     p.ioPrior = stamp(p.io, start);
     p.priorAssessments = stamp(p.priorAssessments, start);
+    p.documents = stamp(p.documents, start);
     p.meds = (p.meds || []).map(m => prepMed(clock, m, p.admitTime));
 
     const rel = Store.released(pid);
@@ -110,6 +112,8 @@
       p.labs.push(...stamp(ev.labs, rt, extra));
       p.imaging.push(...stamp(ev.imaging, rt, extra));
       p.notes.push(...stamp(ev.notes, rt, extra));
+      p.documents.push(...stamp(ev.documents, rt, extra));
+      p.vitalsPrior.push(...stamp(ev.vitals, rt, extra));
       (ev.meds || []).forEach(m => p.meds.push(prepMed(clock, m, rt, extra)));
     });
     return p;

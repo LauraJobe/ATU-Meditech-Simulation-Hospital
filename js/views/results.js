@@ -57,7 +57,7 @@
   function reports(p, doc, list) {
     return list.length ? [...list].sort((a, b) => b.time - a.time).map(i => `<article class="note ${i.isNew ? 'note-new' : ''}">
         <header><strong>${esc(i.study)}</strong>${i.isNew ? ' ' + UI.badge('NEW', 'new') : ''}<span class="muted"> — ${esc(U.fmtDT(i.time))}</span></header>
-        <div class="note-body">${U.nl2br(i.text)}</div>
+        <div class="note-body">${U.body(i)}</div>
         ${i.isNew && !Model.isAcked(doc, i.id) ? `<button class="btn btn-sm btn-primary" data-review="${esc(i.id)}">Mark Reviewed</button>` : ''}
       </article>`).join('') : UI.empty('No reports on file.');
   }

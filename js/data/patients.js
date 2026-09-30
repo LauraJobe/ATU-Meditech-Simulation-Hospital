@@ -125,7 +125,7 @@ window.SIM_PATIENTS = [
     service: 'Orthopedics',
     attending: 'Dr. Marcus',
     admitted: { time: '08:00', day: -6 },
-    scenarioStart: '09:30',
+    scenarioStart: '13:45', // vitals on the source flowsheet are charted at 1329 and 1340
     admitDx: 'Post-op ORIF right hip (POD 5) — right femoral neck fracture after fall at home',
     codeStatus: 'Full Code',
     advanceDirective: 'None',
@@ -204,7 +204,12 @@ window.SIM_PATIENTS = [
       { id: 'liv-apap', name: 'Acetaminophen', dose: '650 mg', route: 'PO', freq: 'Every 6 hours PRN', type: 'prn', indication: 'Temp > 101 °F', minIntervalHr: 6, preAssess: ['Temp'], lastGiven: { time: '06:00', by: 'LJ' } },
       { id: 'liv-ketorolac', name: 'Ketorolac', dose: '30 mg', route: 'IV push', freq: 'Every 6 hours PRN', type: 'prn', indication: 'Pain', instructions: 'Not to exceed 120 mg daily.', minIntervalHr: 6, preAssess: ['Pain'] }
     ],
-    vitals: [],
+    // From the Livingston vital signs flowsheet (ATU-Simulation-Hospital / Notion revision).
+    vitals: [
+      { at: -60, temp: 100.9, tempRoute: 'Oral', hr: 110, rr: 20, sbp: 110, dbp: 60, spo2: 94, o2: 'Nasal cannula', o2Flow: 2, pain: 0, note: 'Last set charted', by: 'Prior RN' },
+      { time: '13:29', temp: 99.0, tempRoute: 'Oral', hr: 111, rr: 24, sbp: 95, dbp: 57, spo2: 93, o2: 'Nasal cannula', o2Flow: 2, pain: 0, by: 'Prior RN' },
+      { time: '13:40', temp: 99.0, tempRoute: 'Oral', hr: 113, rr: 24, sbp: 95, dbp: 56, spo2: 91, o2: 'Nasal cannula', o2Flow: 4, pain: 0, by: 'Prior RN' }
+    ],
     // From "Ruth_Livingston_lab2.pdf" (reference ranges as printed on the report).
     labs: [
       { id: 'liv-cbc-y', panel: 'Complete Blood Count', time: '06:00', day: -1, results: [
@@ -231,17 +236,47 @@ window.SIM_PATIENTS = [
       ] },
       { id: 'liv-misc-t', panel: 'Miscellaneous', time: '06:00', results: [
         { t: 'Lactate (venous)', v: '5.0', u: 'mmol/L', lo: 0.5, hi: 2.2 },
-        { t: 'Blood culture', v: 'Positive — Enterobacter cloacae', ref: 'No growth', flag: 'A' },
+        { t: 'Blood culture', v: 'Pending', ref: 'No growth' },
         { t: 'ABO/Rh (blood type)', v: 'A+' }
       ] }
     ],
-    labsPending: 'Repeat urinalysis sent at 0600 — pending.',
+    labsPending: 'Repeat urinalysis sent at 0600 — pending. Blood culture pending.',
     imaging: [],
     notes: [
       { id: 'liv-n1', type: 'Nursing Note', author: 'VR, RN', time: '06:00', text: 'Patient started yelling and was found confused in bed with the indwelling catheter lying on the floor. The patient has been incontinent. Scant urethral bleeding and minimal external trauma were noted. Received a complete bath and linen change. A repeat urinalysis was sent to lab and is pending.' }
     ],
     io: [],
     events: [
+      {
+        id: 'liv-culture',
+        title: 'Blood culture resulted — Enterobacter cloacae',
+        instructorNotes: 'From "Culture Results — Ruth" (ATU-Simulation-Hospital). The baseline culture shows Pending until released.',
+        labs: [{ id: 'liv-culture-r', panel: 'Microbiology', results: [{ t: 'Blood culture', v: 'Positive — Enterobacter cloacae', ref: 'No growth', flag: 'A' }] }]
+      },
+      {
+        id: 'liv-icu-labs',
+        title: 'ICU repeat labs resulted',
+        instructorNotes: 'From "ICU Lab Results — Ruth". The source prints the repeat chloride as 1.5 (not physiologic) — it is left out here; add the correct value in patients.js if you have it. Collection time is not specified in the source.',
+        labs: [
+          { id: 'liv-cbc-icu', panel: 'Complete Blood Count', results: [
+            { t: 'Hgb', v: 10.2, u: 'g/dL', lo: 14, hi: 18 }, { t: 'HCT', v: 29.5, u: '%', lo: 42, hi: 50 },
+            { t: 'Platelets', v: 170, u: 'x10⁹/L', lo: 150, hi: 400 }, { t: 'WBC', v: '16.0', u: 'x10⁹/L', lo: 4, hi: 11 } ] },
+          { id: 'liv-bmp-icu', panel: 'Basic Metabolic Panel', results: [
+            { t: 'Sodium', v: 136, u: 'mEq/L', lo: 136, hi: 145 }, { t: 'Potassium', v: 3.6, u: 'mEq/L', lo: 3.5, hi: 5.0 },
+            { t: 'Calcium', v: 8.5, u: 'mg/dL', lo: 8.6, hi: 10.2 }, { t: 'HCO3', v: 19, u: 'mEq/L', lo: 23, hi: 28 },
+            { t: 'BUN', v: 25, u: 'mg/dL', lo: 8, hi: 20 }, { t: 'Creatinine', v: 1.5, u: 'mg/dL', lo: 0.7, hi: 1.3 },
+            { t: 'Glucose', v: 100, u: 'mg/dL', lo: 70, hi: 99 }, { t: 'Lactate (venous)', v: 5.1, u: 'mmol/L', lo: 0.5, hi: 2.2 } ] }
+        ]
+      },
+      {
+        id: 'liv-transfuse',
+        title: 'Transfusion orders — 2 units PRBC',
+        instructorNotes: 'From "Transfusion Orders — Ruth". Patient blood type A+ (on file; the TAR checks it). Date/time not entered in the source.',
+        orders: [
+          { id: 'liv-tx-o1', cat: 'Lab', text: 'Type and cross 2 units PRBC', by: 'Dr. Marcus' },
+          { id: 'liv-tx-o2', cat: 'Blood Products', text: 'Transfuse 2 units PRBC', by: 'Dr. Marcus' }
+        ]
+      },
       {
         id: 'liv-icu',
         title: 'Change in condition — Transfer to ICU (ICU Orders)',

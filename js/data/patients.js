@@ -148,11 +148,12 @@ window.SIM_PATIENTS = [
           ['Notify provider', 'SBP < 100 or > 160, HR < 55 or > 110, SpO₂ < 90%, or goal not met at maximum dose'],
           ['Concentration', 'Per pharmacy label — calculate mL/hr from the bag concentration']
         ],
-        tableTitle: 'Titration guide',
-        table: { head: ['Assessment', 'Action', 'Recheck'], rows: [
-          ['MAP < 65 or SBP < 100', 'Increase 2 mcg/min (maximum 30 mcg/min)', '5 minutes'],
-          ['MAP > 65 or SBP > 100 (at goal)', 'Maintain current dose', '15 minutes (per VS order)'],
-          ['At 30 mcg/min and goal not met', 'Do not exceed maximum — notify provider', 'Continuous']
+        tableTitle: 'Titration Protocol — NOREPINEPHRINE TITRATION',
+        table: { head: ['Condition', 'Dose/Route', 'Instruction'], rows: [
+          ['DOSE RANGE', '2–30 MCG/MIN IV', 'START 2 MCG/MIN AFTER NS BOLUS IF MAP < 65 OR SBP < 100'],
+          ['TITRATION', '2 MCG/MIN', 'EVERY 5 MINS'],
+          ['PARAMETERS', '', 'MAINTAIN MAP > 65 OR SBP > 100'],
+          ['MAXIMUM', '30 MCG/MIN', 'DO NOT EXCEED — NOTIFY PROVIDER IF GOAL NOT MET']
         ] },
         maxDose: 30, doseUnit: 'mcg/min',
         signedBy: 'Dr. Marcus'
@@ -207,13 +208,13 @@ window.SIM_PATIENTS = [
     // From "Ruth_Livingston_lab2.pdf" (reference ranges as printed on the report).
     labs: [
       { id: 'liv-cbc-y', panel: 'Complete Blood Count', time: '06:00', day: -1, results: [
-        { t: 'Hgb', v: 9.0, u: 'g/dL', lo: 14, hi: 18 },
+        { t: 'Hgb', v: '9.0', u: 'g/dL', lo: 14, hi: 18 },
         { t: 'HCT', v: 27, u: '%', lo: 42, hi: 50 },
         { t: 'Platelets', v: 180, u: 'x10⁹/L', lo: 150, hi: 400 },
         { t: 'WBC', v: 11.4, u: 'x10⁹/L', lo: 4, hi: 11 }
       ] },
       { id: 'liv-cbc-t', panel: 'Complete Blood Count', time: '06:00', results: [
-        { t: 'Hgb', v: 10.0, u: 'g/dL', lo: 14, hi: 18 },
+        { t: 'Hgb', v: '10.0', u: 'g/dL', lo: 14, hi: 18 },
         { t: 'HCT', v: 29, u: '%', lo: 42, hi: 50 },
         { t: 'Platelets', v: 175, u: 'x10⁹/L', lo: 150, hi: 400 },
         { t: 'WBC', v: 15.7, u: 'x10⁹/L', lo: 4, hi: 11 }
@@ -229,7 +230,7 @@ window.SIM_PATIENTS = [
         { t: 'Glucose', v: 98, u: 'mg/dL', lo: 70, hi: 99 }
       ] },
       { id: 'liv-misc-t', panel: 'Miscellaneous', time: '06:00', results: [
-        { t: 'Lactate (venous)', v: 5.0, u: 'mmol/L', lo: 0.5, hi: 2.2 },
+        { t: 'Lactate (venous)', v: '5.0', u: 'mmol/L', lo: 0.5, hi: 2.2 },
         { t: 'Blood culture', v: 'Positive — Enterobacter cloacae', ref: 'No growth', flag: 'A' },
         { t: 'ABO/Rh (blood type)', v: 'A+' }
       ] }
@@ -613,12 +614,12 @@ window.SIM_PATIENTS = [
         { t: 'Chloride', v: 95, u: 'mEq/L', lo: 98, hi: 106 },
         { t: 'HCO3', v: 30, u: 'mEq/L', lo: 22, hi: 26 },
         { t: 'BUN', v: 17, u: 'mg/dL', lo: 8, hi: 23 },
-        { t: 'Creatinine', v: 1.0, u: 'mg/dL', lo: 0.6, hi: 1.1 },
+        { t: 'Creatinine', v: '1.0', u: 'mg/dL', lo: 0.6, hi: 1.1 },
         { t: 'Glucose', v: 110, u: 'mg/dL', lo: 70, hi: 110 }
       ] },
       { id: 'wat-coag-pre', panel: 'Coagulation', time: '11:00', day: -4, results: [
         { t: 'PT', v: 12, u: 's', lo: 10, hi: 14 },
-        { t: 'INR', v: 1.0, lo: 0.8, hi: 1.1 },
+        { t: 'INR', v: '1.0', lo: 0.8, hi: 1.1 },
         { t: 'aPTT', v: 30, u: 's', lo: 25, hi: 40 }
       ] },
       { id: 'wat-cbc-pod3', panel: 'Complete Blood Count', time: '06:00', day: -1, results: [
@@ -629,7 +630,7 @@ window.SIM_PATIENTS = [
       ] },
       { id: 'wat-bmp-pod3', panel: 'Basic Metabolic Panel', time: '06:00', day: -1, results: [
         { t: 'Sodium', v: 140, u: 'mEq/L', lo: 135, hi: 145 },
-        { t: 'Potassium', v: 4.0, u: 'mEq/L', lo: 3.5, hi: 5.1 },
+        { t: 'Potassium', v: '4.0', u: 'mEq/L', lo: 3.5, hi: 5.1 },
         { t: 'Chloride', v: 100, u: 'mEq/L', lo: 98, hi: 106 },
         { t: 'HCO3', v: 25, u: 'mEq/L', lo: 22, hi: 26 },
         { t: 'BUN', v: 15, u: 'mg/dL', lo: 8, hi: 23 },
@@ -638,7 +639,7 @@ window.SIM_PATIENTS = [
       ] },
       { id: 'wat-coag-pod3', panel: 'Coagulation', time: '06:00', day: -1, results: [
         { t: 'PT', v: 12, u: 's', lo: 10, hi: 14 },
-        { t: 'INR', v: 1.0, lo: 0.8, hi: 1.1 },
+        { t: 'INR', v: '1.0', lo: 0.8, hi: 1.1 },
         { t: 'aPTT', v: 32, u: 's', lo: 25, hi: 40 }
       ] },
       { id: 'wat-cbc-pod4', panel: 'Complete Blood Count', time: '06:00', results: [
@@ -649,7 +650,7 @@ window.SIM_PATIENTS = [
       ] },
       { id: 'wat-bmp-pod4', panel: 'Basic Metabolic Panel', time: '06:00', results: [
         { t: 'Sodium', v: 141, u: 'mEq/L', lo: 135, hi: 145 },
-        { t: 'Potassium', v: 4.0, u: 'mEq/L', lo: 3.5, hi: 5.1 },
+        { t: 'Potassium', v: '4.0', u: 'mEq/L', lo: 3.5, hi: 5.1 },
         { t: 'Chloride', v: 100, u: 'mEq/L', lo: 98, hi: 106 },
         { t: 'HCO3', v: 25, u: 'mEq/L', lo: 22, hi: 26 },
         { t: 'BUN', v: 15, u: 'mg/dL', lo: 8, hi: 23 },
@@ -658,7 +659,7 @@ window.SIM_PATIENTS = [
       ] },
       { id: 'wat-coag-pod4', panel: 'Coagulation', time: '06:00', results: [
         { t: 'PT', v: 12, u: 's', lo: 10, hi: 14 },
-        { t: 'INR', v: 1.0, lo: 0.8, hi: 1.1 },
+        { t: 'INR', v: '1.0', lo: 0.8, hi: 1.1 },
         { t: 'aPTT', v: 32, u: 's', lo: 25, hi: 40 }
       ] }
     ],

@@ -55,8 +55,6 @@
           <label class="field"><span>New dose (mcg/min)</span><input type="number" step="any" name="newDose" required></label>
           <label class="field"><span>Rate (mL/hr)</span><input type="number" step="any" name="mlhr" required></label>
         </div>
-        <label class="check"><input type="checkbox" name="doubleCheck" data-single="1"> Independent double check completed (high-alert infusion)</label>
-        <label class="field"><span>RN 2 (verifier)</span><input name="rn2"></label>
         <label class="field"><span>Comment</span><textarea name="comment" rows="2"></textarea></label>
       </form>`,
       onOpen(api) { api.el.querySelector('form').addEventListener('submit', e => e.preventDefault()); },
@@ -64,15 +62,12 @@
         const f = api.el.querySelector('form');
         if (!f.reportValidity()) return false;
         const v = U.formValues(f);
-        if (/^(Started|Increased|Decreased)/.test(v.action) && (!v.doubleCheck || !v.rn2)) { UI.formError(f, 'A second RN must independently double check every start and rate change.'); return false; }
-        const me = ((Store.session() || {}).name || '').trim().toLowerCase();
-        if (v.rn2 && v.rn2.trim().toLowerCase() === me) { UI.formError(f, 'The verifier must be a different RN.'); return false; }
         if (pr && pr.maxDose && Number(v.newDose) > pr.maxDose) { UI.formError(f, `New dose exceeds the ordered maximum of ${pr.maxDose} ${pr.doseUnit || ''}. Notify the provider.`); return false; }
         const t = UI.readTime(p, f);
         Store.add(p.id, 'mar', { medId: med.id, medName: med.name, infusion: true, titration: true,
           action: v.action === 'Started' ? 'Started / hung' : /^(Increased|Decreased)/.test(v.action) ? 'Rate change' : v.action === 'Paused' ? 'Paused' : v.action === 'Stopped' ? 'Stopped / discontinued' : 'Rate verified',
           rate: `${v.newDose} mcg/min = ${v.mlhr} mL/hr`, comment: [`MAP ${v.map}, BP ${v.sbp}${v.dbp ? '/' + v.dbp : ''}, HR ${v.hr}`, v.action, v.prevDose && `from ${v.prevDose} mcg/min`, v.comment].filter(Boolean).join('; '),
-          doubleCheck: v.doubleCheck ? v.rn2 : '', scan: { patient: 'n/a', med: 'n/a' } }, t, p.clock.now());
+          scan: { patient: 'n/a', med: 'n/a' } }, t, p.clock.now());
         Store.add(p.id, 'vitals', { sbp: v.sbp, dbp: v.dbp || undefined, hr: v.hr, note: `Titration — ${med.name} ${v.newDose} mcg/min` }, t, p.clock.now());
         UI.toast('Titration documented on the MAR.');
         App.render();

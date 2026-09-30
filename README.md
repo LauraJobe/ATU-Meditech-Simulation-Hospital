@@ -30,6 +30,7 @@ It's a static website with no server, database, or build step. Host it free on G
 | **Protocol titration** | **Heparin (Watkins):** Titrate (aPTT) on the MAR or from the Worklist (*Heparin Protocol / aPTT Titration*). The dialog shows the protocol and nomogram; students enter aPTT, bolus, hold, rate change, new rate (units/kg/hr and mL/hr), and next aPTT, with a required second-RN double check. Flowsheets → Heparin Flowsheet is the read-only history. **Norepinephrine (Ruth, after ICU transfer):** Titrate on the MAR records MAP/SBP/HR, action, previous and new dose (mcg/min), and mL/hr, with no second-RN check required (heparin requires one). It blocks doses above the 30 mcg/min maximum, and the BP/HR also go on the vital signs flowsheet. |
 | **Chart Report** | A printable record of everything the student documented, including errors and late entries. Students can **Print / Save as PDF** or download JSON to submit. |
 
+**Older iPads (iOS 12.5.8):** the EHR runs on iOS 12. Camera scanning works only in **Safari** (on iOS 12–14.2 Chrome and other browsers cannot use the camera). Open the site in a Safari tab; a Home Screen shortcut is fine as long as it opens in Safari. A Bluetooth barcode scanner also works: tap the MAR scan box, then scan.
 Documentation follows legal-record rules. Entries are never deleted; they are **marked "entered in error"** with a reason and stay visible struck through. Entries charted more than 30 minutes after the event time are labeled **late entry**.
 
 ## Level 3 patients (from Notion)

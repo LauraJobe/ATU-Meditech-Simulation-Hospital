@@ -507,3 +507,133 @@ details.prior summary { cursor: pointer; font-weight: 600; }
 .wl-cell-on .wl-check { font-size: 17px; }
 a.wl-btn { display: inline-flex; align-items: center; text-decoration: none; }
 .solo-title { font-size: 18px; margin: 14px 0 8px; }
+
+/* Orders: fixed columns so every category lines up */
+.orders-grid { table-layout: fixed; width: 100%; }
+.orders-grid .oc-time { width: 150px; }
+.orders-grid .oc-by { width: 210px; }
+.orders-grid .oc-status { width: 190px; }
+.orders-grid .oc-act { width: 140px; }
+.orders-grid td { overflow-wrap: anywhere; }
+@media (max-width: 800px) { .orders-grid { table-layout: auto; } }
+
+/* TAR and multi-column form grids */
+.form-grid.g2 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.form-grid.g3 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.form-grid.g6 { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }
+.labs .lab-ref { border-right: 2px solid #c9d3dd; }
+.labs th.lab-new-col { background: var(--new-bg); }
+
+/* Orders — Expanse style */
+.ord-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: #86cfca; margin: 0 -20px; padding: 8px 20px; }
+.ord-head h2 { margin: 0; font-size: 26px; font-weight: 400; color: #123; }
+.ord-head-right { display: flex; gap: 8px; align-items: center; }
+.ord-submit { font: inherit; font-size: 13px; letter-spacing: .04em; display: inline-flex; align-items: stretch; border: 1px solid #9ab; border-radius: 4px; background: #fff; color: #1b6fb5; padding: 0; cursor: pointer; overflow: hidden; }
+.ord-submit span { background: #555; color: #fff; padding: 8px 14px; font-weight: 700; }
+.ord-submit:not(:disabled) { color: #fff; background: #1b6fb5; border-color: #135589; }
+.ord-submit:not(:disabled) { padding-left: 16px; }
+.ord-submit:disabled { color: #9aa; padding-left: 16px; cursor: default; }
+.ord-tabs { display: grid; grid-template-columns: repeat(4, 1fr); background: #c9ebe8; margin: 0 -20px 8px; border-bottom: 1px solid #a9d6d2; }
+.ord-tab { font: inherit; font-size: 14px; letter-spacing: .05em; background: transparent; border: none; border-right: 1px solid #a9d6d2; padding: 10px; color: #2b4a52; cursor: pointer; }
+.ord-tab small { font-size: 10px; letter-spacing: 0; color: #4d6a70; }
+.ord-tab-on { font-weight: 700; color: #1f5f5c; box-shadow: inset 0 -3px 0 #1f7f78; background: #e6f6f5; }
+.ord-tab:disabled { color: #93adb0; cursor: default; }
+.orders-grid .ord-band th { background: #d5eeec; color: #1f5f5c; font-size: 17px; font-weight: 700; text-align: left; padding: 6px 10px; border-top: 1px solid #a9d6d2; }
+.orders-grid .oc-by { width: 230px; }
+.orders-grid .oc-time { width: 150px; }
+.orders-grid .oc-status { width: 170px; }
+.orders-grid .oc-act { width: 120px; }
+.orders-grid .oc-i { width: 42px; }
+.ord-text { font-size: 15px; }
+.ord-sig { color: #2f8a3a; font-size: 13px; letter-spacing: .02em; }
+.i-link, .p-link { font: 700 13px/1 Georgia, serif; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid #2c7fc0; color: #2c7fc0; background: #fff; cursor: pointer; padding: 0; font-style: italic; }
+.p-link { font: 800 12px/1 system-ui, sans-serif; font-style: normal; border-radius: 4px; border-color: #7a3db8; color: #fff; background: #7a3db8; vertical-align: middle; margin-left: 4px; }
+.i-link:hover { background: #e6f2ff; } .p-link:hover { background: #5c2a8f; }
+
+/* MAR grid — Expanse style */
+.mg-include { margin: 10px 0 4px; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+.mg-inc { display: inline-flex; gap: 4px; align-items: center; }
+.mar-grid { width: auto; min-width: 760px; border-collapse: collapse; }
+.mar-grid th { background: #cfe0f3; color: #243b53; font-weight: 600; text-align: center; font-size: 12px; }
+.mar-grid th.mg-today { background: #b9d3ef; }
+.mar-grid td { vertical-align: top; border: 1px solid #d3dce5; }
+.mar-grid td.mg-start { font-size: 12px; width: 120px; color: #34495e; }
+.mg-status-off { color: #b3261e; font-weight: 700; }
+.mar-grid td.mg-med { min-width: 300px; max-width: 420px; cursor: pointer; }
+.mar-grid td.mg-med:hover { background: #eef5ff; }
+.mar-grid td.mg-selected { background: #fff6c2 !important; box-shadow: inset 3px 0 0 #d69500; }
+.mg-give { font-size: 12px; color: #34495e; }
+.mar-grid td.mg-time { text-align: center; font-variant-numeric: tabular-nums; width: 64px; white-space: nowrap; }
+.mar-grid td.mg-cell { width: 120px; padding: 0; text-align: center; }
+.mg-btn { font: inherit; font-size: 12px; width: 100%; min-height: 30px; border: none; background: transparent; cursor: pointer; padding: 4px; }
+.mg-overdue { background: #f4a3a3; } .mg-overdue .mg-btn { color: #6b0d0d; font-weight: 700; }
+.mg-due { background: #ffe98a; } .mg-due .mg-btn { font-weight: 700; color: #5c4100; }
+.mg-given { background: #d6efdb; } .mg-given .mg-btn { color: #1e6b33; }
+.mg-notgiven { background: #fde0c2; } .mg-notgiven .mg-btn { color: #7a4100; }
+.mg-future .mg-btn:hover, .mg-none:hover { background: #eef5ff; }
+.mg-dc, .mg-hold, .mg-notdue { background: #eceff2; } .mg-dc .mg-btn, .mg-hold .mg-btn, .mg-notdue .mg-btn { color: #7b8894; }
+.mar-grid td.mg-span { padding: 6px 8px; }
+.mg-sep td { border: none; height: 6px; background: transparent; }
+
+/* Medications folder tab */
+.ml-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.ml-menu-wrap { position: relative; }
+.ml-menu { right: 0; left: auto; top: 100%; min-width: 210px; }
+.ml-menu-h { padding: 6px 12px; color: #9aa7b4; font-size: 13px; }
+.ml-menu a.ml-on { background: #e6f2ff; font-weight: 700; }
+.meds-list .ml-sig { color: #5a6b7c; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+.mg-icons { display: flex; gap: 3px; margin: 3px 0; }
+.mg-ico { font: 800 10px/1 system-ui, sans-serif; min-width: 18px; height: 16px; padding: 0 3px; border: 1.5px solid #1b2733; background: #fff; color: #1b2733; border-radius: 2px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.mg-ico-titr { font-size: 12px; }
+.mg-ico-ha { cursor: default; border-color: #b3261e; color: #b3261e; }
+button.mg-ico:hover { background: #e6f2ff; }
+.mg-rx { font-size: 12px; color: #34495e; }
+.mg-label { font-size: 12px; margin-top: 4px; }
+.mar-grid td.mg-prn, .mar-grid td.mg-iv { background: #f4f8fc; }
+.mg-timebtn { font: inherit; font-size: 12px; font-weight: 700; border: 1px solid #9fb3c8; background: #fff; border-radius: 3px; padding: 2px 6px; cursor: pointer; }
+.mg-note { font-size: 11px; line-height: 1.3; }
+.mg-reassess { background: #fde0c2; color: #7a4100; font-weight: 700; }
+.mg-foot { margin-top: 12px; border-top: 1px solid #b9d6bf; border-bottom: none; }
+.md-tabs { display: flex; gap: 4px; justify-content: center; margin-bottom: 10px; }
+.md-tab { font: inherit; font-size: 13px; border: 1px solid #7fa3c7; background: #dce9f6; color: #1b4f82; border-radius: 3px; padding: 3px 10px; cursor: pointer; }
+.md-tab-on { background: #1b6fb5; color: #fff; }
+.md-tab:disabled { opacity: .45; cursor: default; }
+.mg-protline { display: grid; grid-template-columns: 180px 1fr; border: 1px solid #c9d3dd; margin-top: 8px; }
+.mg-protline span { background: #fff6c2; padding: 4px 8px; }
+.mg-protline strong { padding: 4px 8px; text-transform: uppercase; }
+
+/* Diagnostics — Expanse style */
+.dx-subtabs { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; border-bottom: 1px solid #c9d3dd; margin-bottom: 8px; }
+.dx-subtab { font: inherit; font-size: 13px; background: transparent; border: none; border-bottom: 3px solid transparent; padding: 6px 12px; color: #34495e; cursor: pointer; }
+.dx-subtab-on { font-weight: 700; color: #1b2733; border-bottom-color: #1b6fb5; background: #eef5ff; }
+.dx-subtab.dx-empty { color: #9aa7b4; }
+.dx-lab { display: grid; grid-template-columns: 150px 1fr; gap: 10px; align-items: start; }
+.dx-side { display: flex; flex-direction: column; border: 1px solid #c9d3dd; background: #fff; }
+.dx-side-btn { font: inherit; font-size: 13px; text-align: left; background: #fff; border: none; border-bottom: 1px solid #e3e9ef; padding: 7px 10px; cursor: pointer; }
+.dx-side-on { background: #e6f0fb; font-weight: 700; }
+.dx-main { min-width: 0; }
+.dx-grid { border-collapse: collapse; background: #fff; font-size: 13px; }
+.dx-grid th, .dx-grid td { border: 1px solid #e3e9ef; padding: 4px 8px; }
+.dx-grid thead th { background: #f4f7fa; font-weight: 600; font-size: 12px; text-align: center; min-width: 92px; }
+.dx-grid thead th.dx-new { background: var(--new-bg); }
+.dx-grid th.dx-last, .dx-grid td:last-child { border-right: 3px solid #1b2733; }
+.dx-grid th.dx-test { text-align: left; font-weight: 600; min-width: 170px; background: #fff; }
+.dx-ref { font-weight: 400; font-size: 11px; color: #5a6b7c; }
+.dx-sec th { background: #eef2f6; text-align: left; }
+.dx-toggle { font: inherit; font-weight: 700; background: none; border: none; cursor: pointer; padding: 0; color: #1b2733; }
+.dx-cell { text-align: left; }
+.dx-abn { background: #fff39a; }
+.dx-crit { background: #f9c9c9; }
+@media (max-width: 800px) { .dx-lab { grid-template-columns: 1fr; } .dx-side { flex-direction: row; flex-wrap: wrap; } }
+
+/* Chart modes */
+.observer-strip { background: #5b2a86; color: #fff; text-align: center; font-size: 12px; font-weight: 700; letter-spacing: .03em; padding: 4px 8px; }
+.faculty-strip { background: #1f5f5c; color: #fff; text-align: center; font-size: 12px; font-weight: 700; padding: 3px 8px; }
+.tb-mode-menu { left: auto; right: 0; min-width: 240px; }
+.login-mode { border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; }
+.login-mode legend { font-size: 12px; padding: 0 4px; }
+.mode-observer [data-ack], .mode-observer [data-action="ackall"], .mode-observer [data-action="verbal"], .mode-observer [data-action="new"],
+.mode-observer [data-dose], .mode-observer [data-prn], .mode-observer [data-infusion], .mode-observer [data-titrate], .mode-observer [data-effect],
+.mode-observer [data-err], .mode-observer [data-tar], .mode-observer [data-review], .mode-observer [data-wl="document"], .mode-observer [data-add],
+.mode-observer [data-eval], .mode-observer [data-docmenu="note"] { opacity: .45; cursor: not-allowed !important; }
+.mode-observer .wl-row { cursor: default; }

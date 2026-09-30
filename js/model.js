@@ -166,7 +166,7 @@
 
   M.medOrders = p => p.meds.map(m => ({
     id: m.id, cat: 'Medication', text: M.medLabel(m), detail: [m.indication ? 'Indication: ' + m.indication : '', m.instructions, m.holdReason].filter(Boolean).join(' '),
-    by: m.orderedBy || p.attending, time: m.orderTime, status: m.status, isNew: m.isNew, priority: m.priority, med: m
+    by: m.orderedBy || p.attending, time: m.orderTime, dcTime: m.dcTime, status: m.status, isNew: m.isNew, priority: m.priority, protocol: m.protocol, med: m
   }));
 
   M.isAcked = (doc, ref) => doc.ack.some(e => e.status === 'active' && e.data.ref === ref);
@@ -204,9 +204,11 @@
     return row ? { value: row[key], time: row.time } : null;
   };
 
+  // Lab values may be numbers or numeric strings (to keep the printed precision, e.g. '9.0').
+  M.labNum = v => typeof v === 'number' ? v : (/^-?\d+(\.\d+)?$/.test(String(v).trim()) ? Number(v) : null);
   M.labFlag = function (r) {
     if (r.flag) return r.flag;
-    const n = typeof r.v === 'number' ? r.v : null;
+    const n = M.labNum(r.v);
     if (n == null) return '';
     if (r.lo != null && n < r.lo) return 'L';
     if (r.hi != null && n > r.hi) return 'H';
@@ -218,7 +220,7 @@
     const want = name.toLowerCase();
     const panels = [...p.labs].sort((a, b) => b.time - a.time);
     for (const panel of panels) {
-      const r = panel.results.find(x => x.t.toLowerCase() === want && typeof x.v === 'number');
+      const r = panel.results.find(x => x.t.toLowerCase() === want && M.labNum(x.v) != null);
       if (r) return { value: r.v, unit: r.u, time: panel.time, flag: M.labFlag(r) };
     }
     return null;

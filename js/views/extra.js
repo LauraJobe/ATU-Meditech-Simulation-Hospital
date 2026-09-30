@@ -29,7 +29,8 @@
     orders: ['Verbal/Telephone Order', 'orders', e => e.data.text],
     ack: ['Acknowledged', 'orders', e => e.data.kind === 'result' ? 'Result reviewed' : 'Order acknowledged'],
     careplan: ['Care Plan', 'careplan', e => e.data.kind === 'plan' ? e.data.dx : 'Evaluation: ' + e.data.status],
-    heparin: ['Heparin Flowsheet', 'heparin', e => [e.data.aptt && 'aPTT ' + e.data.aptt, e.data.newRate && 'Rate ' + e.data.newRate].filter(Boolean).join(', ')]
+    heparin: ['Heparin Flowsheet', 'heparin', e => [e.data.aptt && 'aPTT ' + e.data.aptt, e.data.newRate && 'Rate ' + e.data.newRate].filter(Boolean).join(', ')],
+    tar: ['Transfusion (TAR)', 'tar', e => e.data.kind === 'start' ? `Started ${e.data.product}, unit ${e.data.unitNo}` : e.data.kind === 'vitals' ? `Vital signs — ${e.data.label}` : e.data.kind === 'end' ? `Completed — ${e.data.infused} mL` : 'Stopped — suspected reaction']
   };
 
   Views.activity = {

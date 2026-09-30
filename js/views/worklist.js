@@ -32,7 +32,7 @@
     return { ms: 4 * H, label: 'Q4HOURS' };
   }
 
-  function items(p) {
+  function items(p, doc) {
     const forms = p.assessmentForms || [];
     const list = [];
     const vi = vitalsInterval(p);
@@ -45,7 +45,10 @@
     formItem('braden', 'Braden Scale Assessment', 'DAILY', 24 * H);
     formItem('morse', 'Morse Fall Risk Assessment', 'DAILY', 24 * H);
     if (p.orders.some(o => o.status === 'Active' && /I\s*&\s*O|intake/i.test(o.text))) list.push({ key: 'io', name: 'Intake and Output Measurement', freq: 'Q4HOURS', ms: 4 * H, tab: 'io', kind: 'tab' });
-    if (p.heparinFlowsheet && p.meds.some(m => /heparin/i.test(m.name) && m.status === 'Active')) list.push({ key: 'heparin', name: 'Heparin Protocol / aPTT', freq: 'Q6HOURS', ms: 6 * H, tab: 'heparin', kind: 'tab' });
+    if (p.heparinFlowsheet && Views.heparin.drip(p)) list.push({ key: 'heparin', name: 'Heparin Protocol / aPTT Titration', freq: 'Q6HOURS', ms: 6 * H, tab: 'heparin', kind: 'heparin' });
+    // A running transfusion adds its monitoring vitals (charted on the TAR).
+    const tx = doc && Views.tar ? Views.tar.running(p, doc)[0] : null;
+    if (tx) list.push({ key: 'tar', name: `Transfusion Monitoring — unit ${tx.start.data.unitNo}`, freq: 'Q15MIN, THEN Q1H', ms: H, fixedDue: Views.tar.nextCheck(tx), tab: 'tar', kind: 'tab' });
     list.push({ key: 'note:edu', name: 'Teaching: Patient/Family Education', freq: 'EOS', eos: true, ms: 12 * H, tab: 'notes', kind: 'note', noteType: 'Patient Education' });
     list.push({ key: 'careplan', name: 'Plan of Care Review', freq: 'DAILY', ms: 24 * H, tab: 'careplan', kind: 'tab' });
     list.push({ key: 'note:handoff', name: 'Handoff Communication', freq: 'EOS', eos: true, ms: 12 * H, tab: 'notes', kind: 'note', noteType: 'Handoff Report (I-PASS)' });
@@ -64,6 +67,8 @@
       times = active(doc.io).map(e => e.time).concat(p.ioPrior.map(r => r.time));
     } else if (it.key === 'heparin') {
       times = active(doc.heparin).map(e => e.time);
+    } else if (it.key === 'tar') {
+      times = active(doc.tar).map(e => e.time);
     } else if (it.key === 'careplan') {
       times = active(doc.careplan).map(e => e.time);
     } else if (it.kind === 'note') {
@@ -83,6 +88,7 @@
   }
 
   function dueTime(p, it, last) {
+    if (it.fixedDue) return it.fixedDue;
     if (it.eos) return shiftEnd(last != null && last >= p.clock.simStart ? last + MIN : p.clock.now());
     return last == null ? p.clock.simStart : last + it.ms;
   }
@@ -96,7 +102,7 @@
   // Care items with next due time (used by the status board's Interventions column).
   function due(p, doc) {
     const now = p.clock.now();
-    return items(p).map(it => {
+    return items(p, doc).map(it => {
       const time = dueTime(p, it, lastDone(p, doc, it));
       return { name: it.name, time, overdue: time <= now };
     }).sort((a, b) => a.time - b.time);
@@ -125,7 +131,7 @@
       const now = p.clock.now();
       const hours = lookAhead[p.id] || 8;
       const checked = sel(p);
-      const list = items(p).map(it => {
+      const list = items(p, doc).map(it => {
         const last = lastDone(p, doc, it);
         return Object.assign({ last, due: dueTime(p, it, last) }, it);
       }).sort((a, b) => a.due - b.due);
@@ -162,7 +168,7 @@
         <div class="wl-bar">
           <div>${btn('Prior', '', false)}${btn('Next', '', false)}</div>
           <div>${btn('Refresh', 'refresh', true)}${btn('Change<br>View', 'view', true)}${btn('Add', '', false)}</div>
-          <div>${btn('Not<br>Done', '', false)}${btn('View/<br>Edit', 'viewedit', any)}</div>
+          <div>${btn('Not<br>Done', '', false)}</div>
           <div>${btn('Detail', 'detail', any)}${btn('Document', 'document', any)}</div>
           <div>${btn('Utility', '', false)}${btn('Questionnaires', '', false)}</div>
           <div class="wl-bar-right">${btn('Close', 'close', true)}</div>
@@ -176,8 +182,8 @@
             ${colTimes.map(t => `<th class="wl-time ${t <= now ? 'wl-past' : ''}">${esc(day(t))}<br>${U.fmtTime(t).replace(/(\d\d)(\d\d)/, '$1:$2')}</th>`).join('')}</tr></thead>
           <tbody>${rows}</tbody></table></div>`;
     },
-    bind(root, p) {
-      const list = items(p);
+    bind(root, p, doc) {
+      const list = items(p, doc);
       const byKey = k => list.find(x => x.key === k);
       root.querySelectorAll('.wl-row').forEach(r => {
         const toggle = t => { const s = sel(p), box = r.dataset.key + '|' + t; s.has(box) ? s.delete(box) : s.add(box); App.render(); };
@@ -194,7 +200,6 @@
       act('refresh', () => App.render());
       act('view', () => { lookAhead[p.id] = (lookAhead[p.id] || 8) === 8 ? 12 : 8; App.render(); });
       act('close', () => { location.hash = `#/patient/${p.id}/summary`; });
-      act('viewedit', () => { const it = byKey(keyOf([...sel(p)][0] || '')); if (it) location.hash = `#/patient/${p.id}/${it.tab}`; });
       act('detail', () => {
         const doc = Store.doc(p.id);
         UI.modal({ title: 'Care Item Detail', body: [...new Set([...sel(p)].map(keyOf))].map(byKey).filter(Boolean).map(it => {
@@ -218,6 +223,7 @@
     if (it.kind === 'form' && Views.assess.open) Views.assess.open(p, it.formId, next);
     else if (it.kind === 'vitals' && Views.vitals.modal) Views.vitals.modal(p, next);
     else if (it.kind === 'note' && Views.notes.write) Views.notes.write(p, it.noteType, next);
+    else if (it.kind === 'heparin') Views.heparin.titrate(p, next);
     else { sel(p).delete(box); location.hash = `#/patient/${p.id}/${it.tab}`; }
   }
 

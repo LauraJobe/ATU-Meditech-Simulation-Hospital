@@ -38,6 +38,7 @@ Each patient has a `scenarioStart` clock time. When the chart is first opened (o
 | `wdlDefinitions` | Optional per-patient WDL wording: `{ skin: '…surgical site clean, dry, intact' }` |
 | `heparinFlowsheet` | `true` adds the Heparin Flowsheet tab |
 | `hpi`, `pmh`, `psh`, `familyHx`, `socialHx`, `immunizations`, `homeMeds`, `ros`, `demographics`, `emergencyContact` | History tab |
+| `bloodType` | Optional type & crossmatch result (e.g., `'A−'`) checked on the TAR |
 | `labsPending` | A notice shown on Summary/Results (e.g., "labs are in the Notion PDF") |
 
 ## Orders
@@ -46,6 +47,8 @@ Each patient has a `scenarioStart` clock time. When the chart is first opened (o
 { id: 'wat-o5', cat: 'Nursing', text: 'Vital signs with SpO2 every 4 hours', time: '06:00', by: 'Dr. Jack Nelson' }
 ```
 Optional: `detail`, `priority: 'STAT'`, `type: 'Telephone'`, `status: 'Pending'`. Categories group the Orders screen (Admission, Code Status, Nursing, Activity, Diet, Respiratory, IV Fluids, Medication, Lab, Imaging, Diagnostics, Consult, …). Medication orders come from `meds` automatically.
+
+**Transfusions:** give a blood product order `cat: 'Blood Products'` (e.g., `text: 'Transfuse 1 unit PRBC over 2 hours'`); it appears on the TAR. Put it in an `events` entry to release it during the sim. Optionally add `bloodType: 'O+'` to the patient; the TAR then rejects a mismatched patient ABO/Rh entry.
 
 ## Medications
 

@@ -77,7 +77,7 @@
       const recent = [];
       Store.SECTIONS.forEach(sec => doc[sec].forEach(e => recent.push({ sec, e })));
       recent.sort((a, b) => b.e.recorded - a.e.recorded);
-      const secName = { vitals: 'Vital signs', assess: 'Assessment', mar: 'Medication', io: 'Intake & output', notes: 'Note', orders: 'Verbal/phone order', ack: 'Acknowledged', careplan: 'Care plan', heparin: 'Heparin flowsheet' };
+      const secName = { vitals: 'Vital signs', assess: 'Assessment', mar: 'Medication', io: 'Intake & output', notes: 'Note', orders: 'Verbal/phone order', ack: 'Acknowledged', careplan: 'Care plan', heparin: 'Heparin flowsheet', tar: 'Transfusion' };
       const docs = recent.length
         ? `<ul class="plain">${recent.slice(0, 8).map(({ sec, e }) => `<li><strong>${esc(secName[sec])}</strong> — ${esc(U.fmtDT(e.time))} · ${esc(Model.signature(e))}${e.status === 'error' ? ' <em>(error)</em>' : ''}</li>`).join('')}</ul>`
         : UI.empty('Nothing documented yet in this scenario.');

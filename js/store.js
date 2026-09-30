@@ -7,7 +7,7 @@
   'use strict';
   const C = window.EHR_CONFIG;
   const P = C.storagePrefix + '.';
-  const SECTIONS = ['vitals', 'assess', 'mar', 'io', 'notes', 'orders', 'ack', 'careplan', 'heparin'];
+  const SECTIONS = ['vitals', 'assess', 'mar', 'io', 'notes', 'orders', 'ack', 'careplan', 'heparin', 'tar'];
 
   function read(key, fallback) {
     try {
@@ -50,8 +50,9 @@
 
     // time = when the event happened (chart time); recorded = when it was charted
     add(pid, section, data, time, recorded) {
-      const d = Store.doc(pid);
       const s = Store.session() || { name: 'Unknown', cred: '' };
+      if (s.observer && !Store.instructorUnlocked()) { if (window.UI) UI.toast('Observer mode is view only — nothing was saved.', 'warn'); return null; }
+      const d = Store.doc(pid);
       const entry = {
         id: U.uid(), time, recorded, data, status: 'active',
         user: { name: s.name, cred: s.cred, group: s.group || '' }

@@ -116,7 +116,7 @@ window.SIM_PATIENTS = [
     level: 3,
     experiences: ['icu'],
     name: { first: 'Ruth', last: 'Livingston' },
-    mrn: 'ATU-L3-1008', // not listed in Notion — placeholder for wristband scanning
+    mrn: 'PCS10800', // from "Ruth_Livingston_lab2.pdf"
     dob: '1945-10-08',
     age: '80 years',
     sex: 'F',
@@ -132,8 +132,33 @@ window.SIM_PATIENTS = [
     isolation: 'None',
     nkda: true,
     allergies: [],
-    heightCm: null,
-    weightKg: null,
+    heightCm: 160,
+    weightKg: 54,
+    bloodType: 'A+', // type & crossmatch on the lab report; checked on the TAR
+    // From the Notion "ICU Orders" norepinephrine order. Opened from the P on the order once the ICU transfer is released.
+    protocols: {
+      norepi: {
+        title: 'Norepinephrine (Levophed) Titration Protocol',
+        items: [
+          ['Start criteria', 'After the 500 mL NS bolus, start only if MAP < 65 or SBP < 100'],
+          ['Starting dose', 'Norepinephrine 2 mcg/min continuous IV'],
+          ['Titration', 'Titrate by 2 mcg/min every 5 minutes to maintain MAP > 65 or SBP > 100'],
+          ['Maximum dose', '30 mcg/min'],
+          ['Monitoring', 'Continuous ECG and pulse oximetry; vital signs every 15 minutes and PRN'],
+          ['Notify provider', 'SBP < 100 or > 160, HR < 55 or > 110, SpO₂ < 90%, or goal not met at maximum dose'],
+          ['Concentration', 'Per pharmacy label — calculate mL/hr from the bag concentration']
+        ],
+        tableTitle: 'Titration Protocol — NOREPINEPHRINE TITRATION',
+        table: { head: ['Condition', 'Dose/Route', 'Instruction'], rows: [
+          ['DOSE RANGE', '2–30 MCG/MIN IV', 'START 2 MCG/MIN AFTER NS BOLUS IF MAP < 65 OR SBP < 100'],
+          ['TITRATION', '2 MCG/MIN', 'EVERY 5 MINS'],
+          ['PARAMETERS', '', 'MAINTAIN MAP > 65 OR SBP > 100'],
+          ['MAXIMUM', '30 MCG/MIN', 'DO NOT EXCEED — NOTIFY PROVIDER IF GOAL NOT MET']
+        ] },
+        maxDose: 30, doseUnit: 'mcg/min',
+        signedBy: 'Dr. Marcus'
+      }
+    },
     flags: ['Fall Risk'],
     assessmentForms: ['wdl-adult', 'pain', 'braden', 'morse', 'gcs'],
     emergencyContact: 'Daughter — phone on file',
@@ -180,8 +205,37 @@ window.SIM_PATIENTS = [
       { id: 'liv-ketorolac', name: 'Ketorolac', dose: '30 mg', route: 'IV push', freq: 'Every 6 hours PRN', type: 'prn', indication: 'Pain', instructions: 'Not to exceed 120 mg daily.', minIntervalHr: 6, preAssess: ['Pain'] }
     ],
     vitals: [],
-    labs: [],
-    labsPending: 'Lab results are in the Notion PDF "Ruth_Livingston_lab_1.pdf" and have not been entered here yet. A repeat urinalysis was sent at 0600 and is pending.',
+    // From "Ruth_Livingston_lab2.pdf" (reference ranges as printed on the report).
+    labs: [
+      { id: 'liv-cbc-y', panel: 'Complete Blood Count', time: '06:00', day: -1, results: [
+        { t: 'Hgb', v: '9.0', u: 'g/dL', lo: 14, hi: 18 },
+        { t: 'HCT', v: 27, u: '%', lo: 42, hi: 50 },
+        { t: 'Platelets', v: 180, u: 'x10⁹/L', lo: 150, hi: 400 },
+        { t: 'WBC', v: 11.4, u: 'x10⁹/L', lo: 4, hi: 11 }
+      ] },
+      { id: 'liv-cbc-t', panel: 'Complete Blood Count', time: '06:00', results: [
+        { t: 'Hgb', v: '10.0', u: 'g/dL', lo: 14, hi: 18 },
+        { t: 'HCT', v: 29, u: '%', lo: 42, hi: 50 },
+        { t: 'Platelets', v: 175, u: 'x10⁹/L', lo: 150, hi: 400 },
+        { t: 'WBC', v: 15.7, u: 'x10⁹/L', lo: 4, hi: 11 }
+      ] },
+      { id: 'liv-bmp-t', panel: 'Basic Metabolic Panel', time: '06:00', results: [
+        { t: 'Sodium', v: 138, u: 'mEq/L', lo: 136, hi: 145 },
+        { t: 'Potassium', v: 3.7, u: 'mEq/L', lo: 3.5, hi: 5.0 },
+        { t: 'Chloride', v: 105, u: 'mEq/L', lo: 98, hi: 106 },
+        { t: 'Calcium', v: 8.6, u: 'mg/dL', lo: 8.6, hi: 10.2 },
+        { t: 'HCO3', v: 29, u: 'mEq/L', lo: 23, hi: 28 },
+        { t: 'BUN', v: 24, u: 'mg/dL', lo: 8, hi: 20 },
+        { t: 'Creatinine', v: 1.5, u: 'mg/dL', lo: 0.7, hi: 1.3 },
+        { t: 'Glucose', v: 98, u: 'mg/dL', lo: 70, hi: 99 }
+      ] },
+      { id: 'liv-misc-t', panel: 'Miscellaneous', time: '06:00', results: [
+        { t: 'Lactate (venous)', v: '5.0', u: 'mmol/L', lo: 0.5, hi: 2.2 },
+        { t: 'Blood culture', v: 'Positive — Enterobacter cloacae', ref: 'No growth', flag: 'A' },
+        { t: 'ABO/Rh (blood type)', v: 'A+' }
+      ] }
+    ],
+    labsPending: 'Repeat urinalysis sent at 0600 — pending.',
     imaging: [],
     notes: [
       { id: 'liv-n1', type: 'Nursing Note', author: 'VR, RN', time: '06:00', text: 'Patient started yelling and was found confused in bed with the indwelling catheter lying on the floor. The patient has been incontinent. Scant urethral bleeding and minimal external trauma were noted. Received a complete bath and linen change. A repeat urinalysis was sent to lab and is pending.' }
@@ -202,7 +256,7 @@ window.SIM_PATIENTS = [
           { id: 'liv-icu-o5', cat: 'Respiratory', text: 'Administer supplemental O2 to keep SpO2 > 93%', by: 'Dr. Marcus' },
           { id: 'liv-icu-o6', cat: 'Nursing', text: 'Vital signs every 15 minutes and PRN; I&O every 4 hours', by: 'Dr. Marcus' },
           { id: 'liv-icu-o7', cat: 'IV Fluids', text: 'Normal saline bolus 500 mL over 30 minutes STAT', priority: 'STAT', by: 'Dr. Marcus' },
-          { id: 'liv-icu-o8', cat: 'Medication', text: 'After fluid bolus, if MAP < 65 or SBP < 100 start: Norepinephrine (Levophed) @ 2 mcg/min continuous IV; titrate by 2 mcg every 5 minutes to maintain MAP > 65 or SBP > 100. Maximum dose 30 mcg/min.', by: 'Dr. Marcus' },
+          { id: 'liv-icu-o8', protocol: 'norepi', cat: 'Medication', text: 'After fluid bolus, if MAP < 65 or SBP < 100 start: Norepinephrine (Levophed) @ 2 mcg/min continuous IV; titrate by 2 mcg every 5 minutes to maintain MAP > 65 or SBP > 100. Maximum dose 30 mcg/min.', by: 'Dr. Marcus' },
           { id: 'liv-icu-o9', cat: 'Nursing', text: 'Place Foley catheter', by: 'Dr. Marcus' },
           { id: 'liv-icu-o10', cat: 'Nursing', text: 'Sterile dressing change to right hip every 12 hours', by: 'Dr. Marcus' },
           { id: 'liv-icu-o11', cat: 'Lab', text: 'BMP, CBC, lactate level prior to starting IV antibiotics', priority: 'STAT', by: 'Dr. Marcus' },
@@ -214,7 +268,7 @@ window.SIM_PATIENTS = [
         meds: [
           { id: 'liv-nsbolus', name: '0.9% Sodium chloride bolus', dose: '500 mL', route: 'IV', freq: 'Once — over 30 minutes STAT', type: 'continuous', rate: '1,000 mL/hr x 30 min', instructions: 'Infuse 500 mL over 30 minutes STAT. Start NS @ 125 mL/hr after the bolus is completed.' },
           { id: 'liv-ns125', name: '0.9% Sodium chloride', dose: '125 mL/hr', route: 'IV', freq: 'Continuous — after bolus completed', type: 'continuous', rate: '125 mL/hr' },
-          { id: 'liv-levo', name: 'Norepinephrine (Levophed)', dose: '2 mcg/min — titrate', route: 'IV', freq: 'Continuous — conditional', type: 'continuous', highAlert: true, rate: '2 mcg/min', preAssess: ['SBP', 'DBP', 'HR'], instructions: 'Start ONLY if MAP < 65 or SBP < 100 after the fluid bolus. Titrate by 2 mcg every 5 minutes to maintain MAP > 65 or SBP > 100. Maximum dose 30 mcg/min.' },
+          { id: 'liv-levo', protocol: 'norepi', name: 'Norepinephrine (Levophed)', dose: '2 mcg/min — titrate', route: 'IV', freq: 'Continuous — conditional', type: 'continuous', highAlert: true, rate: '2 mcg/min', preAssess: ['SBP', 'DBP', 'HR'], instructions: 'Start ONLY if MAP < 65 or SBP < 100 after the fluid bolus. Titrate by 2 mcg every 5 minutes to maintain MAP > 65 or SBP > 100. Maximum dose 30 mcg/min.' },
           { id: 'liv-vanco', name: 'Vancomycin', dose: '500 mg/250 mL', route: 'IVPB', freq: 'Every 8 hours — over 2 hours', type: 'scheduled', instructions: 'Infuse over 2 hours. Draw BMP, CBC, and lactate BEFORE the first dose.', doses: [{ at: 15 }, { at: 495 }] }
         ]
       }
@@ -459,7 +513,7 @@ window.SIM_PATIENTS = [
     level: 3,
     experiences: ['advms'],
     name: { first: 'Vernon', last: 'Watkins' },
-    mrn: 'ATU-L3-0409', // not listed in Notion — placeholder for wristband scanning
+    mrn: 'PCS40900', // from the Watkins lab report and heparin order PDFs
     dob: '1957-04-09',
     age: '69 years',
     sex: 'M',
@@ -471,13 +525,39 @@ window.SIM_PATIENTS = [
     scenarioStart: '10:00',
     admitDx: 'Bowel perforation — s/p left hemicolectomy (POD 4)',
     codeStatus: 'Full Code',
-    isolation: 'None',
+    isolation: 'Standard',
     allergies: [{ agent: 'Penicillin', reaction: 'Hives', severity: 'Moderate', tags: ['penicillin'] }],
-    heightCm: null,
+    heightCm: 182,
     weightKg: 80,
     flags: ['Post-op'],
     assessmentForms: ['wdl-adult', 'pain', 'braden', 'morse'],
     heparinFlowsheet: true,
+    // From "Heparin_1.pdf". Opened from the P on the heparin orders once the STAT orders are released.
+    protocols: {
+      heparin: {
+        title: 'Anticoagulation Orders (Therapeutic) — Heparin Weight Based Protocol',
+        items: [
+          ['Indication', 'B. DVT / PE / Atrial Fibrillation'],
+          ['Patient weight', '80 kg (use actual body weight)'],
+          ['Before starting', 'Discontinue any previous anticoagulation orders (heparin, enoxaparin). Obtain aPTT, CBC, patient weight. CBC every 3 days. Caution with aspirin, clopidogrel, Aggrenox, NSAIDs.'],
+          ['Concentration', 'Heparin 25,000 units/500 mL D5W'],
+          ['Initial bolus', 'Heparin 80 units/kg IV once — round to the nearest 500 units; not to exceed 10,000 units'],
+          ['Initial infusion', 'Heparin continuous IV infusion — starting dose 18 units/kg/hr; not to exceed 2,250 units/hr'],
+          ['Maintenance', 'Adjust per the Heparin Dosing Nomogram for all indications']
+        ],
+        tableTitle: 'Heparin Dosing Nomogram',
+        table: { head: ['aPTT result (sec)', 'Bolus', 'Hold infusion', 'Dose change', 'Repeat aPTT'], rows: [
+          ['≤ 50', '80 units/kg IV', 'No', '+ 4 units/kg/hr', '6 hours'],
+          ['51–64', '40 units/kg IV', 'No', '+ 2 units/kg/hr', '6 hours'],
+          ['65–95', '0', 'No', 'No change', 'Next AM'],
+          ['96–105', '0', 'No', '− 2 units/kg/hr', '6 hours'],
+          ['106–130', '0', 'Hold 30 minutes', '− 3 units/kg/hr', '6 hours'],
+          ['131–160', '0', 'Hold 60 minutes', '− 3 units/kg/hr', '6 hours'],
+          ['≥ 160', '0', 'Hold 60 minutes', '− 4 units/kg/hr', '6 hours']
+        ] },
+        signedBy: 'Dr. Nelson'
+      }
+    },
     emergencyContact: 'Wife — phone on file',
     demographics: {
       'Marital status': 'Married',
@@ -520,12 +600,69 @@ window.SIM_PATIENTS = [
       { time: '05:00', temp: 99.3, tempRoute: 'Oral', hr: 103, rr: 22, sbp: 129, dbp: 85, spo2: 96, o2: 'Room air', pain: 5, by: 'Night shift RN' },
       { time: '09:00', temp: 99.0, tempRoute: 'Oral', hr: 105, rr: 22, sbp: 130, dbp: 84, spo2: 94, o2: 'Room air', pain: 0, by: 'Day shift RN' }
     ],
+    // From "watkin_labs.pdf": pre-op (ER, 4 days ago), post-op day 3, post-op day 4 (0600 today).
     labs: [
-      { id: 'wat-coag', panel: 'Coagulation (baseline)', time: '06:00', results: [
+      { id: 'wat-cbc-pre', panel: 'Complete Blood Count', time: '11:00', day: -4, results: [
+        { t: 'Hgb', v: 13, u: 'g/dL', lo: 13.5, hi: 17.5 },
+        { t: 'HCT', v: 39, u: '%', lo: 40, hi: 45 },
+        { t: 'WBC', v: 17.2, u: 'x10⁹/L', lo: 5, hi: 11 },
+        { t: 'Platelets', v: 350, u: 'x10⁹/L', lo: 150, hi: 400 }
+      ] },
+      { id: 'wat-bmp-pre', panel: 'Basic Metabolic Panel', time: '11:00', day: -4, results: [
+        { t: 'Sodium', v: 142, u: 'mEq/L', lo: 135, hi: 145 },
+        { t: 'Potassium', v: 3.7, u: 'mEq/L', lo: 3.5, hi: 5.1 },
+        { t: 'Chloride', v: 95, u: 'mEq/L', lo: 98, hi: 106 },
+        { t: 'HCO3', v: 30, u: 'mEq/L', lo: 22, hi: 26 },
+        { t: 'BUN', v: 17, u: 'mg/dL', lo: 8, hi: 23 },
+        { t: 'Creatinine', v: '1.0', u: 'mg/dL', lo: 0.6, hi: 1.1 },
+        { t: 'Glucose', v: 110, u: 'mg/dL', lo: 70, hi: 110 }
+      ] },
+      { id: 'wat-coag-pre', panel: 'Coagulation', time: '11:00', day: -4, results: [
+        { t: 'PT', v: 12, u: 's', lo: 10, hi: 14 },
+        { t: 'INR', v: '1.0', lo: 0.8, hi: 1.1 },
+        { t: 'aPTT', v: 30, u: 's', lo: 25, hi: 40 }
+      ] },
+      { id: 'wat-cbc-pod3', panel: 'Complete Blood Count', time: '06:00', day: -1, results: [
+        { t: 'Hgb', v: 11, u: 'g/dL', lo: 13.5, hi: 17.5 },
+        { t: 'HCT', v: 32, u: '%', lo: 40, hi: 45 },
+        { t: 'WBC', v: 10, u: 'x10⁹/L', lo: 5, hi: 11 },
+        { t: 'Platelets', v: 320, u: 'x10⁹/L', lo: 150, hi: 400 }
+      ] },
+      { id: 'wat-bmp-pod3', panel: 'Basic Metabolic Panel', time: '06:00', day: -1, results: [
+        { t: 'Sodium', v: 140, u: 'mEq/L', lo: 135, hi: 145 },
+        { t: 'Potassium', v: '4.0', u: 'mEq/L', lo: 3.5, hi: 5.1 },
+        { t: 'Chloride', v: 100, u: 'mEq/L', lo: 98, hi: 106 },
+        { t: 'HCO3', v: 25, u: 'mEq/L', lo: 22, hi: 26 },
+        { t: 'BUN', v: 15, u: 'mg/dL', lo: 8, hi: 23 },
+        { t: 'Creatinine', v: 0.9, u: 'mg/dL', lo: 0.6, hi: 1.1 },
+        { t: 'Glucose', v: 100, u: 'mg/dL', lo: 70, hi: 110 }
+      ] },
+      { id: 'wat-coag-pod3', panel: 'Coagulation', time: '06:00', day: -1, results: [
+        { t: 'PT', v: 12, u: 's', lo: 10, hi: 14 },
+        { t: 'INR', v: '1.0', lo: 0.8, hi: 1.1 },
+        { t: 'aPTT', v: 32, u: 's', lo: 25, hi: 40 }
+      ] },
+      { id: 'wat-cbc-pod4', panel: 'Complete Blood Count', time: '06:00', results: [
+        { t: 'Hgb', v: 11.5, u: 'g/dL', lo: 13.5, hi: 17.5 },
+        { t: 'HCT', v: 33, u: '%', lo: 40, hi: 45 },
+        { t: 'WBC', v: 11, u: 'x10⁹/L', lo: 5, hi: 11 },
+        { t: 'Platelets', v: 320, u: 'x10⁹/L', lo: 150, hi: 400 }
+      ] },
+      { id: 'wat-bmp-pod4', panel: 'Basic Metabolic Panel', time: '06:00', results: [
+        { t: 'Sodium', v: 141, u: 'mEq/L', lo: 135, hi: 145 },
+        { t: 'Potassium', v: '4.0', u: 'mEq/L', lo: 3.5, hi: 5.1 },
+        { t: 'Chloride', v: 100, u: 'mEq/L', lo: 98, hi: 106 },
+        { t: 'HCO3', v: 25, u: 'mEq/L', lo: 22, hi: 26 },
+        { t: 'BUN', v: 15, u: 'mg/dL', lo: 8, hi: 23 },
+        { t: 'Creatinine', v: 0.9, u: 'mg/dL', lo: 0.6, hi: 1.1 },
+        { t: 'Glucose', v: 108, u: 'mg/dL', lo: 70, hi: 110 }
+      ] },
+      { id: 'wat-coag-pod4', panel: 'Coagulation', time: '06:00', results: [
+        { t: 'PT', v: 12, u: 's', lo: 10, hi: 14 },
+        { t: 'INR', v: '1.0', lo: 0.8, hi: 1.1 },
         { t: 'aPTT', v: 32, u: 's', lo: 25, hi: 40 }
       ] }
     ],
-    labsPending: 'The 0600 labs (CBC, platelets, BMP, PT/INR, aPTT) are in the Notion PDF "watkin_labs.pdf" and have not been entered here yet. Baseline aPTT 32 is from the Notion heparin flowsheet.',
     imaging: [],
     notes: [
       { id: 'wat-n1', type: 'ER Note', author: 'Dr. Henderson (ER)', time: '10:00', day: -4, text: 'CHIEF COMPLAINT: Nausea, vomiting, and severe abdominal pain.\n\nHPI: Mr. Watkins presented to the ER with complaints of nausea, vomiting, and severe abdominal pain x 2 days.\nPMH: No history of surgeries. History of hypertension, cataracts.\nFamily history: None. Allergies: Penicillin.\nSocial: Lives with wife; retired postal worker; Catholic; smokes 1/2 pack/day filtered x 50 years.\n\nROS: General — cooperative, pleasant. CV — no palpitations. Resp — no shortness of breath. GI/GU — nausea, vomiting, and abdominal pain. MSK — no pain, ROM WDL. Neuro — no headache, no focal deficits.\n\nEXAM: Appears uncomfortable, in moderate distress due to pain of 9/10. T 99.6 °F, HR 95, RR 20, BP 140/84, SpO2 97% RA. Resp: clear bilaterally, regular rate, equal expansion. CV: S1 S2 RR, no murmurs/gallops; no peripheral edema; CR < 3 sec. Abdomen: firm, distended, and tender; hypoactive bowel sounds x4 quadrants. MSK: no joint swelling or erythema. Neuro: no focal deficits.\n\nLABS/IMAGING: CBC, BMP pending. Abdominal X-ray pending.\n\nPLAN: Consult surgery.' },
@@ -537,18 +674,35 @@ window.SIM_PATIENTS = [
       {
         id: 'wat-stat',
         title: 'STAT orders — Nurse Driven Heparin Protocol',
-        instructorNotes: 'From Notion "Stat Orders (Watkins)". Weight for protocol: 80 kg. The Nurse Driven Heparin Protocol and STAT lab results are PDFs in Notion ("Heparin_1.pdf", "watkin_stat_lab.pdf") — have students use the printed protocol, or add the STAT labs to this event in patients.js. Note: patient received enoxaparin 40 mg at 0900.',
+        instructorNotes: 'From Notion "Stat Orders (Watkins)", "Heparin_1.pdf", and "watkin_stat_lab.pdf". Releases the STAT ABG / D-dimer / cardiac results (respiratory alkalosis with hypoxemia, D-dimer 0.9 — suspected PE). Protocol box checked: B. DVT/PE/AFib. ANSWER KEY (80 kg, 25,000 units/500 mL = 50 units/mL; vial 10,000 units/10 mL = 1,000 units/mL): bolus 80 units/kg = 6,400 → round to nearest 500 = 6,500 units IV (6.5 mL); infusion 18 units/kg/hr = 1,440 units/hr = 28.8 mL/hr; repeat aPTT in 6 hours. Enoxaparin is discontinued by the protocol — patient received enoxaparin 40 mg at 0900.',
+        discontinue: ['wat-enox'],
         orders: [
           { id: 'wat-s1', cat: 'Activity', text: 'Bed rest', priority: 'STAT', by: 'Dr. Nelson' },
           { id: 'wat-s2', cat: 'Nursing', text: 'Continuous SpO2 and ECG monitoring', priority: 'STAT', by: 'Dr. Nelson' },
           { id: 'wat-s3', cat: 'Diagnostics', text: '12-lead ECG', priority: 'STAT', by: 'Dr. Nelson' },
           { id: 'wat-s4', cat: 'Respiratory', text: 'Oxygen via mask: titrate to maintain SpO2 greater than 92%', priority: 'STAT', by: 'Dr. Nelson' },
           { id: 'wat-s5', cat: 'Imaging', text: 'Spiral CT scan with contrast', priority: 'STAT', by: 'Dr. Nelson' },
-          { id: 'wat-s6', cat: 'Medication', text: 'Using weight of 80 kg: initiate Nurse Driven Heparin Protocol. Give bolus from the heparin 10,000 units/10 mL vial, and use the bag for the drip. Maintain heparin flowsheet.', priority: 'STAT', by: 'Dr. Nelson' }
+          { id: 'wat-s6', protocol: 'heparin', cat: 'Medication', text: 'Using weight of 80 kg: initiate Nurse Driven Heparin Protocol. Give bolus from the heparin 10,000 units/10 mL vial, and use the bag for the drip. Maintain heparin flowsheet.', priority: 'STAT', by: 'Dr. Nelson' },
+          { id: 'wat-s7', protocol: 'heparin', cat: 'Medication', text: 'ORDER SET: Anticoagulation Orders (Therapeutic) — Heparin Weight Based Protocol. Indication: DVT/PE/AFib. Weight 80 kg. Discontinue previous anticoagulation (enoxaparin).', priority: 'STAT', by: 'Dr. Nelson' },
+          { id: 'wat-s9', protocol: 'heparin', cat: 'Lab', text: 'aPTT and CBC before starting heparin; CBC every 3 days; repeat aPTT per Heparin Dosing Nomogram', priority: 'STAT', by: 'Dr. Nelson' }
+        ],
+        // From "watkin_stat_lab.pdf".
+        labs: [
+          { id: 'wat-abg', panel: 'Arterial Blood Gas', results: [
+            { t: 'pH', v: 7.49, lo: 7.35, hi: 7.45 },
+            { t: 'PaCO2', v: 31, u: 'mmHg', lo: 35, hi: 45 },
+            { t: 'PaO2', v: 58, u: 'mmHg', lo: 80, hi: 100 },
+            { t: 'HCO3 (arterial)', v: 24, u: 'mEq/L', lo: 22, hi: 26 }
+          ] },
+          { id: 'wat-stat-misc', panel: 'D-dimer & Cardiac', results: [
+            { t: 'D-dimer', v: 0.9, u: 'mcg/mL', ref: '< 0.5', flag: 'H' },
+            { t: 'CK-MB', v: 3.9, u: 'ng/mL', lo: 0, hi: 4.9 },
+            { t: 'Troponin T', v: 0.09, u: 'ng/mL', lo: 0, hi: 0.1 }
+          ] }
         ],
         meds: [
-          { id: 'wat-hep-bolus', name: 'Heparin bolus (from 10,000 units/10 mL vial)', dose: 'Per Nurse Driven Heparin Protocol — 80 kg', route: 'IV push', freq: 'Once — per protocol', type: 'once', highAlert: true, preAssess: ['lab:aPTT', 'lab:Platelets'], instructions: 'Calculate bolus per the Nurse Driven Heparin Protocol using 80 kg. Independent double check with a second RN. Document on the Heparin Flowsheet.', doses: [{ at: 0 }] },
-          { id: 'wat-hep-drip', name: 'Heparin infusion (premixed bag)', dose: 'Per Nurse Driven Heparin Protocol — units/kg/hr', route: 'IV', freq: 'Continuous — titrate per aPTT', type: 'continuous', highAlert: true, preAssess: ['lab:aPTT'], instructions: 'Initial rate and titration per the Nurse Driven Heparin Protocol using 80 kg. Independent double check with a second RN for start and every rate change. Document every aPTT and rate change on the Heparin Flowsheet.' }
+          { id: 'wat-hep-bolus', protocol: 'heparin', name: 'Heparin bolus (from 10,000 units/10 mL vial)', dose: 'Per Nurse Driven Heparin Protocol — 80 kg', route: 'IV push', freq: 'Once — per protocol', type: 'once', highAlert: true, preAssess: ['lab:aPTT', 'lab:Platelets'], instructions: 'Calculate bolus per the protocol (P) using 80 kg. Independent double check with a second RN.', doses: [{ at: 0 }] },
+          { id: 'wat-hep-drip', protocol: 'heparin', name: 'Heparin infusion (premixed bag)', dose: 'Per Nurse Driven Heparin Protocol — units/kg/hr', route: 'IV', freq: 'Continuous — titrate per aPTT', type: 'continuous', highAlert: true, preAssess: ['lab:aPTT'], instructions: 'Initial rate and titration per the Nurse Driven Heparin Protocol using 80 kg. Independent double check with a second RN for start and every rate change. Document each aPTT, bolus, hold, and rate change with Titrate (aPTT) on this MAR entry.' }
         ]
       }
     ]

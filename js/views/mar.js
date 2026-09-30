@@ -14,8 +14,6 @@
     SpO2: ['spo2', 'SpO₂ (%)'], Temp: ['temp', 'Temp (°F)'], Glucose: ['glucose', 'Blood glucose (mg/dL)'], Pain: ['pain', 'Pain score (0–10)']
   };
 
-  let filter = 'all';
-  const BLOOD = /PRBC|packed red|blood|plasma|FFP|platelet|cryo|albumin/i;
 
   function typeOf(m) { return m.type === 'once' ? 'scheduled' : m.type; }
 
@@ -32,105 +30,270 @@
     return 'Not started';
   }
 
-  function medCard(p, doc, m) {
+  /* ---------------- MAR grid (Expanse style, its own screen) ---------------- */
+
+  const include = { active: true, stat: true, iv: true, prn: true, dc: false };
+  const days = 3;            // yesterday, today, tomorrow
+  const DAY = 86400000;
+  const dayStart = t => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
+  const hhmm = t => U.fmtTime(t);
+  const rel = ms => { const a = Math.abs(ms); const txt = a < 3600000 ? Math.round(a / 60000) + 'm' : a < 48 * 3600000 ? Math.round(a / 3600000) + 'h' : Math.round(a / DAY) + 'd'; return (ms < 0 ? '+' : '-') + txt; };
+
+  function shown(m) {
+    const inactive = m.status === 'Discontinued';
+    if (inactive && !include.dc) return false;
+    if (!inactive && !include.active) return false;
+    if (m.type === 'once') return include.stat;
+    if (m.type === 'continuous') return include.iv;
+    if (m.type === 'prn') return include.prn;
+    return true;
+  }
+
+  function doseCell(p, doc, m, dt) {
+    const s = Model.doseStatus(p, doc, m, dt);
+    const now = p.clock.now();
+    const who = s.entry ? U.initials(s.entry.user.name) : (dt.priorBy || dt.priorNGBy || '');
+    let txt = '';
+    if (s.code === 'given') txt = `✔ ${s.entry ? hhmm(s.entry.time) : hhmm(dt.time)}${who ? ' ' + esc(who) : ''}`;
+    else if (s.code === 'notgiven') txt = `Not given${who ? ' ' + esc(who) : ''}`;
+    else if (s.code === 'due') txt = Math.abs(now - dt.time) < 60000 ? 'Due' : `Due ${rel(now - dt.time)}`;
+    else if (s.code === 'overdue') txt = rel(now - dt.time);
+    else if (s.code === 'notdue') txt = 'Not today';
+    else if (s.code === 'dc') txt = 'DC';
+    else if (s.code === 'hold') txt = 'Held';
+    return `<td class="mg-cell mg-${s.code}"><button class="mg-btn" data-dose="${esc(dt.key)}" title="${esc(STATUS_TEXT[s.code])} — scheduled ${U.fmtDT(dt.time)}">${txt || '&nbsp;'}</button></td>`;
+  }
+
+  // Current dose of an infusion: the latest documented rate, else the ordered rate.
+  function currentDose(doc, m) {
+    const e = doc.mar.filter(x => x.status === 'active' && x.data.medId === m.id && x.data.infusion && x.data.rate).sort((a, b) => b.time - a.time)[0];
+    return e ? e.data.rate : (m.rate || '');
+  }
+  const titratable = m => m.type === 'continuous' && m.protocol && m.status === 'Active';
+
+  // Small boxed icons under the medication, like Expanse: P = protocol, titrate symbol = titrate.
+  function icons(p, m) {
+    const out = [];
+    if (m.protocol && Views.protocol.get(p, m.protocol)) out.push(`<button type="button" class="mg-ico" data-protocol="${esc(m.protocol)}" title="Protocol" aria-label="View protocol">P</button>`);
+    if (titratable(m)) out.push(`<button type="button" class="mg-ico mg-ico-titr" data-titrate="${esc(m.id)}" title="Titrate" aria-label="Titrate">⇅</button>`);
+    if (m.highAlert) out.push('<span class="mg-ico mg-ico-ha" title="High-alert medication">HA</span>');
+    return out.length ? `<div class="mg-icons">${out.join('')}</div>` : '';
+  }
+
+  function medCell(p, doc, m, rows) {
     const conflicts = Model.allergyConflicts(p, m);
-    const t = typeOf(m);
-    let action = '';
-    if (t === 'scheduled') {
-      action = (m.doseTimes.length ? `<div class="dose-row">${m.doseTimes.map(dt => {
-        const s = Model.doseStatus(p, doc, m, dt);
-        const who = s.entry ? U.initials(s.entry.user.name) : (dt.priorBy || dt.priorNGBy || '');
-        const when = s.entry ? U.fmtTime(s.entry.time) : '';
-        return `<button class="dose dose-${s.code}" data-dose="${esc(dt.key)}" title="${esc(STATUS_TEXT[s.code])}">
-            <span class="dose-time">${U.fmtDate(dt.time) !== U.fmtDate(p.clock.now()) ? U.fmtDate(dt.time).slice(0, 5) + ' ' : ''}${U.fmtTime(dt.time)}</span>
-            <span class="dose-status">${esc(STATUS_TEXT[s.code])}${when ? ' ' + when : ''}${who ? ' · ' + esc(who) : ''}</span>
-          </button>`;
-      }).join('')}</div>` : '<p class="muted">No scheduled times.</p>');
-    } else if (t === 'prn') {
-      const last = Model.lastGiven(doc, m);
-      const pendingEffect = doc.mar.filter(e => e.status === 'active' && e.data.medId === m.id && e.data.action === 'Given' && e.data.prn &&
-        !doc.mar.some(x => x.status === 'active' && x.data.action === 'Effectiveness' && x.data.refId === e.id));
-      action = `<div class="prn-row">
-          <button class="btn btn-primary btn-sm" data-prn="${esc(m.id)}">Give PRN Dose</button>
-          <span class="muted">Last given: ${last ? esc(U.fmtDT(last.time) + ' (' + last.by + ')') : 'none on record'}</span>
-        </div>
-        ${pendingEffect.map(e => `<div class="reassess">Reassessment due for dose given ${U.fmtTime(e.time)} <button class="btn btn-sm" data-effect="${e.id}" data-med="${esc(m.id)}">Document Effectiveness</button></div>`).join('')}`;
-    } else {
-      action = `<div class="prn-row">
-          <button class="btn btn-primary btn-sm" data-infusion="${esc(m.id)}">Document Infusion</button>
-          <span class="muted">${esc(infusionState(doc, m))}</span>
-        </div>`;
-    }
-
-    const hist = Model.marEntries(doc, m.id).sort((a, b) => b.time - a.time);
-    const history = hist.length ? `<details class="med-history"><summary>My documentation (${hist.length})</summary><ul class="plain">
-        ${hist.map(e => `<li class="${e.status === 'error' ? 'struck' : ''}">
-          <strong>${esc(e.data.action)}</strong>${e.data.dose ? ' — ' + esc(e.data.dose) : ''}${e.data.rate ? ' — ' + esc(e.data.rate) : ''}${e.data.reason ? ' — ' + esc(e.data.reason) : ''}${e.data.response ? ' — ' + esc(e.data.response) : ''}
-          ${e.data.override ? ' ' + UI.badge('Override', 'danger') : ''}
-          ${UI.entryMeta(e)}
-          ${e.status === 'active' ? `<button class="btn btn-sm btn-link" data-err="${e.id}">Mark in error</button>` : ''}
-        </li>`).join('')}</ul></details>` : '';
-
-    return `<article class="med-card ${m.status !== 'Active' ? 'med-inactive' : ''} ${conflicts.length ? 'med-allergy' : ''}">
-      <div class="med-main">
-        <div class="med-title">
-          ${m.isNew ? UI.badge('NEW', 'new') : ''}
-          ${m.highAlert ? UI.badge('HIGH ALERT', 'danger') : ''}
-          ${conflicts.length ? UI.badge('ALLERGY: ' + conflicts.map(a => a.agent).join(', '), 'danger') : ''}
-          ${statusBadge(m)}
-          <h3>${esc(m.name)}</h3>
-        </div>
-        <div class="med-sig">${esc([m.dose, m.route, m.freq].filter(x => x && x !== '—').join(' · '))}${m.rate && t === 'continuous' ? ' · Rate ' + esc(m.rate) : ''}</div>
-        ${m.indication ? `<div class="muted">Indication: ${esc(m.indication)}</div>` : ''}
-        ${m.instructions ? `<div class="med-instr">${esc(m.instructions)}</div>` : ''}
+    const t = m.type === 'once' ? 'ONE' : m.type === 'prn' ? 'PRN' : m.type === 'continuous' ? (m.protocol ? '@ Titrate IV' : 'IV') : 'SCH';
+    const cur = m.type === 'continuous' ? currentDose(doc, m) : '';
+    return `<td class="mg-start" rowspan="${rows}">${esc(U.fmtDT(m.orderTime))}${m.dcTime ? `<br>${esc(U.fmtDT(m.dcTime))}` : ''}<br><span class="${m.status === 'Active' ? '' : 'mg-status-off'}">${esc(m.status)}</span>
+        ${m.isNew ? '<br>' + UI.badge('NEW', 'new') : ''}</td>
+      <td class="mg-med" rowspan="${rows}" data-select="${esc(m.id)}" tabindex="0" title="Click for Medication Detail">
+        ${conflicts.length ? UI.badge('ALLERGY: ' + conflicts.map(a => a.agent).join(', '), 'danger') + ' ' : ''}
+        <strong>${esc(m.name)}</strong> ${esc([m.dose, m.route].filter(x => x && x !== '—').join(' '))}
+        <div><strong>${esc(m.freq)} ${t}</strong></div>
+        ${cur ? `<div><strong>Current Dose: ${esc(cur)}</strong></div>` : ''}
+        <div class="mg-give">Give: ${esc(m.dose)}</div>
+        ${m.indication ? `<div class="mg-give">PRN Reason: ${esc(m.indication)}</div>` : ''}
+        <div class="mg-rx">Rx#: ${esc(m.barcode)}</div>
+        ${icons(p, m)}
+        ${m.instructions ? `<div class="mg-label"><strong>Label Comments:</strong> ${esc(m.instructions)}</div>` : ''}
         ${m.holdReason ? `<div class="med-hold">${esc(m.holdReason)}</div>` : ''}
         ${m.holdIf ? `<div class="med-hold">Hold if ${m.holdIf.map(h => `${esc(h.p)} ${esc(h.op)} ${esc(h.v)}`).join(' or ')}</div>` : ''}
-      </div>
-      <div class="med-actions">${action}${history}</div>
-    </article>`;
+      </td>`;
+  }
+
+  const inDay = (t, c) => t >= c && t < c + DAY;
+
+  function medRows(p, doc, m, cols, today) {
+    const t = typeOf(m);
+    const active = m.status === 'Active';
+    if (t === 'prn') {
+      const given = doc.mar.filter(e => e.status === 'active' && e.data.medId === m.id && e.data.action === 'Given');
+      const priorTimes = [m.lastGivenPrior, ...(m.doseTimes || []).filter(d => d.priorBy).map(d => ({ time: d.time, by: d.priorBy }))].filter(Boolean);
+      const pending = given.filter(e => e.data.prn && !doc.mar.some(x => x.status === 'active' && x.data.action === 'Effectiveness' && x.data.refId === e.id));
+      const prnCell = c => `<td class="mg-cell ${c === today && active ? 'mg-prn' : 'mg-none'}">${c === today && active ? `<button class="mg-btn" data-prn="${esc(m.id)}" title="Give PRN dose">PRN +</button>` : ''}</td>`;
+      const lastCell = c => {
+        const items = given.filter(e => inDay(e.time, c)).map(e => `✔ ${hhmm(e.time)} ${esc(U.initials(e.user.name))}`)
+          .concat(priorTimes.filter(g => inDay(g.time, c)).map(g => `✔ ${hhmm(g.time)} ${esc(g.by)}`));
+        const re = c === today ? pending.map(e => `<button class="mg-btn mg-reassess" data-effect="${e.id}" data-med="${esc(m.id)}" title="Document PRN effectiveness">Reassess ${hhmm(e.time)} dose</button>`).join('') : '';
+        return `<td class="mg-cell ${items.length ? 'mg-given' : 'mg-none'}">${items.map(x => `<div class="mg-note">${x}</div>`).join('')}${re}</td>`;
+      };
+      return `<tr>${medCell(p, doc, m, 2)}<td class="mg-time">${active ? `<button class="mg-timebtn" data-prn="${esc(m.id)}" title="Give PRN dose">PRN ⊕</button>` : 'PRN'}</td>${cols.map(prnCell).join('')}</tr>
+        <tr><td class="mg-time muted">Last<br>Admin</td>${cols.map(lastCell).join('')}</tr>`;
+    }
+    if (t === 'continuous') {
+      const entries = doc.mar.filter(e => e.status === 'active' && e.data.medId === m.id && e.data.infusion);
+      const cell = c => {
+        const items = entries.filter(e => inDay(e.time, c)).sort((a, b) => a.time - b.time).map(e => `${hhmm(e.time)} ${esc(e.data.action)}${e.data.rate ? ' ' + esc(e.data.rate) : ''}`);
+        if (m.startedPrior && inDay(m.startedPrior.time, c)) items.unshift(`${hhmm(m.startedPrior.time)} Started ${esc(m.startedPrior.by)}`);
+        const clickable = c === today && active;
+        return `<td class="mg-cell ${items.length ? 'mg-given' : clickable ? 'mg-iv' : 'mg-none'}">${clickable
+          ? `<button class="mg-btn" data-infusion="${esc(m.id)}" title="Document infusion">${items.length ? items.map(x => `<div class="mg-note">${x}</div>`).join('') : 'Document'}</button>`
+          : items.map(x => `<div class="mg-note">${x}</div>`).join('')}</td>`;
+      };
+      return `<tr>${medCell(p, doc, m, 1)}<td class="mg-time">IV</td>${cols.map(cell).join('')}</tr>`;
+    }
+    // Scheduled / one-time: one row per time of day, one column per day.
+    const inView = m.doseTimes.filter(dt => cols.some(c => inDay(dt.time, c)));
+    const times = [...new Set(inView.map(dt => hhmm(dt.time)))].sort();
+    if (!times.length) return `<tr>${medCell(p, doc, m, 1)}<td class="mg-time">—</td>${cols.map(() => '<td class="mg-cell mg-none"></td>').join('')}</tr>`;
+    return times.map((tm, i) => `<tr>${i === 0 ? medCell(p, doc, m, times.length) : ''}<td class="mg-time">${tm.replace(/(\d\d)(\d\d)/, '$1:$2')}</td>
+      ${cols.map(c => { const dt = inView.find(d => inDay(d.time, c) && hhmm(d.time) === tm); return dt ? doseCell(p, doc, m, dt) : '<td class="mg-cell mg-none"></td>'; }).join('')}</tr>`).join('');
+  }
+
+  // Medication Detail, with Expanse-style tabs: Detail | History | Prot/Taper | Order.
+  function medDetail(p, doc, m, startTab) {
+    const hist = Model.marEntries(doc, m.id).sort((a, b) => b.time - a.time);
+    const prior = (m.doseTimes || []).filter(d => d.priorBy || d.priorNotGiven).map(d => `<li>${esc(U.fmtDT(d.time))} — ${d.priorBy ? 'Given' : 'Not given: ' + esc(d.priorNotGiven)} (${esc(d.priorBy || d.priorNGBy || 'prior RN')})</li>`)
+      .concat(m.lastGivenPrior ? [`<li>${esc(U.fmtDT(m.lastGivenPrior.time))} — Given (${esc(m.lastGivenPrior.by)})</li>`] : [])
+      .concat(m.startedPrior ? [`<li>${esc(U.fmtDT(m.startedPrior.time))} — Infusion started (${esc(m.startedPrior.by)})</li>`] : []);
+    const pr = m.protocol && Views.protocol.get(p, m.protocol);
+    const o = Model.medOrders(p).find(x => x.id === m.id);
+    const cur = m.type === 'continuous' ? currentDose(doc, m) : '';
+    const tabs = {
+      detail: `<table class="grid"><thead><tr><th>Medication</th><th>Start</th><th>Stop</th><th>Status</th></tr></thead><tbody><tr>
+          <td><strong>${esc(Model.medLabel(m))}</strong>${cur ? `<div><strong>Current Dose: ${esc(cur)}</strong></div>` : ''}<div class="mg-rx">Rx#: ${esc(m.barcode)}</div>
+            ${m.instructions ? `<div class="mg-label"><strong>Label Comments:</strong> ${esc(m.instructions)}</div>` : ''}</td>
+          <td class="nowrap">${esc(U.fmtDT(m.orderTime))}</td><td class="nowrap">${m.dcTime ? esc(U.fmtDT(m.dcTime)) : ''}</td><td>${esc(m.status)}</td></tr></tbody></table>
+        ${pr ? `<div class="mg-protline"><span>${m.type === 'continuous' ? 'Titration Protocol' : 'Protocol'}</span><strong>${esc(pr.title)}</strong></div>` : ''}`,
+      history: `<h4>Prior documentation</h4>${prior.length ? `<ul class="plain">${prior.join('')}</ul>` : UI.empty('None.')}
+        <h4>Documented this shift</h4>${hist.length ? `<ul class="plain">${hist.map(e => `<li class="${e.status === 'error' ? 'struck' : ''}">
+          <strong>${esc(e.data.action)}</strong>${e.data.dose ? ' — ' + esc(e.data.dose) : ''}${e.data.rate ? ' — ' + esc(e.data.rate) : ''}${e.data.reason ? ' — ' + esc(e.data.reason) : ''}${e.data.response ? ' — ' + esc(e.data.response) : ''}${e.data.comment ? ' — ' + esc(e.data.comment) : ''}
+          ${e.data.override ? ' ' + UI.badge('Override', 'danger') : ''} ${UI.entryMeta(e)}
+          ${e.status === 'active' ? `<button class="btn btn-sm btn-link" data-err="${e.id}">Mark in error</button>` : ''}</li>`).join('')}</ul>` : UI.empty('Nothing documented yet.')}`,
+      prot: pr ? Views.protocol.html(pr) : UI.empty('No protocol for this medication.'),
+      order: o ? `<dl class="kv"><dt>Order</dt><dd>${esc(o.text)}</dd><dt>Ordering provider</dt><dd>${esc(o.by)}</dd><dt>Ordered</dt><dd>${esc(U.fmtDT(o.time))}</dd>
+          ${m.indication ? `<dt>Indication</dt><dd>${esc(m.indication)}</dd>` : ''}${m.highAlert ? '<dt>Alert</dt><dd>High-alert medication — independent double check</dd>' : ''}
+          ${(m.preAssess || []).length ? `<dt>Assess before giving</dt><dd>${esc(m.preAssess.join(', '))}</dd>` : ''}</dl>` : ''
+    };
+    const names = [['detail', 'Detail'], ['history', 'History'], ['prot', 'Prot/Taper'], ['order', 'Order']];
+    UI.modal({
+      title: 'Medication Detail', wide: true,
+      body: `<div class="md-tabs">${names.map(([k, l]) => `<button type="button" class="md-tab" data-mdtab="${k}" ${k === 'prot' && !pr ? 'disabled' : ''}>${l}</button>`).join('')}</div>
+        ${names.map(([k]) => `<div class="md-pane" data-mdpane="${k}" hidden>${tabs[k]}</div>`).join('')}`,
+      onOpen(api) {
+        const show = k => {
+          api.el.querySelectorAll('[data-mdpane]').forEach(x => { x.hidden = x.dataset.mdpane !== k; });
+          api.el.querySelectorAll('[data-mdtab]').forEach(x => x.classList.toggle('md-tab-on', x.dataset.mdtab === k));
+        };
+        api.el.querySelectorAll('[data-mdtab]').forEach(b => b.addEventListener('click', () => show(b.dataset.mdtab)));
+        show(startTab || 'detail');
+        api.el.querySelectorAll('[data-err]').forEach(b => b.addEventListener('click', () => { api.close(); UI.errorEntry(p, 'mar', b.dataset.err); }));
+      },
+      buttons: [{ label: 'Close' }]
+    });
   }
 
   Views.mar = {
-    setFilter(f) { filter = f; },
-    label: 'Medications',
+    label: 'MAR',
     render(p, doc) {
-      const groups = [
-        ['all', 'All'], ['scheduled', 'Scheduled'], ['prn', 'PRN'], ['continuous', 'Continuous / IV'], ['inactive', 'Held / DC\'d'], ['tar', 'Transfusions (TAR)']
-      ];
-      const meds = p.meds.filter(m => {
-        if (filter === 'all') return true;
-        if (filter === 'inactive') return m.status !== 'Active';
-        if (filter === 'tar') return BLOOD.test(m.name);
-        return typeOf(m) === filter && m.status === 'Active';
-      });
-      const order = { continuous: 0, scheduled: 1, prn: 2 };
-      meds.sort((a, b) => (a.status !== 'Active') - (b.status !== 'Active') || order[typeOf(a)] - order[typeOf(b)]);
-      return `
-        <div class="view-actions">
-          <div class="chips">${groups.map(([k, l]) => `<button class="chip ${filter === k ? 'chip-on' : ''}" data-filter="${k}">${l}</button>`).join('')}</div>
-          <div class="legend">
-            <span class="dose dose-due">Due</span><span class="dose dose-overdue">Overdue</span><span class="dose dose-given">Given</span>
-            <span class="dose dose-notgiven">Not given</span><span class="dose dose-future">Scheduled</span>
-          </div>
-        </div>
-        <p class="muted">Due window: ${C.medWindowMinutes} minutes before or after the scheduled time. Scan the patient wristband and each medication before charting.</p>
-        ${meds.length ? meds.map(m => medCard(p, doc, m)).join('') : UI.empty(filter === 'tar' ? 'No blood products are ordered for this patient.' : 'No medications in this view.')}`;
+      const today = dayStart(p.clock.now());
+      const cols = [today - DAY, today].concat(days === 3 ? [today + DAY] : []);
+      const meds = p.meds.filter(shown);
+      const order = { continuous: 2, scheduled: 0, prn: 1 };
+      meds.sort((a, b) => (a.status === 'Discontinued') - (b.status === 'Discontinued') || order[typeOf(a)] - order[typeOf(b)] || a.orderTime - b.orderTime);
+      const chk = (k, label) => `<label class="mg-inc"><input type="checkbox" data-inc="${k}" ${include[k] ? 'checked' : ''}> ${label}</label>`;
+      const fmtDay = c => new Date(c).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      return `${Views.worklist.band(p)}
+        <div class="mg-include">Include: ${chk('active', 'Active')}${chk('stat', 'STAT/ONE')}${chk('iv', 'IVs')}${chk('prn', 'PRNs')}${chk('dc', 'Discontinued')}</div>
+        <p class="muted small">Click a time cell to administer (red = overdue, yellow = due within ${C.medWindowMinutes} minutes, green = given). PRN: click <strong>PRN ⊕</strong>. Infusions: click today's cell to document, <strong>⇅</strong> to titrate, <strong>P</strong> for the protocol. Click a medication for Medication Detail (history, protocol, corrections).</p>
+        <div class="scroll-x"><table class="grid mar-grid">
+          <thead><tr><th class="mg-start">Start<br>Stop<br>Status</th><th>Medication<br>(Route)</th><th>Time</th>${cols.map(c => `<th class="${c === today ? 'mg-today' : ''}">${c === today ? 'TODAY<br>' : ''}${fmtDay(c)}</th>`).join('')}</tr></thead>
+          <tbody>${meds.length ? meds.map(m => medRows(p, doc, m, cols, today)).join('<tr class="mg-sep"><td colspan="' + (3 + cols.length) + '"></td></tr>') : `<tr><td colspan="${3 + cols.length}">${UI.empty('No medications match the Include filters.')}</td></tr>`}</tbody>
+        </table></div>
+        <div class="wl-bar mg-foot"><div class="wl-bar-right"><a class="wl-btn" href="#/patient/${esc(p.id)}/${App.lastChartTab && App.lastChartTab[p.id] || 'summary'}">Close</a></div></div>`;
     },
     bind(root, p, doc) {
-      root.querySelectorAll('[data-filter]').forEach(b => b.addEventListener('click', () => { filter = b.dataset.filter; App.render(); }));
+      root.querySelectorAll('[data-inc]').forEach(b => b.addEventListener('change', () => { include[b.dataset.inc] = b.checked; App.render(); }));
+      root.querySelectorAll('[data-select]').forEach(c => {
+        const open = () => medDetail(p, doc, p.meds.find(m => m.id === c.dataset.select));
+        c.addEventListener('click', e => { if (!e.target.closest('button')) open(); });
+        c.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target === c) open(); });
+      });
       root.querySelectorAll('[data-dose]').forEach(b => b.addEventListener('click', () => {
         const key = b.dataset.dose;
         const med = p.meds.find(m => m.doseTimes.some(d => d.key === key));
         const dt = med.doseTimes.find(d => d.key === key);
         const s = Model.doseStatus(p, doc, med, dt);
         if (s.code === 'given' && s.prior) { UI.toast(`Documented by ${dt.priorBy} at ${U.fmtTime(dt.time)} (prior shift).`, 'info'); return; }
-        if (s.code === 'given') { UI.toast('Already documented. Use "My documentation" to correct an entry.', 'info'); return; }
+        if (s.code === 'given' || s.code === 'notgiven') { UI.toast('Already documented. Click the medication for Medication Detail → History to correct an entry.', 'info'); return; }
         administer(p, doc, med, dt, 'dose');
       }));
       root.querySelectorAll('[data-prn]').forEach(b => b.addEventListener('click', () => administer(p, doc, p.meds.find(m => m.id === b.dataset.prn), null, 'prn')));
       root.querySelectorAll('[data-infusion]').forEach(b => b.addEventListener('click', () => administer(p, doc, p.meds.find(m => m.id === b.dataset.infusion), null, 'infusion')));
+      root.querySelectorAll('[data-titrate]').forEach(b => b.addEventListener('click', e => {
+        e.stopPropagation();
+        const m = p.meds.find(x => x.id === b.dataset.titrate);
+        if (m.protocol === 'heparin') Views.heparin.titrate(p); else Views.protocol.titrateDrip(p, m);
+      }));
       root.querySelectorAll('[data-effect]').forEach(b => b.addEventListener('click', () => effectiveness(p, p.meds.find(m => m.id === b.dataset.med), b.dataset.effect)));
-      root.querySelectorAll('[data-err]').forEach(b => b.addEventListener('click', () => UI.errorEntry(p, 'mar', b.dataset.err)));
+      Views.protocol.bind(root, p);
+    }
+  };
+  Views.mar.detail = medDetail;
+
+  /* ---------------- Medications folder tab (Current Visit list) ---------------- */
+
+  const MED_VIEWS = [['inf', 'Current Inf/Titr'], ['current', 'Current Visit'], ['home', 'Home Medications'], ['mar', 'Mar'], ['history', 'Medication History']];
+  let medView = 'current';
+
+  function medTable(p, groups) {
+    return `<table class="grid meds-list"><colgroup><col><col class="oc-by"><col class="oc-time"><col class="oc-status"><col class="oc-i"></colgroup>
+      <thead><tr><th>Generic Name [Trade Name]</th><th>Provider</th><th>Start/Stop</th><th>Status</th><th></th></tr></thead>
+      <tbody>${groups.filter(g => g[1].length).map(([name, list]) => `<tr class="ord-band"><th colspan="5">${esc(name)}</th></tr>
+        ${list.map(m => `<tr class="${m.status === 'Discontinued' ? 'dc' : ''}"><td><span class="ord-text">${esc(m.name)}</span> <span class="ml-sig">${esc([m.dose, m.route, m.freq].filter(x => x && x !== '—').join(' '))}</span>${m.protocol ? ' ' + Views.protocol.link(p, m.protocol) : ''}${m.isNew ? ' ' + UI.badge('NEW', 'new') : ''}</td>
+          <td>${esc(m.orderedBy || p.attending)}</td><td class="nowrap">${esc(U.fmtDT(m.orderTime))}${m.dcTime ? '<br>' + esc(U.fmtDT(m.dcTime)) : ''}</td><td>${esc(m.status)}</td>
+          <td><button type="button" class="i-link" data-medinfo="${esc(m.id)}" title="Medication detail" aria-label="Medication detail">i</button></td></tr>`).join('')}`).join('')}</tbody></table>`;
+  }
+
+  Views.meds = {
+    label: 'Medications',
+    render(p, doc) {
+      const active = p.meds.filter(m => m.status !== 'Discontinued');
+      let body = '';
+      if (medView === 'current') {
+        body = medTable(p, [['Medications', active.filter(m => m.type === 'scheduled' || m.type === 'once')], ['PRN Medications', active.filter(m => m.type === 'prn')],
+          ['IV / Continuous Infusions', active.filter(m => m.type === 'continuous')], ['Discontinued', p.meds.filter(m => m.status === 'Discontinued')]]);
+      } else if (medView === 'inf') {
+        const inf = p.meds.filter(m => m.type === 'continuous');
+        body = inf.length ? `<table class="grid"><thead><tr><th>Infusion</th><th>Ordered rate / dose</th><th>Current status</th><th>Status</th></tr></thead><tbody>
+          ${inf.map(m => `<tr class="${m.status === 'Discontinued' ? 'dc' : ''}"><td><strong>${esc(m.name)}</strong>${m.protocol ? ' ' + Views.protocol.link(p, m.protocol) : ''}${m.highAlert ? ' ' + UI.badge('HIGH ALERT', 'danger') : ''}</td>
+            <td>${esc(m.rate || m.dose)}</td><td>${esc(infusionState(doc, m))}</td><td>${esc(m.status)}</td></tr>`).join('')}</tbody></table>
+          <p class="muted small">Infusions are documented and titrated on the <a href="#/patient/${esc(p.id)}/mar">MAR</a>.</p>` : UI.empty('No infusions ordered.');
+      } else if (medView === 'home') {
+        body = (p.homeMeds || []).length ? `<table class="grid"><thead><tr><th>Medication</th><th>Dose</th><th>Route</th><th>Frequency</th></tr></thead><tbody>
+          ${p.homeMeds.map(m => `<tr><td>${esc(m.name)}</td><td>${esc(m.dose)}</td><td>${esc(m.route)}</td><td>${esc(m.freq)}</td></tr>`).join('')}</tbody></table>` : UI.empty('No home medications recorded.');
+      } else {
+        const rows = [];
+        p.meds.forEach(m => {
+          (m.doseTimes || []).forEach(d => { if (d.priorBy) rows.push([d.time, m.name, 'Given', m.dose, d.priorBy]); else if (d.priorNotGiven) rows.push([d.time, m.name, 'Not given — ' + d.priorNotGiven, m.dose, d.priorNGBy || '']); });
+          if (m.lastGivenPrior) rows.push([m.lastGivenPrior.time, m.name, 'Given', m.dose, m.lastGivenPrior.by]);
+          if (m.startedPrior) rows.push([m.startedPrior.time, m.name, 'Infusion started', m.rate || m.dose, m.startedPrior.by]);
+        });
+        doc.mar.forEach(e => rows.push([e.time, e.data.medName, e.data.action + (e.status === 'error' ? ' (entered in error)' : ''), e.data.dose || e.data.rate || '', Model.signature(e)]));
+        rows.sort((a, b) => b[0] - a[0]);
+        body = rows.length ? `<table class="grid"><thead><tr><th>Date/time</th><th>Medication</th><th>Action</th><th>Dose / rate</th><th>By</th></tr></thead><tbody>
+          ${rows.map(r => `<tr><td class="nowrap">${esc(U.fmtDT(r[0]))}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td><td>${esc(r[3])}</td><td>${esc(r[4])}</td></tr>`).join('')}</tbody></table>` : UI.empty('No administrations on record.');
+      }
+      const label = (MED_VIEWS.find(v => v[0] === medView) || [])[1];
+      return `<div class="ml-bar"><span class="muted">${esc(label)}${medView === 'current' ? ' by Category' : ''}</span>
+          <div class="ml-menu-wrap"><button class="btn btn-sm ml-menu-btn" aria-haspopup="true" aria-expanded="false">${esc(label)} ▾</button>
+            <div class="tb-menu ml-menu" hidden role="menu"><div class="ml-menu-h">Administrations</div>
+              ${MED_VIEWS.map(([k, l]) => `<a role="menuitem" href="${k === 'mar' ? `#/patient/${esc(p.id)}/mar` : '#'}" data-medview="${k}" class="${k === medView ? 'ml-on' : ''}">${esc(l)}</a>`).join('')}</div></div></div>
+        ${body}`;
+    },
+    bind(root, p, doc) {
+      const btn = root.querySelector('.ml-menu-btn'), menu = root.querySelector('.ml-menu');
+      const close = () => { menu.hidden = true; btn.setAttribute('aria-expanded', 'false'); };
+      btn.addEventListener('click', e => { e.stopPropagation(); menu.hidden = !menu.hidden; btn.setAttribute('aria-expanded', String(!menu.hidden)); if (!menu.hidden) setTimeout(() => document.addEventListener('click', close, { once: true }), 0); });
+      root.querySelectorAll('[data-medview]').forEach(a => a.addEventListener('click', e => {
+        if (a.dataset.medview === 'mar') return;
+        e.preventDefault(); medView = a.dataset.medview; App.render();
+      }));
+      root.querySelectorAll('[data-medinfo]').forEach(b => b.addEventListener('click', () => {
+        const o = Model.medOrders(p).find(x => x.id === b.dataset.medinfo);
+        if (o) Views.orders.detail(p, doc, o);
+      }));
+      Views.protocol.bind(root, p);
     }
   };
 

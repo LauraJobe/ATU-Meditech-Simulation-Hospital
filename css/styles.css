@@ -651,3 +651,4 @@ button.mg-ico:hover { background: #e6f2ff; }
 .tally-low { color: #6b4300; background: #fff3d6; border-left: 4px solid #d69500; padding: 4px 8px; font-weight: 700; margin-top: 4px; }
 .tally-high { color: #fff; background: var(--danger); padding: 4px 8px; font-weight: 700; margin-top: 4px; }
 input.field-alert { border: 2px solid var(--danger) !important; background: #fdecea; }
+.wcalc { margin: 4px 0 8px; padding: 6px 10px; background: #eef5ff; border-left: 4px solid #1b6fb5; font-weight: 700; color: #1b3a5c; }

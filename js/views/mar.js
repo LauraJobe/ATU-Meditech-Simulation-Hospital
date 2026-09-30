@@ -115,7 +115,8 @@
 
   // Current dose of an infusion: the latest documented rate, else the ordered rate.
   function currentDose(doc, m) {
-    const e = doc.mar.filter(x => x.status === 'active' && x.data.medId === m.id && x.data.infusion && x.data.rate).sort((a, b) => b.time - a.time)[0];
+    // Latest by event time; ties go to the entry charted last.
+    const e = doc.mar.filter(x => x.status === 'active' && x.data.medId === m.id && x.data.infusion && x.data.rate).reduce((best, x) => !best || x.time >= best.time ? x : best, null);
     return e ? e.data.rate : (m.rate || '');
   }
   const titratable = m => m.type === 'continuous' && m.protocol && m.status === 'Active';
@@ -425,21 +426,25 @@
     if (mode === 'infusion') {
       body = `<div class="form-grid">
           <label class="field"><span>Action</span><select name="action">${UI.options(INFUSION_ACTIONS, null, false)}</select></label>
-          <label class="field"><span>Rate / dose</span><input name="rate" value="${esc(med.rate || med.dose || '')}"></label>
+          ${med.weightRate ? `<label class="field"><span>Rate (units/kg/hr)</span><input name="rate" type="number" step="any" placeholder="Enter units/kg/hr"></label>`
+            : `<label class="field"><span>Rate / dose</span><input name="rate" value="${esc(med.rate || med.dose || '')}"></label>`}
           <label class="field"><span>Site</span><select name="site">${UI.options(SITES, '', false)}</select></label>
           ${UI.timeField(p, 'Date/time')}
         </div>
+        ${med.weightRate ? '<div class="wcalc" data-wcalc>Enter the rate in units/kg/hr; the MAR calculates units/hr and mL/hr from the protocol weight.</div>' : ''}
         <label class="check"><input type="checkbox" name="doubleCheck" data-single="1"> Independent double check completed${med.highAlert ? ' (required for high-alert infusions)' : ''}</label>
         <label class="field"><span>Second RN / verifier</span><input name="verifier"></label>`;
     } else {
       body = `<div class="form-grid">
           ${mode === 'dose' ? `<label class="field"><span>Administration</span><select name="action"><option>Given</option><option>Not Given</option></select></label>` : '<input type="hidden" name="action" value="Given">'}
-          <label class="field"><span>Dose given</span><input name="dose" value="${esc(med.dose)}"></label>
+          ${med.weightDose ? `<label class="field"><span>Dose given (${esc(med.weightDose.unit)})</span><input name="dose" type="number" step="any" placeholder="Calculate from weight"></label>`
+            : `<label class="field"><span>Dose given</span><input name="dose" value="${esc(med.dose)}"></label>`}
           <label class="field"><span>Route</span><input name="route" value="${esc(med.route)}"></label>
           <label class="field"><span>Site</span><select name="site">${UI.options(SITES, '', false)}</select></label>
           ${UI.timeField(p, 'Date/time administered')}
           ${mode === 'prn' ? `<label class="field"><span>PRN reason</span><input name="prnReason" value="${esc(med.indication || '')}"></label>` : ''}
         </div>
+        ${med.weightDose ? '<div class="wcalc" data-wcalc>Enter the dose you calculated from the protocol weight.</div>' : ''}
         <label class="field not-given" hidden><span>Reason not given</span><select name="reason">${UI.options(NOT_GIVEN)}</select></label>
         ${med.highAlert ? `<label class="check"><input type="checkbox" name="doubleCheck" data-single="1"> Independent double check completed (high-alert medication)</label>
           <label class="field"><span>Second RN / verifier</span><input name="verifier"></label>` : ''}`;
@@ -517,6 +522,11 @@
         q('[name="noScan"]').addEventListener('change', e => { q('.scan-reason').hidden = !e.target.checked; });
         const act = q('select[name="action"]');
         if (act && mode === 'dose') act.addEventListener('change', () => { q('.not-given').hidden = act.value !== 'Not Given'; });
+        const wc = q('[data-wcalc]');
+        if (wc) el.addEventListener('input', () => {
+          if (med.weightDose) { const n = Number(q('[name="dose"]').value); wc.textContent = n ? '= ' + Views.protocol.bolusCalc(p, med, n) : 'Enter the dose you calculated from the protocol weight.'; }
+          if (med.weightRate) { const c = Views.protocol.rateCalc(p, med, Number(q('[name="rate"]').value)); wc.textContent = c ? '= ' + c.text : 'Enter the rate in units/kg/hr.'; }
+        });
         const live = q('.hold-live');
         if (live) el.addEventListener('input', () => {
           const hits = evalHold(med, U.formValues(el));
@@ -546,6 +556,21 @@
     if (given && conflicts.length && !v.allergyReason) return fail('Enter the allergy override reason.');
     if (mode === 'dose' && v.action === 'Not Given' && !v.reason) return fail('Select the reason the dose was not given.');
     if (given && med.highAlert && !v.doubleCheck) return fail('High-alert medication: document the independent double check.');
+    // Weight-based protocol doses must be entered and are checked against the protocol limits.
+    let weightNote = '';
+    if (given && mode !== 'infusion' && med.weightDose) {
+      const n = Number(v.dose);
+      if (!n) return fail(`Enter the ${med.weightDose.unit} you calculated from the protocol weight (${p.weightKg} kg).`);
+      if (med.weightDose.max && n > med.weightDose.max) return fail(`${n.toLocaleString('en-US')} ${med.weightDose.unit} exceeds the protocol maximum of ${med.weightDose.max.toLocaleString('en-US')} ${med.weightDose.unit}.`);
+      weightNote = Views.protocol.bolusCalc(p, med, n);
+      v.dose = `${n.toLocaleString('en-US')} ${med.weightDose.unit}`;
+    }
+    if (mode === 'infusion' && med.weightRate && /Started|Rate change|Resumed|Rate verified/.test(v.action || '')) {
+      const c = Views.protocol.rateCalc(p, med, Number(v.rate));
+      if (!c) return fail('Enter the rate in units/kg/hr. The MAR calculates units/hr and mL/hr from the protocol weight.');
+      if (/Started/.test(v.action) && med.weightRate.startMax && c.perHr > med.weightRate.startMax) return fail(`Starting rate ${Views.protocol.n1(c.perHr)} units/hr exceeds the protocol maximum of ${med.weightRate.startMax.toLocaleString('en-US')} units/hr.`);
+      v.rate = c.text;
+    }
     // Dose checks against the order and against what was scanned.
     const ordered = mode === 'infusion' ? null : Scan.parseDose(med.dose);
     const doseGiven = Scan.parseDose(v.dose);
@@ -570,7 +595,7 @@
       override: (v.noScan || (conflicts.length && v.allergyOverride)) ? true : false,
       allergyOverride: conflicts.length && v.allergyOverride ? v.allergyReason : '',
       doubleCheck: v.doubleCheck ? (v.verifier || 'Yes') : '',
-      preAssess, holdParamsMet: holds, comment: v.comment
+      preAssess, holdParamsMet: holds, comment: [weightNote, v.comment].filter(Boolean).join(' — ')
     };
     Store.add(p.id, 'mar', data, UI.readTime(p, el), p.clock.now());
     UI.toast(mode === 'infusion' ? 'Infusion documented.' : given ? `${med.name} documented as given.` : `${med.name} documented as not given.`);

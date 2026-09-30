@@ -6,8 +6,8 @@
 
   const COLS = [
     ['drawTime', 'Time of aPTT draw', 'time'], ['aptt', 'aPTT result (sec)', 'number'], ['hold', 'Hold infusion (min)', 'number'],
-    ['bolus', 'Heparin bolus (units)', 'number'], ['change', 'Rate change (units/kg/hr)', 'text'], ['newRate', 'New infusion rate (units/kg/hr)', 'text'],
-    ['mlhr', 'New rate (mL/hr)', 'number'], ['nextAptt', 'Time of next aPTT', 'time'], ['rn2', 'RN 2 (verifier)', 'text']
+    ['bolus', 'Heparin bolus (units)', 'number'], ['change', 'Rate change (units/kg/hr)', 'text'], ['newRate', 'New infusion rate (units/kg/hr)', 'number'],
+    ['mlhr', 'New rate (mL/hr) — calculated', 'number'], ['nextAptt', 'Time of next aPTT', 'time'], ['rn2', 'RN 2 (verifier)', 'text']
   ];
 
   const protocolHtml = p => Views.protocol.html(Views.protocol.get(p, 'heparin'));
@@ -28,15 +28,29 @@
           ${UI.timeField(p, 'Date/time')}
           ${COLS.filter(c => c[0] !== 'rn2').map(([k, label, type]) => `<label class="field"><span>${esc(label)}</span><input name="${k}" type="${type === 'number' ? 'number' : type === 'time' ? 'time' : 'text'}" step="any"></label>`).join('')}
         </div>
+        <div class="wcalc" data-wcalc>Enter the new rate in units/kg/hr; the MAR calculates units/hr and mL/hr from the ${p.weightKg ? esc(p.weightKg + ' kg') : 'protocol'} weight.</div>
         <label class="check"><input type="checkbox" name="doubleCheck" data-single="1"> Independent double check completed (high-alert infusion)</label>
         <label class="field"><span>RN 2 (verifier)</span><input name="rn2"></label>
         <p class="muted">Weight used for protocol: ${p.weightKg ? esc(p.weightKg + ' kg') : 'see order'}. Both RNs verify the bolus, initial rate, and every rate change.</p>
       </form>`,
-      onOpen(api) { api.el.querySelector('form').addEventListener('submit', e => e.preventDefault()); },
+      onOpen(api) {
+        const f = api.el.querySelector('form');
+        f.addEventListener('submit', e => e.preventDefault());
+        const ml = f.querySelector('[name="mlhr"]'), wc = f.querySelector('[data-wcalc]');
+        ml.readOnly = true; ml.placeholder = 'calculated';
+        const bolusMed = p.meds.find(m => m.weightDose && /heparin/i.test(m.name));
+        f.addEventListener('input', () => {
+          const c = Views.protocol.rateCalc(p, med, Number(f.querySelector('[name="newRate"]').value));
+          ml.value = c && c.mlHr != null ? Views.protocol.n1(c.mlHr).replace(/,/g, '') : '';
+          const b = Number(f.querySelector('[name="bolus"]').value);
+          wc.textContent = [c ? 'New rate = ' + c.text : '', b && bolusMed ? 'Bolus = ' + Views.protocol.bolusCalc(p, bolusMed, b) : ''].filter(Boolean).join(' · ') || 'Enter the new rate in units/kg/hr.';
+        });
+      },
       buttons: [{ label: 'Cancel' }, { label: 'Sign & Save', cls: 'btn-primary', onClick: api => {
         const f = api.el.querySelector('form');
         const v = U.formValues(f);
         delete v._time;
+        if (v.newRate && !Number(v.newRate)) { UI.formError(f, 'Enter the new rate as a number in units/kg/hr.'); return false; }
         if (!v.aptt && !v.bolus && !v.newRate) { UI.formError(f, 'Enter the aPTT result, bolus, or new rate.'); return false; }
         if ((v.bolus || v.newRate || v.change || v.hold) && (!v.rn2 || !v.doubleCheck)) { UI.formError(f, 'A second RN must independently double check bolus, hold, and rate changes.'); return false; }
         const me = ((Store.session() || {}).name || '').trim().toLowerCase();
@@ -45,7 +59,8 @@
         const doubleCheck = v.doubleCheck ? v.rn2 : '';
         delete v.doubleCheck;
         Store.add(p.id, 'heparin', v, t, p.clock.now());
-        const rate = [v.newRate && v.newRate + ' units/kg/hr', v.mlhr && v.mlhr + ' mL/hr'].filter(Boolean).join(' = ');
+        const rc = v.newRate ? Views.protocol.rateCalc(p, med, Number(v.newRate)) : null;
+        const rate = rc ? rc.text : '';
         Store.add(p.id, 'mar', { medId: med.id, medName: med.name, infusion: true, action: v.newRate || v.change ? 'Rate change' : v.hold ? 'Paused' : 'Rate verified',
           rate, comment: [v.aptt && 'aPTT ' + v.aptt + ' s', v.bolus && 'bolus ' + v.bolus + ' units', v.hold && 'hold ' + v.hold + ' min', v.nextAptt && 'next aPTT ' + v.nextAptt].filter(Boolean).join('; '),
           doubleCheck, scan: { patient: 'n/a', med: 'n/a' }, titration: true }, t, p.clock.now());

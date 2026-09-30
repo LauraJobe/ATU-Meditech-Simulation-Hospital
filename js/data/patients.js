@@ -701,8 +701,8 @@ window.SIM_PATIENTS = [
           ] }
         ],
         meds: [
-          { id: 'wat-hep-bolus', protocol: 'heparin', name: 'Heparin bolus (from 10,000 units/10 mL vial)', dose: 'Per Nurse Driven Heparin Protocol — 80 kg', route: 'IV push', freq: 'Once — per protocol', type: 'once', highAlert: true, preAssess: ['lab:aPTT', 'lab:Platelets'], instructions: 'Calculate bolus per the protocol (P) using 80 kg. Independent double check with a second RN.', doses: [{ at: 0 }] },
-          { id: 'wat-hep-drip', protocol: 'heparin', name: 'Heparin infusion (premixed bag)', dose: 'Per Nurse Driven Heparin Protocol — units/kg/hr', route: 'IV', freq: 'Continuous — titrate per aPTT', type: 'continuous', highAlert: true, preAssess: ['lab:aPTT'], instructions: 'Initial rate and titration per the Nurse Driven Heparin Protocol using 80 kg. Independent double check with a second RN for start and every rate change. Document each aPTT, bolus, hold, and rate change with Titrate (aPTT) on this MAR entry.' }
+          { id: 'wat-hep-bolus', protocol: 'heparin', weightDose: { unit: 'units', perMl: 1000, source: '10,000 units/10 mL vial', max: 10000 }, name: 'Heparin bolus (from 10,000 units/10 mL vial)', dose: 'Per Nurse Driven Heparin Protocol — 80 kg', route: 'IV push', freq: 'Once — per protocol', type: 'once', highAlert: true, preAssess: ['lab:aPTT', 'lab:Platelets'], instructions: 'Calculate bolus per the protocol (P) using 80 kg. Independent double check with a second RN.', doses: [{ at: 0 }] },
+          { id: 'wat-hep-drip', protocol: 'heparin', weightRate: { unit: 'units/kg/hr', perMl: 50, source: '25,000 units/500 mL D5W', startMax: 2250 }, name: 'Heparin infusion (premixed bag)', dose: 'Per Nurse Driven Heparin Protocol — units/kg/hr', route: 'IV', freq: 'Continuous — titrate per aPTT', type: 'continuous', highAlert: true, preAssess: ['lab:aPTT'], instructions: 'Initial rate and titration per the Nurse Driven Heparin Protocol using 80 kg. Independent double check with a second RN for start and every rate change. Document each aPTT, bolus, hold, and rate change with Titrate (aPTT) on this MAR entry.' }
         ]
       }
     ]

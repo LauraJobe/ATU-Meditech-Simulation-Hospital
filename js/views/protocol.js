@@ -76,5 +76,20 @@
     });
   }
 
-  Views.protocol = { get, html, link, open, bind, titrateDrip };
+  // Weight-based dose math using the protocol weight (p.weightKg).
+  const n1 = x => Number(x.toFixed(1)).toLocaleString('en-US');
+  function bolusCalc(p, med, units) {
+    const w = p.weightKg, wd = med.weightDose || {};
+    if (!units || !w) return '';
+    return `${n1(units / w)} units/kg (weight ${w} kg)${wd.perMl ? ` · draw up ${n1(units / wd.perMl)} mL from the ${wd.source || wd.perMl + ' units/mL'}` : ''}`;
+  }
+  function rateCalc(p, med, perKgHr) {
+    const w = p.weightKg, wr = med.weightRate || {};
+    if (!perKgHr || !w) return null;
+    const perHr = perKgHr * w;
+    return { perHr, mlHr: wr.perMl ? perHr / wr.perMl : null,
+      text: `${n1(perKgHr)} units/kg/hr × ${w} kg = ${n1(perHr)} units/hr${wr.perMl ? ` = ${n1(perHr / wr.perMl)} mL/hr (${wr.source || wr.perMl + ' units/mL'})` : ''}` };
+  }
+
+  Views.protocol = { get, html, link, open, bind, titrateDrip, bolusCalc, rateCalc, n1 };
 })();

@@ -4,6 +4,16 @@
   const esc = U.esc;
   const C = window.EHR_CONFIG;
 
+  // Older Safari (iOS 12–14.0) ignores flex `gap`; flag it so styles.css can space items with margins.
+  (function () {
+    const f = document.createElement('div');
+    f.style.cssText = 'display:flex;flex-direction:column;row-gap:1px;position:absolute;visibility:hidden';
+    f.appendChild(document.createElement('div')); f.appendChild(document.createElement('div'));
+    document.documentElement.appendChild(f);
+    if (f.scrollHeight !== 1) document.documentElement.classList.add('no-flexgap');
+    f.remove();
+  })();
+
   // Chart tabs laid out like MEDITECH Expanse: 3 rows x 4 tabs. Each tab holds
   // one or more screens (shown as sub-tabs). null = empty tab slot.
   const GROUPS = [
@@ -188,7 +198,7 @@
         Screens.instructor.bind(app);
         document.title = `Instructor Tools · ${C.systemName}`;
       } else {
-        app.innerHTML = toolbar(null) + `<main class="content solo">${Screens.census.render()}</main>`;
+        app.innerHTML = toolbar(null) + `<main class="content solo board">${Screens.census.render()}</main>`;
         Screens.census.bind(app);
         document.title = `Census · ${C.hospitalName}`;
       }

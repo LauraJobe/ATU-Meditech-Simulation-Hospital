@@ -34,6 +34,10 @@
 
   const include = { active: true, stat: true, iv: true, prn: true, dc: false };
   const verified = {};       // pid -> time the wristband was scanned on the MAR screen
+  // Leaving the MAR ends the verification: coming back means scanning the wristband again.
+  window.addEventListener('hashchange', () => {
+    Object.keys(verified).forEach(pid => { if (location.hash !== `#/patient/${pid}/mar`) delete verified[pid]; });
+  });
 
   // A medication scanned on the MAR screen: find its order, pick the dose, and open the administration.
   function scanOnMar(p, doc, code) {

@@ -57,6 +57,7 @@
     } else {
       action = `<div class="prn-row">
           <button class="btn btn-primary btn-sm" data-infusion="${esc(m.id)}">Document Infusion</button>
+          ${/heparin/i.test(m.name) && p.heparinProtocol && m.status === 'Active' ? `<button class="btn btn-sm" data-titrate="${esc(m.id)}">Titrate (aPTT)</button>` : ''}
           <span class="muted">${esc(infusionState(doc, m))}</span>
         </div>`;
     }
@@ -127,6 +128,7 @@
       }));
       root.querySelectorAll('[data-prn]').forEach(b => b.addEventListener('click', () => administer(p, doc, p.meds.find(m => m.id === b.dataset.prn), null, 'prn')));
       root.querySelectorAll('[data-infusion]').forEach(b => b.addEventListener('click', () => administer(p, doc, p.meds.find(m => m.id === b.dataset.infusion), null, 'infusion')));
+      root.querySelectorAll('[data-titrate]').forEach(b => b.addEventListener('click', () => Views.heparin.titrate(p)));
       root.querySelectorAll('[data-effect]').forEach(b => b.addEventListener('click', () => effectiveness(p, p.meds.find(m => m.id === b.dataset.med), b.dataset.effect)));
       root.querySelectorAll('[data-err]').forEach(b => b.addEventListener('click', () => UI.errorEntry(p, 'mar', b.dataset.err)));
     }

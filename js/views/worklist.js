@@ -45,7 +45,7 @@
     formItem('braden', 'Braden Scale Assessment', 'DAILY', 24 * H);
     formItem('morse', 'Morse Fall Risk Assessment', 'DAILY', 24 * H);
     if (p.orders.some(o => o.status === 'Active' && /I\s*&\s*O|intake/i.test(o.text))) list.push({ key: 'io', name: 'Intake and Output Measurement', freq: 'Q4HOURS', ms: 4 * H, tab: 'io', kind: 'tab' });
-    if (p.heparinFlowsheet && p.meds.some(m => /heparin/i.test(m.name) && m.status === 'Active')) list.push({ key: 'heparin', name: 'Heparin Protocol / aPTT', freq: 'Q6HOURS', ms: 6 * H, tab: 'heparin', kind: 'tab' });
+    if (p.heparinFlowsheet && Views.heparin.drip(p)) list.push({ key: 'heparin', name: 'Heparin Protocol / aPTT Titration', freq: 'Q6HOURS', ms: 6 * H, tab: 'heparin', kind: 'heparin' });
     // A running transfusion adds its monitoring vitals (charted on the TAR).
     const tx = doc && Views.tar ? Views.tar.running(p, doc)[0] : null;
     if (tx) list.push({ key: 'tar', name: `Transfusion Monitoring — unit ${tx.start.data.unitNo}`, freq: 'Q15MIN, THEN Q1H', ms: H, fixedDue: Views.tar.nextCheck(tx), tab: 'tar', kind: 'tab' });
@@ -223,6 +223,7 @@
     if (it.kind === 'form' && Views.assess.open) Views.assess.open(p, it.formId, next);
     else if (it.kind === 'vitals' && Views.vitals.modal) Views.vitals.modal(p, next);
     else if (it.kind === 'note' && Views.notes.write) Views.notes.write(p, it.noteType, next);
+    else if (it.kind === 'heparin') Views.heparin.titrate(p, next);
     else { sel(p).delete(box); location.hash = `#/patient/${p.id}/${it.tab}`; }
   }
 

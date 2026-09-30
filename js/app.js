@@ -54,7 +54,7 @@
             <a role="menuitem" href="#/patient/${esc(p.id)}/mar" data-docmenu="mar">Mar</a>
             <a role="menuitem" href="#/patient/${esc(p.id)}/tar" data-docmenu="tar">Transfusion Administration Record (TAR)</a>
             <a role="menuitem" href="#/patient/${esc(p.id)}/careplan" data-docmenu="careplan">Plan Of Care</a>
-            <a role="menuitem" href="#/patient/${esc(p.id)}/${p.heparinFlowsheet ? 'heparin' : 'worklist'}" data-docmenu="specialty">Specialty Care</a>
+            <a role="menuitem" href="#/patient/${esc(p.id)}/worklist" data-docmenu="specialty">Specialty Care</a>
             <a role="menuitem" href="#/patient/${esc(p.id)}/notes" data-docmenu="note">Write Note</a>
           </div></div>
         ${tool('orders', 'Orders', `#/patient/${esc(p.id)}/orders`, mode === 'orders' ? 'aria-current="page"' : '', mode === 'orders' ? 'tb-on' : '')}

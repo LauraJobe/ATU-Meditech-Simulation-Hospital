@@ -521,3 +521,5 @@ a.wl-btn { display: inline-flex; align-items: center; text-decoration: none; }
 .form-grid.g2 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
 .form-grid.g3 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 .form-grid.g6 { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }
+.labs .lab-ref { border-right: 2px solid #c9d3dd; }
+.labs th.lab-new-col { background: var(--new-bg); }

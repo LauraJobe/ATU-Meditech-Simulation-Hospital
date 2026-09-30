@@ -116,7 +116,7 @@ window.SIM_PATIENTS = [
     level: 3,
     experiences: ['icu'],
     name: { first: 'Ruth', last: 'Livingston' },
-    mrn: 'ATU-L3-1008', // not listed in Notion — placeholder for wristband scanning
+    mrn: 'PCS10800', // from "Ruth_Livingston_lab2.pdf"
     dob: '1945-10-08',
     age: '80 years',
     sex: 'F',
@@ -132,8 +132,9 @@ window.SIM_PATIENTS = [
     isolation: 'None',
     nkda: true,
     allergies: [],
-    heightCm: null,
-    weightKg: null,
+    heightCm: 160,
+    weightKg: 54,
+    bloodType: 'A+', // type & crossmatch on the lab report; checked on the TAR
     flags: ['Fall Risk'],
     assessmentForms: ['wdl-adult', 'pain', 'braden', 'morse', 'gcs'],
     emergencyContact: 'Daughter — phone on file',
@@ -180,8 +181,37 @@ window.SIM_PATIENTS = [
       { id: 'liv-ketorolac', name: 'Ketorolac', dose: '30 mg', route: 'IV push', freq: 'Every 6 hours PRN', type: 'prn', indication: 'Pain', instructions: 'Not to exceed 120 mg daily.', minIntervalHr: 6, preAssess: ['Pain'] }
     ],
     vitals: [],
-    labs: [],
-    labsPending: 'Lab results are in the Notion PDF "Ruth_Livingston_lab_1.pdf" and have not been entered here yet. A repeat urinalysis was sent at 0600 and is pending.',
+    // From "Ruth_Livingston_lab2.pdf" (reference ranges as printed on the report).
+    labs: [
+      { id: 'liv-cbc-y', panel: 'Complete Blood Count', time: '06:00', day: -1, results: [
+        { t: 'Hgb', v: 9.0, u: 'g/dL', lo: 14, hi: 18 },
+        { t: 'HCT', v: 27, u: '%', lo: 42, hi: 50 },
+        { t: 'Platelets', v: 180, u: 'x10⁹/L', lo: 150, hi: 400 },
+        { t: 'WBC', v: 11.4, u: 'x10⁹/L', lo: 4, hi: 11 }
+      ] },
+      { id: 'liv-cbc-t', panel: 'Complete Blood Count', time: '06:00', results: [
+        { t: 'Hgb', v: 10.0, u: 'g/dL', lo: 14, hi: 18 },
+        { t: 'HCT', v: 29, u: '%', lo: 42, hi: 50 },
+        { t: 'Platelets', v: 175, u: 'x10⁹/L', lo: 150, hi: 400 },
+        { t: 'WBC', v: 15.7, u: 'x10⁹/L', lo: 4, hi: 11 }
+      ] },
+      { id: 'liv-bmp-t', panel: 'Basic Metabolic Panel', time: '06:00', results: [
+        { t: 'Sodium', v: 138, u: 'mEq/L', lo: 136, hi: 145 },
+        { t: 'Potassium', v: 3.7, u: 'mEq/L', lo: 3.5, hi: 5.0 },
+        { t: 'Chloride', v: 105, u: 'mEq/L', lo: 98, hi: 106 },
+        { t: 'Calcium', v: 8.6, u: 'mg/dL', lo: 8.6, hi: 10.2 },
+        { t: 'HCO3', v: 29, u: 'mEq/L', lo: 23, hi: 28 },
+        { t: 'BUN', v: 24, u: 'mg/dL', lo: 8, hi: 20 },
+        { t: 'Creatinine', v: 1.5, u: 'mg/dL', lo: 0.7, hi: 1.3 },
+        { t: 'Glucose', v: 98, u: 'mg/dL', lo: 70, hi: 99 }
+      ] },
+      { id: 'liv-misc-t', panel: 'Miscellaneous', time: '06:00', results: [
+        { t: 'Lactate (venous)', v: 5.0, u: 'mmol/L', lo: 0.5, hi: 2.2 },
+        { t: 'Blood culture', v: 'Positive — Enterobacter cloacae', ref: 'No growth', flag: 'A' },
+        { t: 'ABO/Rh (blood type)', v: 'A+' }
+      ] }
+    ],
+    labsPending: 'Repeat urinalysis sent at 0600 — pending.',
     imaging: [],
     notes: [
       { id: 'liv-n1', type: 'Nursing Note', author: 'VR, RN', time: '06:00', text: 'Patient started yelling and was found confused in bed with the indwelling catheter lying on the floor. The patient has been incontinent. Scant urethral bleeding and minimal external trauma were noted. Received a complete bath and linen change. A repeat urinalysis was sent to lab and is pending.' }
@@ -643,7 +673,7 @@ window.SIM_PATIENTS = [
         ],
         meds: [
           { id: 'wat-hep-bolus', name: 'Heparin bolus (from 10,000 units/10 mL vial)', dose: 'Per Nurse Driven Heparin Protocol — 80 kg', route: 'IV push', freq: 'Once — per protocol', type: 'once', highAlert: true, preAssess: ['lab:aPTT', 'lab:Platelets'], instructions: 'Calculate bolus per the Nurse Driven Heparin Protocol using 80 kg. Independent double check with a second RN. Document on the Heparin Flowsheet.', doses: [{ at: 0 }] },
-          { id: 'wat-hep-drip', name: 'Heparin infusion (premixed bag)', dose: 'Per Nurse Driven Heparin Protocol — units/kg/hr', route: 'IV', freq: 'Continuous — titrate per aPTT', type: 'continuous', highAlert: true, preAssess: ['lab:aPTT'], instructions: 'Initial rate and titration per the Nurse Driven Heparin Protocol using 80 kg. Independent double check with a second RN for start and every rate change. Document every aPTT and rate change on the Heparin Flowsheet.' }
+          { id: 'wat-hep-drip', name: 'Heparin infusion (premixed bag)', dose: 'Per Nurse Driven Heparin Protocol — units/kg/hr', route: 'IV', freq: 'Continuous — titrate per aPTT', type: 'continuous', highAlert: true, preAssess: ['lab:aPTT'], instructions: 'Initial rate and titration per the Nurse Driven Heparin Protocol using 80 kg. Independent double check with a second RN for start and every rate change. Document each aPTT, bolus, hold, and rate change with Titrate (aPTT) on this MAR entry.' }
         ]
       }
     ]

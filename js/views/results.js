@@ -9,7 +9,16 @@
     render(p, doc) {
       const pending = Model.unreviewedResults(p, doc);
       const byPanel = {};
-      p.labs.forEach(l => { (byPanel[l.panel] = byPanel[l.panel] || []).push(l); });
+      // File each result under the panel that already holds its tests, so a repeat or
+      // newly released result becomes a new column instead of a separate table.
+      const home = {};
+      [...p.labs].sort((a, b) => a.time - b.time).forEach(l => {
+        const hits = {};
+        l.results.forEach(r => { if (home[r.t]) hits[home[r.t]] = (hits[home[r.t]] || 0) + 1; });
+        const name = Object.keys(hits).sort((a, b) => hits[b] - hits[a])[0] || l.panel;
+        l.results.forEach(r => { if (!home[r.t]) home[r.t] = name; });
+        (byPanel[name] = byPanel[name] || []).push(l);
+      });
 
       const panels = Object.entries(byPanel).map(([name, list]) => {
         list.sort((a, b) => b.time - a.time);
@@ -18,13 +27,13 @@
         const refOf = t => { for (const l of list) { const r = l.results.find(x => x.t === t); if (r && Model.labRef(r)) return Model.labRef(r) + (r.u ? ' ' + r.u : ''); } return ''; };
         const isNew = list.some(l => l.isNew && !Model.isAcked(doc, l.id));
         return UI.panel(name, `<div class="scroll-x"><table class="grid labs">
-          <thead><tr><th>Test</th>${list.map(l => `<th>${U.fmtDate(l.time).slice(0, 5)} ${U.fmtTime(l.time)}${l.isNew ? '<br>' + UI.badge('NEW', 'new') : ''}</th>`).join('')}<th>Reference</th></tr></thead>
-          <tbody>${tests.map(t => `<tr><th>${esc(t)}</th>${list.map(l => {
+          <thead><tr><th>Test</th><th>Reference</th>${list.map(l => `<th class="${l.isNew ? 'lab-new-col' : ''}">${U.fmtDate(l.time).slice(0, 5)} ${U.fmtTime(l.time)}${l.isNew ? '<br>' + UI.badge('NEW', 'new') : ''}</th>`).join('')}</tr></thead>
+          <tbody>${tests.map(t => `<tr><th>${esc(t)}</th><td class="muted nowrap lab-ref">${esc(refOf(t))}</td>${list.map(l => {
             const r = l.results.find(x => x.t === t);
             if (!r) return '<td></td>';
             const f = Model.labFlag(r);
             return `<td class="${f ? 'abn' : ''}">${esc(r.v)}${UI.flag(f)}${r.comment ? `<div class="muted small">${esc(r.comment)}</div>` : ''}</td>`;
-          }).join('')}<td class="muted">${esc(refOf(t))}</td></tr>`).join('')}</tbody></table></div>`,
+          }).join('')}</tr>`).join('')}</tbody></table></div>`,
           { cls: isNew ? 'panel-new' : '', actions: isNew ? list.filter(l => l.isNew && !Model.isAcked(doc, l.id)).map(l => `<button class="btn btn-sm btn-primary" data-review="${esc(l.id)}">Mark Reviewed</button>`).join(' ') : '' });
       }).join('');
 

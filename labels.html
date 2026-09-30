@@ -92,7 +92,7 @@
         }).join('');
         if (window.JsBarcode) {
           document.querySelectorAll('svg.bc').forEach(svg => {
-            try { JsBarcode(svg, svg.dataset.code, { format: 'CODE128', displayValue: false, height: 50, margin: 12, width: 2 }); } catch (e) { svg.remove(); }
+            try { JsBarcode(svg, svg.dataset.code, { format: 'CODE128', displayValue: false, height: 50, margin: 12, width: 2.5 }); } catch (e) { svg.remove(); }
           });
         } else {
           document.querySelectorAll('svg.bc').forEach(svg => svg.remove());

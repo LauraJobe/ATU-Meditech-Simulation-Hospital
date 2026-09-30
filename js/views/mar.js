@@ -61,13 +61,33 @@
       UI.modal({ title: 'No Active Order', body: `<div class="hard-stop"><strong>⛔ ${dc ? `The order for ${esc(dc.name)} is ${esc(dc.status)}.` : `There is no order for ${esc(name)} on this patient's MAR.`}</strong> Do not administer. Check the order and the medication label.</div>`, buttons: [{ label: 'OK' }] });
       return;
     }
-    // Prefer an order whose dose equals the scanned strength, then one with a dose due now.
+    // Orders with a dose due now, then the exact scanned strength, are listed first.
     const strength = parsed.kind === 'product' ? parsed.dose : null;
     const exact = m => { const d = Scan.parseDose(m.dose); return strength && d && d.unit === strength.unit && Math.abs(d.value - strength.value) < 1e-6; };
     const pending = m => (m.doseTimes || []).filter(dt => ['due', 'overdue', 'future'].includes(Model.doseStatus(p, doc, m, dt).code)).sort((a, b) => a.time - b.time);
     const dueNow = m => pending(m).some(dt => ['due', 'overdue'].includes(Model.doseStatus(p, doc, m, dt).code));
-    const med = active.find(exact) || active.find(dueNow) || active[0];
     const opts = { ptVerified: true, scans: [parsed.code] };
+    // Same drug on more than one active order (loading + maintenance, 5 mg + 10 mg PRN): the nurse picks the order.
+    if (active.length > 1) {
+      const sorted = active.slice().sort((a, b) => (dueNow(b) - dueNow(a)) || (exact(b) - exact(a)));
+      UI.modal({
+        title: 'Which Order?',
+        body: `<p>This medication matches <strong>${active.length} active orders</strong>. Choose the order you are giving it for.</p>
+          <div class="pick-order">${sorted.map(m => `<button type="button" class="btn btn-primary" data-pick="${esc(m.id)}">${esc(Model.medLabel(m))}${dueNow(m) ? ' — <strong>due now</strong>' : ''}</button>`).join('')}</div>`,
+        buttons: [{ label: 'Cancel', onClick: () => UI.toast('Scan cancelled. Nothing was charted.') }],
+        onOpen(api) {
+          api.el.querySelectorAll('[data-pick]').forEach(btn => btn.addEventListener('click', () => {
+            const m = active.find(x => x.id === btn.dataset.pick);
+            api.close();
+            setTimeout(() => scanOrder(p, doc, m, opts, pending), 0);
+          }));
+        }
+      });
+      return;
+    }
+    scanOrder(p, doc, active[0], opts, pending);
+  }
+  function scanOrder(p, doc, med, opts, pending) {
     const t = typeOf(med);
     if (t === 'continuous') return administer(p, doc, med, null, 'infusion', opts);
     if (t === 'prn') return administer(p, doc, med, null, 'prn', opts);

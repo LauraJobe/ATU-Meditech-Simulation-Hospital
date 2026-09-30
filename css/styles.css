@@ -676,3 +676,5 @@ input.field-alert { border: 2px solid var(--danger) !important; background: #fde
 .faculty-guide { margin-top: 10px; border: 1px solid #c9d3dd; border-radius: 4px; padding: 6px 10px; background: #fbfcfe; }
 .faculty-guide summary { cursor: pointer; font-weight: 700; color: #1f5f5c; }
 @media (max-width: 800px) { .doc-layout { grid-template-columns: 1fr; } }
+.pick-order { display: flex; flex-direction: column; gap: 8px; }
+.pick-order .btn { text-align: left; white-space: normal; }

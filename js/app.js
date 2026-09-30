@@ -8,13 +8,13 @@
   // one or more screens (shown as sub-tabs). null = empty tab slot.
   const GROUPS = [
     [{ label: 'Diagnostics', views: ['results'] }, { label: 'Provider Notes', views: ['provnotes'] },
-     { label: 'Nurse/Allied Health', views: ['assess', 'notes'] }, { label: 'Medications', views: ['mar'] }],
+     { label: 'Nurse/Allied Health', views: ['assess', 'notes'] }, { label: 'Medications', views: ['meds'] }],
     [{ label: 'History & Problems', views: ['history'] }, { label: 'Administrative', views: ['admin'] },
      { label: 'Other Clinical', views: ['report'] }, null],
     [{ label: 'Summary', views: ['summary'] }, { label: 'Activity', views: ['activity'] },
      { label: 'Flowsheets', views: ['vitals', 'io', 'heparin'] }, { label: 'Health Mgmt', views: ['careplan'] }]
   ];
-  const TABS = GROUPS.flat().filter(Boolean).flatMap(g => g.views).concat(['worklist', 'orders', 'tar']); // worklist, orders, and TAR are their own screens
+  const TABS = GROUPS.flat().filter(Boolean).flatMap(g => g.views).concat(['worklist', 'orders', 'tar', 'mar']); // worklist, orders, TAR, and MAR are their own screens
   const viewsOf = (g, p) => g.views.filter(v => v !== 'heparin' || p.heparinFlowsheet);
   const groupOf = tab => GROUPS.flat().find(g => g && g.views.includes(tab));
 
@@ -73,7 +73,7 @@
     const counts = {
       orders: Model.unackedOrders(p, doc).length,
       results: Model.unreviewedResults(p, doc).length,
-      mar: (c => c.due + c.overdue)(Model.dueCounts(p, doc))
+      meds: (c => c.due + c.overdue)(Model.dueCounts(p, doc))
     };
     const active = groupOf(tab);
     // Like Expanse, the row holding the active tab moves down next to the page and turns tan.
@@ -154,17 +154,15 @@
         const doc = Store.doc(p.id);
         const view = Views[tab];
         App.current = p;
-        const solo = tab === 'worklist' || tab === 'orders' || tab === 'tar';
+        const solo = tab === 'worklist' || tab === 'orders' || tab === 'tar' || tab === 'mar';
         if (!solo) { App.lastChartTab = App.lastChartTab || {}; App.lastChartTab[p.id] = tab; }
         const scroll = window.scrollY;
-        app.innerHTML = tab === 'worklist' || tab === 'tar'
+        app.innerHTML = tab === 'worklist' || tab === 'tar' || tab === 'mar'
           // The documentation worklist is a separate screen (no chart folders); Chart returns to the tabs.
           ? `${toolbar(p, 'document')}<main class="content worklist-screen" id="content">${view.render(p, doc)}</main>`
           : tab === 'orders'
           // Orders open from the Orders toolbar button, also outside the chart folders.
-          ? `${toolbar(p, 'orders')}<main class="content worklist-screen" id="content">${Views.worklist.band(p)}
-              <div class="wl-bar"><div class="wl-bar-right"><a class="wl-btn" href="#/patient/${esc(p.id)}/${App.lastChartTab && App.lastChartTab[p.id] || 'summary'}">Close</a></div></div>
-              <h2 class="solo-title">Orders</h2>${view.render(p, doc)}</main>`
+          ? `${toolbar(p, 'orders')}<main class="content worklist-screen" id="content">${Views.worklist.band(p)}${view.render(p, doc)}</main>`
           : `${toolbar(p, 'chart')}<div class="chart">
           <div class="chart-main">${tabs(p, doc, tab)}
             <main class="content" id="content">${paneHead(p, doc, tab)}${view.render(p, doc)}</main>
@@ -199,7 +197,6 @@
         });
         menu.querySelectorAll('[data-docmenu]').forEach(a => a.addEventListener('click', () => {
           const k = a.dataset.docmenu;
-          if (k === 'mar') Views.mar.setFilter('all');
           if (k === 'note' && App.current) { const pt = App.current; setTimeout(() => Views.notes.write(Model.get(pt.id), 'Nursing Narrative'), 50); }
           close();
         }));

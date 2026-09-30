@@ -10,18 +10,7 @@
     ['mlhr', 'New rate (mL/hr)', 'number'], ['nextAptt', 'Time of next aPTT', 'time'], ['rn2', 'RN 2 (verifier)', 'text']
   ];
 
-  // Protocol + nomogram from the signed order (shown once heparin is ordered).
-  function protocolHtml(p) {
-    const hp = p.heparinProtocol;
-    if (!hp) return '';
-    return `<dl class="kv">
-        <dt>Indication</dt><dd>${esc(hp.indication)}</dd><dt>Patient weight</dt><dd>${esc(hp.weight)}</dd>
-        <dt>Concentration</dt><dd>${esc(hp.concentration)}</dd><dt>Initial bolus</dt><dd>${esc(hp.bolus)}</dd>
-        <dt>Initial infusion</dt><dd>${esc(hp.infusion)}</dd><dt>Labs</dt><dd>${esc(hp.before)}</dd><dt>Signed</dt><dd>${esc(hp.signedBy)}</dd></dl>
-      <h4>Heparin Dosing Nomogram (maintenance — all indications)</h4>
-      <div class="scroll-x"><table class="grid"><thead><tr><th>aPTT result (sec)</th><th>Bolus</th><th>Hold infusion</th><th>Dose change</th><th>Repeat aPTT</th></tr></thead>
-        <tbody>${hp.nomogram.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
-  }
+  const protocolHtml = p => Views.protocol.html(Views.protocol.get(p, 'heparin'));
   const drip = p => p.meds.find(m => /heparin/i.test(m.name) && m.type === 'continuous' && m.status === 'Active');
 
   // Titrate the heparin infusion per the nomogram (from the MAR or the Worklist).
@@ -80,7 +69,8 @@
         </tbody></table></div>`;
       const released = !!drip(p);
       const how = `<div class="alerts"><div class="alert alert-info">Heparin is titrated on the <a href="#/patient/${esc(p.id)}/mar"><strong>MAR</strong></a> (heparin infusion → <strong>Titrate</strong>) or from the <a href="#/patient/${esc(p.id)}/worklist"><strong>Worklist</strong></a> (Heparin Protocol / aPTT → Document). This flowsheet shows the history.</div></div>`;
-      const protocol = p.heparinProtocol ? UI.panel(p.heparinProtocol.title, released ? protocolHtml(p) : UI.empty('No heparin protocol ordered yet.')) : '';
+      const hp = Views.protocol.get(p, 'heparin');
+      const protocol = hp ? UI.panel(hp.title, released ? protocolHtml(p) : UI.empty('No heparin protocol ordered yet.')) : '';
       return how + protocol + UI.panel('Heparin Flowsheet', table);
     },
     bind(root, p) {

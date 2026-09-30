@@ -135,6 +135,29 @@ window.SIM_PATIENTS = [
     heightCm: 160,
     weightKg: 54,
     bloodType: 'A+', // type & crossmatch on the lab report; checked on the TAR
+    // From the Notion "ICU Orders" norepinephrine order. Opened from the P on the order once the ICU transfer is released.
+    protocols: {
+      norepi: {
+        title: 'Norepinephrine (Levophed) Titration Protocol',
+        items: [
+          ['Start criteria', 'After the 500 mL NS bolus, start only if MAP < 65 or SBP < 100'],
+          ['Starting dose', 'Norepinephrine 2 mcg/min continuous IV'],
+          ['Titration', 'Titrate by 2 mcg/min every 5 minutes to maintain MAP > 65 or SBP > 100'],
+          ['Maximum dose', '30 mcg/min'],
+          ['Monitoring', 'Continuous ECG and pulse oximetry; vital signs every 15 minutes and PRN'],
+          ['Notify provider', 'SBP < 100 or > 160, HR < 55 or > 110, SpO₂ < 90%, or goal not met at maximum dose'],
+          ['Concentration', 'Per pharmacy label — calculate mL/hr from the bag concentration']
+        ],
+        tableTitle: 'Titration guide',
+        table: { head: ['Assessment', 'Action', 'Recheck'], rows: [
+          ['MAP < 65 or SBP < 100', 'Increase 2 mcg/min (maximum 30 mcg/min)', '5 minutes'],
+          ['MAP > 65 or SBP > 100 (at goal)', 'Maintain current dose', '15 minutes (per VS order)'],
+          ['At 30 mcg/min and goal not met', 'Do not exceed maximum — notify provider', 'Continuous']
+        ] },
+        maxDose: 30, doseUnit: 'mcg/min',
+        signedBy: 'Dr. Marcus'
+      }
+    },
     flags: ['Fall Risk'],
     assessmentForms: ['wdl-adult', 'pain', 'braden', 'morse', 'gcs'],
     emergencyContact: 'Daughter — phone on file',
@@ -232,7 +255,7 @@ window.SIM_PATIENTS = [
           { id: 'liv-icu-o5', cat: 'Respiratory', text: 'Administer supplemental O2 to keep SpO2 > 93%', by: 'Dr. Marcus' },
           { id: 'liv-icu-o6', cat: 'Nursing', text: 'Vital signs every 15 minutes and PRN; I&O every 4 hours', by: 'Dr. Marcus' },
           { id: 'liv-icu-o7', cat: 'IV Fluids', text: 'Normal saline bolus 500 mL over 30 minutes STAT', priority: 'STAT', by: 'Dr. Marcus' },
-          { id: 'liv-icu-o8', cat: 'Medication', text: 'After fluid bolus, if MAP < 65 or SBP < 100 start: Norepinephrine (Levophed) @ 2 mcg/min continuous IV; titrate by 2 mcg every 5 minutes to maintain MAP > 65 or SBP > 100. Maximum dose 30 mcg/min.', by: 'Dr. Marcus' },
+          { id: 'liv-icu-o8', protocol: 'norepi', cat: 'Medication', text: 'After fluid bolus, if MAP < 65 or SBP < 100 start: Norepinephrine (Levophed) @ 2 mcg/min continuous IV; titrate by 2 mcg every 5 minutes to maintain MAP > 65 or SBP > 100. Maximum dose 30 mcg/min.', by: 'Dr. Marcus' },
           { id: 'liv-icu-o9', cat: 'Nursing', text: 'Place Foley catheter', by: 'Dr. Marcus' },
           { id: 'liv-icu-o10', cat: 'Nursing', text: 'Sterile dressing change to right hip every 12 hours', by: 'Dr. Marcus' },
           { id: 'liv-icu-o11', cat: 'Lab', text: 'BMP, CBC, lactate level prior to starting IV antibiotics', priority: 'STAT', by: 'Dr. Marcus' },
@@ -244,7 +267,7 @@ window.SIM_PATIENTS = [
         meds: [
           { id: 'liv-nsbolus', name: '0.9% Sodium chloride bolus', dose: '500 mL', route: 'IV', freq: 'Once — over 30 minutes STAT', type: 'continuous', rate: '1,000 mL/hr x 30 min', instructions: 'Infuse 500 mL over 30 minutes STAT. Start NS @ 125 mL/hr after the bolus is completed.' },
           { id: 'liv-ns125', name: '0.9% Sodium chloride', dose: '125 mL/hr', route: 'IV', freq: 'Continuous — after bolus completed', type: 'continuous', rate: '125 mL/hr' },
-          { id: 'liv-levo', name: 'Norepinephrine (Levophed)', dose: '2 mcg/min — titrate', route: 'IV', freq: 'Continuous — conditional', type: 'continuous', highAlert: true, rate: '2 mcg/min', preAssess: ['SBP', 'DBP', 'HR'], instructions: 'Start ONLY if MAP < 65 or SBP < 100 after the fluid bolus. Titrate by 2 mcg every 5 minutes to maintain MAP > 65 or SBP > 100. Maximum dose 30 mcg/min.' },
+          { id: 'liv-levo', protocol: 'norepi', name: 'Norepinephrine (Levophed)', dose: '2 mcg/min — titrate', route: 'IV', freq: 'Continuous — conditional', type: 'continuous', highAlert: true, rate: '2 mcg/min', preAssess: ['SBP', 'DBP', 'HR'], instructions: 'Start ONLY if MAP < 65 or SBP < 100 after the fluid bolus. Titrate by 2 mcg every 5 minutes to maintain MAP > 65 or SBP > 100. Maximum dose 30 mcg/min.' },
           { id: 'liv-vanco', name: 'Vancomycin', dose: '500 mg/250 mL', route: 'IVPB', freq: 'Every 8 hours — over 2 hours', type: 'scheduled', instructions: 'Infuse over 2 hours. Draw BMP, CBC, and lactate BEFORE the first dose.', doses: [{ at: 15 }, { at: 495 }] }
         ]
       }
@@ -508,25 +531,31 @@ window.SIM_PATIENTS = [
     flags: ['Post-op'],
     assessmentForms: ['wdl-adult', 'pain', 'braden', 'morse'],
     heparinFlowsheet: true,
-    // From "Heparin_1.pdf" — shown on the Heparin Flowsheet once the STAT heparin orders are released.
-    heparinProtocol: {
-      title: 'Anticoagulation Orders (Therapeutic) — Heparin Weight Based Protocol',
-      indication: 'B. DVT / PE / Atrial Fibrillation',
-      weight: '80 kg (use actual body weight)',
-      concentration: 'Heparin 25,000 units/500 mL D5W',
-      bolus: 'Heparin 80 units/kg IV once — round to the nearest 500 units; not to exceed 10,000 units',
-      infusion: 'Heparin continuous IV infusion — starting dose 18 units/kg/hr; not to exceed 2,250 units/hr',
-      before: 'Before starting heparin, obtain aPTT, CBC, patient weight. CBC every 3 days.',
-      nomogram: [
-        ['≤ 50', '80 units/kg IV', 'No', '+ 4 units/kg/hr', '6 hours'],
-        ['51–64', '40 units/kg IV', 'No', '+ 2 units/kg/hr', '6 hours'],
-        ['65–95', '0', 'No', 'No change', 'Next AM'],
-        ['96–105', '0', 'No', '− 2 units/kg/hr', '6 hours'],
-        ['106–130', '0', 'Hold 30 minutes', '− 3 units/kg/hr', '6 hours'],
-        ['131–160', '0', 'Hold 60 minutes', '− 3 units/kg/hr', '6 hours'],
-        ['≥ 160', '0', 'Hold 60 minutes', '− 4 units/kg/hr', '6 hours']
-      ],
-      signedBy: 'Dr. Nelson'
+    // From "Heparin_1.pdf". Opened from the P on the heparin orders once the STAT orders are released.
+    protocols: {
+      heparin: {
+        title: 'Anticoagulation Orders (Therapeutic) — Heparin Weight Based Protocol',
+        items: [
+          ['Indication', 'B. DVT / PE / Atrial Fibrillation'],
+          ['Patient weight', '80 kg (use actual body weight)'],
+          ['Before starting', 'Discontinue any previous anticoagulation orders (heparin, enoxaparin). Obtain aPTT, CBC, patient weight. CBC every 3 days. Caution with aspirin, clopidogrel, Aggrenox, NSAIDs.'],
+          ['Concentration', 'Heparin 25,000 units/500 mL D5W'],
+          ['Initial bolus', 'Heparin 80 units/kg IV once — round to the nearest 500 units; not to exceed 10,000 units'],
+          ['Initial infusion', 'Heparin continuous IV infusion — starting dose 18 units/kg/hr; not to exceed 2,250 units/hr'],
+          ['Maintenance', 'Adjust per the Heparin Dosing Nomogram for all indications']
+        ],
+        tableTitle: 'Heparin Dosing Nomogram',
+        table: { head: ['aPTT result (sec)', 'Bolus', 'Hold infusion', 'Dose change', 'Repeat aPTT'], rows: [
+          ['≤ 50', '80 units/kg IV', 'No', '+ 4 units/kg/hr', '6 hours'],
+          ['51–64', '40 units/kg IV', 'No', '+ 2 units/kg/hr', '6 hours'],
+          ['65–95', '0', 'No', 'No change', 'Next AM'],
+          ['96–105', '0', 'No', '− 2 units/kg/hr', '6 hours'],
+          ['106–130', '0', 'Hold 30 minutes', '− 3 units/kg/hr', '6 hours'],
+          ['131–160', '0', 'Hold 60 minutes', '− 3 units/kg/hr', '6 hours'],
+          ['≥ 160', '0', 'Hold 60 minutes', '− 4 units/kg/hr', '6 hours']
+        ] },
+        signedBy: 'Dr. Nelson'
+      }
     },
     emergencyContact: 'Wife — phone on file',
     demographics: {
@@ -652,10 +681,9 @@ window.SIM_PATIENTS = [
           { id: 'wat-s3', cat: 'Diagnostics', text: '12-lead ECG', priority: 'STAT', by: 'Dr. Nelson' },
           { id: 'wat-s4', cat: 'Respiratory', text: 'Oxygen via mask: titrate to maintain SpO2 greater than 92%', priority: 'STAT', by: 'Dr. Nelson' },
           { id: 'wat-s5', cat: 'Imaging', text: 'Spiral CT scan with contrast', priority: 'STAT', by: 'Dr. Nelson' },
-          { id: 'wat-s6', cat: 'Medication', text: 'Using weight of 80 kg: initiate Nurse Driven Heparin Protocol. Give bolus from the heparin 10,000 units/10 mL vial, and use the bag for the drip. Maintain heparin flowsheet.', priority: 'STAT', by: 'Dr. Nelson' },
-          { id: 'wat-s7', cat: 'Medication', text: 'Anticoagulation Orders (Therapeutic) — Heparin Weight Based Protocol, indication B. DVT/PE/Atrial Fibrillation. Patient weight 80 kg. Discontinue any previous anticoagulation orders (heparin, enoxaparin). Caution with concurrent antiplatelet therapies (aspirin, clopidogrel, Aggrenox, NSAIDs).', priority: 'STAT', by: 'Dr. Nelson' },
-          { id: 'wat-s8', cat: 'Medication', text: 'Initial bolus: heparin 80 units/kg IV once (round to the nearest 500 units; not to exceed 10,000 units). Initial infusion: heparin continuous IV, starting dose 18 units/kg/hr (not to exceed 2,250 units/hr). Standard concentration heparin 25,000 units/500 mL D5W. Maintenance: adjust per Heparin Dosing Nomogram.', priority: 'STAT', by: 'Dr. Nelson' },
-          { id: 'wat-s9', cat: 'Lab', text: 'Before starting heparin: aPTT, CBC, patient weight. CBC every 3 days. aPTT per Heparin Dosing Nomogram.', priority: 'STAT', by: 'Dr. Nelson' }
+          { id: 'wat-s6', protocol: 'heparin', cat: 'Medication', text: 'Using weight of 80 kg: initiate Nurse Driven Heparin Protocol. Give bolus from the heparin 10,000 units/10 mL vial, and use the bag for the drip. Maintain heparin flowsheet.', priority: 'STAT', by: 'Dr. Nelson' },
+          { id: 'wat-s7', protocol: 'heparin', cat: 'Medication', text: 'ORDER SET: Anticoagulation Orders (Therapeutic) — Heparin Weight Based Protocol. Indication: DVT/PE/AFib. Weight 80 kg. Discontinue previous anticoagulation (enoxaparin).', priority: 'STAT', by: 'Dr. Nelson' },
+          { id: 'wat-s9', protocol: 'heparin', cat: 'Lab', text: 'aPTT and CBC before starting heparin; CBC every 3 days; repeat aPTT per Heparin Dosing Nomogram', priority: 'STAT', by: 'Dr. Nelson' }
         ],
         // From "watkin_stat_lab.pdf".
         labs: [
@@ -672,8 +700,8 @@ window.SIM_PATIENTS = [
           ] }
         ],
         meds: [
-          { id: 'wat-hep-bolus', name: 'Heparin bolus (from 10,000 units/10 mL vial)', dose: 'Per Nurse Driven Heparin Protocol — 80 kg', route: 'IV push', freq: 'Once — per protocol', type: 'once', highAlert: true, preAssess: ['lab:aPTT', 'lab:Platelets'], instructions: 'Calculate bolus per the Nurse Driven Heparin Protocol using 80 kg. Independent double check with a second RN. Document on the Heparin Flowsheet.', doses: [{ at: 0 }] },
-          { id: 'wat-hep-drip', name: 'Heparin infusion (premixed bag)', dose: 'Per Nurse Driven Heparin Protocol — units/kg/hr', route: 'IV', freq: 'Continuous — titrate per aPTT', type: 'continuous', highAlert: true, preAssess: ['lab:aPTT'], instructions: 'Initial rate and titration per the Nurse Driven Heparin Protocol using 80 kg. Independent double check with a second RN for start and every rate change. Document each aPTT, bolus, hold, and rate change with Titrate (aPTT) on this MAR entry.' }
+          { id: 'wat-hep-bolus', protocol: 'heparin', name: 'Heparin bolus (from 10,000 units/10 mL vial)', dose: 'Per Nurse Driven Heparin Protocol — 80 kg', route: 'IV push', freq: 'Once — per protocol', type: 'once', highAlert: true, preAssess: ['lab:aPTT', 'lab:Platelets'], instructions: 'Calculate bolus per the protocol (P) using 80 kg. Independent double check with a second RN.', doses: [{ at: 0 }] },
+          { id: 'wat-hep-drip', protocol: 'heparin', name: 'Heparin infusion (premixed bag)', dose: 'Per Nurse Driven Heparin Protocol — units/kg/hr', route: 'IV', freq: 'Continuous — titrate per aPTT', type: 'continuous', highAlert: true, preAssess: ['lab:aPTT'], instructions: 'Initial rate and titration per the Nurse Driven Heparin Protocol using 80 kg. Independent double check with a second RN for start and every rate change. Document each aPTT, bolus, hold, and rate change with Titrate (aPTT) on this MAR entry.' }
         ]
       }
     ]

@@ -50,6 +50,8 @@
 
       const hep = doc.heparin.length ? doc.heparin.map(e => `<div class="rpt-item ${cls(e)}">${Object.entries(e.data).filter(([, v]) => v).map(([k, v]) => `${esc(k)}: ${esc(v)}`).join(' · ')}${meta(e)}</div>`).join('') : '';
 
+      const tar = doc.tar.length ? [...doc.tar].sort((a, b) => a.time - b.time).map(e => `<div class="rpt-item ${cls(e)}">${Object.entries(e.data).filter(([k, v]) => v && k !== 'tx' && k !== 'orderRef').map(([k, v]) => `${esc(k)}: ${esc(Array.isArray(v) ? v.join(', ') : typeof v === 'object' ? Object.entries(v).map(x => x.join(' ')).join(', ') : v)}`).join(' · ')}${meta(e)}</div>`).join('') : '';
+
       return `<div class="report">
         <div class="toolbar no-print"><button class="btn btn-primary" data-action="print">Print / Save as PDF</button> <button class="btn" data-action="json">Download Data (JSON)</button></div>
         <header class="rpt-head">
@@ -67,6 +69,7 @@
         ${section('Orders — Verbal/Telephone & Acknowledgments', orders)}
         ${section('Care Plan', care)}
         ${hep ? section('Heparin Flowsheet', hep) : ''}
+        ${tar ? section('Transfusion Administration Record', tar) : ''}
         <footer class="rpt-foot">Student signature: ______________________ Date: __________ &nbsp;&nbsp; Instructor: ______________________</footer>
       </div>`;
     },

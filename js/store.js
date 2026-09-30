@@ -7,7 +7,7 @@
   'use strict';
   const C = window.EHR_CONFIG;
   const P = C.storagePrefix + '.';
-  const SECTIONS = ['vitals', 'assess', 'mar', 'io', 'notes', 'orders', 'ack', 'careplan', 'heparin'];
+  const SECTIONS = ['vitals', 'assess', 'mar', 'io', 'notes', 'orders', 'ack', 'careplan', 'heparin', 'tar'];
 
   function read(key, fallback) {
     try {

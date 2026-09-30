@@ -14,7 +14,7 @@
     [{ label: 'Summary', views: ['summary'] }, { label: 'Activity', views: ['activity'] },
      { label: 'Flowsheets', views: ['vitals', 'io', 'heparin'] }, { label: 'Health Mgmt', views: ['careplan'] }]
   ];
-  const TABS = GROUPS.flat().filter(Boolean).flatMap(g => g.views).concat(['worklist', 'orders']); // worklist and orders are their own screens
+  const TABS = GROUPS.flat().filter(Boolean).flatMap(g => g.views).concat(['worklist', 'orders', 'tar']); // worklist, orders, and TAR are their own screens
   const viewsOf = (g, p) => g.views.filter(v => v !== 'heparin' || p.heparinFlowsheet);
   const groupOf = tab => GROUPS.flat().find(g => g && g.views.includes(tab));
 
@@ -52,7 +52,7 @@
           <div class="tb-menu" hidden role="menu">
             <a role="menuitem" href="#/patient/${esc(p.id)}/worklist" data-docmenu="worklist">Worklist</a>
             <a role="menuitem" href="#/patient/${esc(p.id)}/mar" data-docmenu="mar">Mar</a>
-            <a role="menuitem" href="#/patient/${esc(p.id)}/mar" data-docmenu="tar">Transfusion Administration Record (TAR)</a>
+            <a role="menuitem" href="#/patient/${esc(p.id)}/tar" data-docmenu="tar">Transfusion Administration Record (TAR)</a>
             <a role="menuitem" href="#/patient/${esc(p.id)}/careplan" data-docmenu="careplan">Plan Of Care</a>
             <a role="menuitem" href="#/patient/${esc(p.id)}/${p.heparinFlowsheet ? 'heparin' : 'worklist'}" data-docmenu="specialty">Specialty Care</a>
             <a role="menuitem" href="#/patient/${esc(p.id)}/notes" data-docmenu="note">Write Note</a>
@@ -154,10 +154,10 @@
         const doc = Store.doc(p.id);
         const view = Views[tab];
         App.current = p;
-        const solo = tab === 'worklist' || tab === 'orders';
+        const solo = tab === 'worklist' || tab === 'orders' || tab === 'tar';
         if (!solo) { App.lastChartTab = App.lastChartTab || {}; App.lastChartTab[p.id] = tab; }
         const scroll = window.scrollY;
-        app.innerHTML = tab === 'worklist'
+        app.innerHTML = tab === 'worklist' || tab === 'tar'
           // The documentation worklist is a separate screen (no chart folders); Chart returns to the tabs.
           ? `${toolbar(p, 'document')}<main class="content worklist-screen" id="content">${view.render(p, doc)}</main>`
           : tab === 'orders'
@@ -199,8 +199,7 @@
         });
         menu.querySelectorAll('[data-docmenu]').forEach(a => a.addEventListener('click', () => {
           const k = a.dataset.docmenu;
-          if (k === 'tar') Views.mar.setFilter('tar');
-          else if (k === 'mar') Views.mar.setFilter('all');
+          if (k === 'mar') Views.mar.setFilter('all');
           if (k === 'note' && App.current) { const pt = App.current; setTimeout(() => Views.notes.write(Model.get(pt.id), 'Nursing Narrative'), 50); }
           close();
         }));

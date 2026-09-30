@@ -507,3 +507,17 @@ details.prior summary { cursor: pointer; font-weight: 600; }
 .wl-cell-on .wl-check { font-size: 17px; }
 a.wl-btn { display: inline-flex; align-items: center; text-decoration: none; }
 .solo-title { font-size: 18px; margin: 14px 0 8px; }
+
+/* Orders: fixed columns so every category lines up */
+.orders-grid { table-layout: fixed; width: 100%; }
+.orders-grid .oc-time { width: 150px; }
+.orders-grid .oc-by { width: 210px; }
+.orders-grid .oc-status { width: 190px; }
+.orders-grid .oc-act { width: 140px; }
+.orders-grid td { overflow-wrap: anywhere; }
+@media (max-width: 800px) { .orders-grid { table-layout: auto; } }
+
+/* TAR and multi-column form grids */
+.form-grid.g2 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.form-grid.g3 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.form-grid.g6 { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }

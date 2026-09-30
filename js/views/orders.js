@@ -6,6 +6,9 @@
 
   const CATS = ['Admission', 'Code Status', 'Alert', 'Nursing', 'Activity', 'Diet', 'Respiratory', 'IV Fluids', 'IV Access', 'Medication', 'Blood Products', 'Lab', 'Imaging', 'Diagnostics', 'Consult'];
 
+  // Same column widths in every category so the columns line up down the page.
+  const COLS = '<colgroup><col class="oc-time"><col><col class="oc-by"><col class="oc-status"><col class="oc-act"></colgroup>';
+
   function row(p, doc, o) {
     const acked = Model.isAcked(doc, o.id);
     const conflict = o.med && Model.allergyConflicts(p, o.med).length;
@@ -36,11 +39,11 @@
       const pending = Model.unackedOrders(p, doc);
 
       const tables = order.filter(c => groups[c]).map(cat => UI.panel(cat,
-        `<table class="grid"><thead><tr><th>Ordered</th><th>Order</th><th>Provider</th><th>Status</th><th></th></tr></thead>
+        `<table class="grid orders-grid">${COLS}<thead><tr><th>Ordered</th><th>Order</th><th>Provider</th><th>Status</th><th></th></tr></thead>
          <tbody>${groups[cat].sort((a, b) => a.time - b.time).map(o => row(p, doc, o)).join('')}</tbody></table>`)).join('');
 
       const verbal = doc.orders;
-      const verbalTable = verbal.length ? `<table class="grid"><thead><tr><th>Received</th><th>Order</th><th>Provider</th><th>Read-back</th><th></th></tr></thead><tbody>
+      const verbalTable = verbal.length ? `<table class="grid orders-grid">${COLS}<thead><tr><th>Received</th><th>Order</th><th>Provider</th><th>Read-back</th><th></th></tr></thead><tbody>
         ${verbal.map(e => `<tr class="${e.status === 'error' ? 'error-row' : ''}">
           <td class="nowrap">${esc(U.fmtDT(e.time))}</td>
           <td><strong>${esc(e.data.text)}</strong><div class="muted">${esc(e.data.cat)} · ${esc(e.data.type)} order · received by ${esc(Model.signature(e))}</div>

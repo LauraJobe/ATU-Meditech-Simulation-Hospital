@@ -661,7 +661,7 @@ input.field-alert { border: 2px solid var(--danger) !important; background: #fde
 .cam-video { width: 100%; display: block; }
 .cam-reader { width: 100%; }
 .cam-reader video { width: 100% !important; }
-.cam-guide { position: absolute; left: 12%; right: 12%; top: 38%; height: 24%; border: 3px solid #6cc27a; border-radius: 6px; box-shadow: 0 0 0 999px rgba(0,0,0,.25); pointer-events: none; }
+.cam-guide { position: absolute; left: 4%; right: 4%; top: 32%; height: 36%; border: 3px solid #6cc27a; border-radius: 6px; box-shadow: 0 0 0 999px rgba(0,0,0,.25); pointer-events: none; }
 .cam-video[hidden] ~ .cam-guide { display: none; }
 
 /* Imported chart content */
@@ -676,3 +676,5 @@ input.field-alert { border: 2px solid var(--danger) !important; background: #fde
 .faculty-guide { margin-top: 10px; border: 1px solid #c9d3dd; border-radius: 4px; padding: 6px 10px; background: #fbfcfe; }
 .faculty-guide summary { cursor: pointer; font-weight: 700; color: #1f5f5c; }
 @media (max-width: 800px) { .doc-layout { grid-template-columns: 1fr; } }
+.pick-order { display: flex; flex-direction: column; gap: 8px; }
+.pick-order .btn { text-align: left; white-space: normal; }

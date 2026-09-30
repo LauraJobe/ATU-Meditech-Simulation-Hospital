@@ -24,7 +24,7 @@
   function open(onCode, opts) {
     opts = opts || {};
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      UI.modal({ title: 'Camera Not Available', body: '<p>This browser cannot use the camera. Open the EHR from the GitHub Pages (https) link in Safari or Chrome, or use a USB/Bluetooth scanner.</p>', buttons: [{ label: 'OK' }] });
+      UI.modal({ title: 'Camera Not Available', body: '<p>This browser cannot use the camera here.</p><ul><li>Open the EHR in <strong>Safari</strong> from the https GitHub Pages link. On older iPads (iOS 12–14.2), Chrome and other apps cannot use the camera, and a web page opened as a full-screen Home Screen app cannot either (iOS 12–13.3).</li><li>Or use a Bluetooth/USB barcode scanner: tap the scan box, then scan.</li></ul>', buttons: [{ label: 'OK' }] });
       return;
     }
     let stop = () => {};
@@ -42,7 +42,7 @@
         try {
           if (await nativeSupported()) {
             const video = api.el.querySelector('.cam-video');
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
             stop = () => stream.getTracks().forEach(t => t.stop());
             if (done) return stop();
             video.srcObject = stream; video.hidden = false; await video.play();
@@ -57,10 +57,10 @@
             await loadLib();
             if (done) return;
             const F = window.Html5QrcodeSupportedFormats;
-            const reader = new window.Html5Qrcode('cam-reader', { formatsToSupport: [F.CODE_128, F.CODE_39, F.QR_CODE], verbose: false });
+            const reader = new window.Html5Qrcode('cam-reader', { formatsToSupport: [F.CODE_128, F.CODE_39, F.QR_CODE], verbose: false, experimentalFeatures: { useBarCodeDetectorIfSupported: true } });
             let running = false;
             stop = () => { if (running) { running = false; reader.stop().then(() => reader.clear()).catch(() => {}); } };
-            await reader.start({ facingMode: 'environment' }, { fps: 10, qrbox: { width: 300, height: 120 } }, text => finish(api, text), () => {});
+            await reader.start({ facingMode: 'environment' }, { fps: 8, videoConstraints: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }, qrbox: (w, h) => ({ width: Math.max(200, Math.floor(w * 0.92)), height: Math.max(80, Math.floor(Math.min(h * 0.5, w * 0.4))) }) }, text => finish(api, text), () => {});
             running = true;
             if (done) stop();
           }

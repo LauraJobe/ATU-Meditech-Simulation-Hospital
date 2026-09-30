@@ -87,7 +87,7 @@ window.SIM_PATIENTS = [
       { id: 'bro-ivf', name: 'D5 1/2 NS with 20 mEq KCl', dose: '50 mL/hr', route: 'IV', freq: 'Continuous', type: 'continuous', rate: '50 mL/hr' },
       { id: 'bro-albuterol', name: 'Albuterol 2.5 mg in 3 mL NS', dose: '2.5 mg', route: 'Nebulizer', freq: 'Every 4 hours — per RT', type: 'scheduled', preAssess: ['HR', 'RR', 'SpO2'], doses: [{ time: '12:00' }, { time: '16:00' }, { time: '20:00' }] },
       { id: 'bro-ipratropium', name: 'Ipratropium', dose: '0.5 mg', route: 'Nebulizer', freq: 'Every 8 hours — per RT', type: 'scheduled', doses: [{ time: '12:00' }, { time: '20:00' }] },
-      { id: 'bro-prednisone', name: 'Prednisone', dose: '40 mg', route: 'PO', freq: 'Daily x 5 days', type: 'scheduled', instructions: 'Scheduled daily at 0900. First dose due on admission.', doses: [{ time: '12:00' }, { time: '09:00', day: 1 }] }
+      { id: 'bro-prednisone', name: 'Prednisone', dose: '40 mg', route: 'PO', freq: 'Daily x 5 days', type: 'scheduled', instructions: 'Scheduled daily at 0900. First dose due on admission.', doses: [{ time: '12:00', extra: true }, { time: '09:00', day: 1 }] }
     ],
     vitals: [
       { time: '11:00', temp: 99.5, tempRoute: 'Oral', hr: 92, rr: 28, sbp: 142, dbp: 84, spo2: 83, o2: 'Room air', pain: 0, note: 'Admit', by: 'Admitting RN' },
@@ -125,7 +125,7 @@ window.SIM_PATIENTS = [
     service: 'Orthopedics',
     attending: 'Dr. Marcus',
     admitted: { time: '08:00', day: -6 },
-    scenarioStart: '13:45', // vitals on the source flowsheet are charted at 1329 and 1340
+    scenarioStart: '09:30',
     admitDx: 'Post-op ORIF right hip (POD 5) — right femoral neck fracture after fall at home',
     codeStatus: 'Full Code',
     advanceDirective: 'None',
@@ -206,9 +206,7 @@ window.SIM_PATIENTS = [
     ],
     // From the Livingston vital signs flowsheet (ATU-Simulation-Hospital / Notion revision).
     vitals: [
-      { at: -60, temp: 100.9, tempRoute: 'Oral', hr: 110, rr: 20, sbp: 110, dbp: 60, spo2: 94, o2: 'Nasal cannula', o2Flow: 2, pain: 0, note: 'Last set charted', by: 'Prior RN' },
-      { time: '13:29', temp: 99.0, tempRoute: 'Oral', hr: 111, rr: 24, sbp: 95, dbp: 57, spo2: 93, o2: 'Nasal cannula', o2Flow: 2, pain: 0, by: 'Prior RN' },
-      { time: '13:40', temp: 99.0, tempRoute: 'Oral', hr: 113, rr: 24, sbp: 95, dbp: 56, spo2: 91, o2: 'Nasal cannula', o2Flow: 4, pain: 0, by: 'Prior RN' }
+      { at: -60, temp: 100.9, tempRoute: 'Oral', hr: 110, rr: 20, sbp: 110, dbp: 60, spo2: 94, o2: 'Nasal cannula', o2Flow: 2, pain: 0, note: 'Last set charted', by: 'Prior RN' }
     ],
     // From "Ruth_Livingston_lab2.pdf" (reference ranges as printed on the report).
     labs: [
@@ -243,6 +241,11 @@ window.SIM_PATIENTS = [
     labsPending: 'Repeat urinalysis sent at 0600 — pending. Blood culture pending.',
     imaging: [],
     notes: [
+      // Provider notes written for the simulation from the chart (admission story, labs, MAR, nursing note); faculty should review.
+      { id: 'liv-hp', type: 'History & Physical — Orthopedic Admission', author: 'Hans Olsson, MD', time: '10:30', day: -6, md: true, text: '**Chief complaint:** Right hip pain and inability to bear weight after a fall at home.\n\n**HPI:** 80-year-old female brought to the emergency department after a ground-level fall at home this morning. She lives with her daughter and son-in-law. She tripped while walking to the kitchen, landed on her right side, and could not get up. Denies head strike, loss of consciousness, chest pain, or dizziness before the fall. Right hip X-ray shows a right femoral neck fracture.\n\n**PMH:** Osteoporosis (alendronate weekly, calcium daily). **PSH:** None. **Allergies:** NKDA.\n**Social:** Widowed; retired; master\'s degree in economics. Denies tobacco, alcohol, and drug use. **Code status:** Full code.\n\n**Exam:** Alert and oriented x4, pleasant, in moderate pain (7/10). Right lower extremity shortened and externally rotated; distal pulses palpable, sensation intact. Lungs clear. Heart regular. Abdomen soft, non-tender. Skin intact.\n\n**Assessment:** Right femoral neck fracture after mechanical fall; osteoporosis.\n\n**Plan:**\n1. Admit to orthopedic surgical unit; ORIF right hip tomorrow. Consent obtained. NPO after midnight.\n2. Pain control; fall precautions.\n3. Pre-op labs: CBC, BMP, type and screen.\n4. VTE prophylaxis and PT after surgery.' },
+      { id: 'liv-op', type: 'Brief Operative Note', author: 'Hans Olsson, MD', time: '11:15', day: -5, md: true, text: '**Procedure:** Open reduction internal fixation (ORIF), right femoral neck fracture.\n**Surgeon:** Hans Olsson, MD. **Anesthesia:** General.\n**Findings:** Right femoral neck fracture; stable fixation achieved.\n**Estimated blood loss:** 300 mL. **Fluids:** Lactated Ringer\'s. **Specimens:** None. **Drains:** None.\n**Complications:** None. **Condition:** Stable to PACU.\n\n**Post-op plan:** Weight bearing as tolerated with walker; PT to evaluate; SCDs and enoxaparin for VTE prophylaxis; indwelling urinary catheter; sterile dressing change daily; oxycodone PRN for pain; incentive spirometry.' },
+      { id: 'liv-pn4', type: 'Progress Note — POD 4', author: 'Dr. Marcus', time: '07:30', day: -1, md: true, text: '**S:** Pain controlled with oxycodone PRN. Ambulated in the hall with a walker and PT. Tolerating a regular diet. No complaints.\n\n**O:** Afebrile; vital signs stable on 2 L nasal cannula. Alert and oriented. Right hip incision clean, dry, and intact with no redness or drainage. Neurovascular checks intact right leg. Indwelling catheter draining clear yellow urine.\n**Labs (0600):** Hgb 9.0, HCT 27, WBC 11.4, platelets 180.\n\n**A/P:** 80-year-old female POD 4 after ORIF right hip.\n1. Continue PT, weight bearing as tolerated.\n2. Post-op anemia (Hgb 9.0), stable; recheck CBC in AM.\n3. Continue current antibiotic and medications per orders.\n4. Discharge planning: likely to inpatient rehab in 1–2 days.' },
+      { id: 'liv-pn5', type: 'Progress Note — POD 5', author: 'Dr. Marcus', time: '06:45', md: true, text: '**S:** Per nursing, the patient became acutely confused and was yelling at 0600, and was found with the indwelling catheter out and on the floor. She has been incontinent. Scant urethral bleeding noted. Acetaminophen given at 0600 per the PRN order for temperature > 101 °F.\n\n**O:** Seen at bedside; drowsy and oriented to person only (oriented x4 yesterday). Right hip incision clean, dry, and intact. Repeat urinalysis sent; 0600 CBC, BMP, and lactate pending at the time of this note.\n\n**A/P:** 80-year-old female POD 5 after ORIF right hip with new acute confusion and fever.\n1. Follow up the 0600 labs and repeat urinalysis when resulted.\n2. Neuro checks and vital signs per orders; notify the provider for SBP < 100 or > 160, HR < 55 or > 110, or SpO₂ < 90%.\n3. Reinsert the catheter only if ordered; bladder scan per orders.\n4. Continue fall precautions and current orders.' },
       { id: 'liv-n1', type: 'Nursing Note', author: 'VR, RN', time: '06:00', text: 'Patient started yelling and was found confused in bed with the indwelling catheter lying on the floor. The patient has been incontinent. Scant urethral bleeding and minimal external trauma were noted. Received a complete bath and linen change. A repeat urinalysis was sent to lab and is pending.' }
     ],
     io: [],
@@ -283,6 +286,7 @@ window.SIM_PATIENTS = [
         instructorNotes: 'From the Notion "ICU Orders" page. BMP, CBC, and lactate are to be drawn BEFORE IV antibiotics are started. Norepinephrine is conditional: start only if MAP < 65 or SBP < 100 AFTER the fluid bolus.',
         patch: { unit: 'Intensive Care Unit', room: '—' },
         discontinue: ['liv-lr', 'liv-piptazo'],
+        notes: [{ id: 'liv-icu-note', type: 'Transfer Note — Change in Condition', author: 'Dr. Marcus', md: true, text: '**Reason for transfer:** Acute change in condition on POD 5 after ORIF right hip.\n\n**Summary:** New acute confusion and fever overnight; the indwelling catheter was dislodged at 0600. Now tachycardic and hypotensive with increasing oxygen needs. 0600 labs: WBC 15.7 (11.4 yesterday), lactate 5.0, BUN 24, creatinine 1.5, HCO₃ 29. Blood culture pending.\n\n**Assessment:** Suspected sepsis, likely urinary source; acute kidney injury; acute metabolic encephalopathy.\n\n**Plan:** Transfer to ICU. Continuous ECG and pulse oximetry. BMP, CBC, and lactate before IV antibiotics. NS 500 mL bolus over 30 minutes, then NS at 125 mL/hr; norepinephrine per protocol if MAP < 65 or SBP < 100 after the bolus. Discontinue piperacillin-tazobactam and LR; start vancomycin. Foley catheter; strict I&O. Vital signs every 15 minutes. Family (daughter) updated.' }],
         orders: [
           { id: 'liv-icu-o1', cat: 'Admission', text: 'Transfer to ICU', by: 'Dr. Marcus' },
           { id: 'liv-icu-o2', cat: 'Activity', text: 'Bed rest', by: 'Dr. Marcus' },
@@ -369,7 +373,7 @@ window.SIM_PATIENTS = [
       { id: 'sha-asa', name: 'Aspirin', dose: '81 mg', route: 'PO', freq: 'Daily — start tomorrow', type: 'scheduled', doses: [{ time: '09:00', day: 1 }] },
       { id: 'sha-tica-load', name: 'Ticagrelor (loading dose)', dose: '180 mg', route: 'PO', freq: 'Once today', type: 'once', highAlert: true, instructions: 'Loading dose x1 today, then 90 mg twice daily.', doses: [{ at: 0 }] },
       { id: 'sha-tica', name: 'Ticagrelor', dose: '90 mg', route: 'PO', freq: 'BID — start tomorrow AM', type: 'scheduled', doses: [{ time: '09:00', day: 1 }, { time: '21:00', day: 1 }] },
-      { id: 'sha-enox', name: 'Enoxaparin', dose: '110 mg', route: 'Subcut', freq: 'Every 12 hours', type: 'scheduled', highAlert: true, preAssess: ['lab:Platelets'], doses: [{ time: '12:30', given: 'CR (ER)' }, { time: '21:00' }] },
+      { id: 'sha-enox', name: 'Enoxaparin', dose: '110 mg', route: 'Subcut', freq: 'Every 12 hours', type: 'scheduled', highAlert: true, preAssess: ['lab:Platelets'], doses: [{ time: '12:30', given: 'CR (ER)', extra: true }, { time: '21:00' }] },
       { id: 'sha-ntg', name: 'Nitroglycerin', dose: '0.4 mg', route: 'Sublingual', freq: 'Every 5 minutes PRN x 3 doses', type: 'prn', indication: 'Chest pain', preAssess: ['Pain', 'SBP', 'HR'], instructions: 'For chest pain, obtain 12-lead ECG and notify provider immediately to evaluate for IV nitroglycerin.' }
     ],
     vitals: [
@@ -489,7 +493,7 @@ window.SIM_PATIENTS = [
       { id: 'shp-ns', name: 'Normal saline', dose: '25 mL/hr', route: 'IV', freq: 'Continuous', type: 'continuous', rate: '25 mL/hr', started: { time: '12:30', by: 'LJ' } },
       { id: 'shp-asa', name: 'Aspirin', dose: '81 mg', route: 'PO', freq: 'Daily — start in AM', type: 'scheduled', doses: [{ time: '09:00', day: 1 }] },
       { id: 'shp-tica', name: 'Ticagrelor', dose: '90 mg', route: 'PO', freq: 'BID — start in AM', type: 'scheduled', doses: [{ time: '09:00', day: 1 }, { time: '21:00', day: 1 }] },
-      { id: 'shp-enox', name: 'Enoxaparin', dose: '110 mg', route: 'Subcut', freq: 'Every 12 hours', type: 'scheduled', highAlert: true, preAssess: ['lab:Platelets'], doses: [{ time: '12:30', given: 'CR (ER)' }, { time: '21:00' }] },
+      { id: 'shp-enox', name: 'Enoxaparin', dose: '110 mg', route: 'Subcut', freq: 'Every 12 hours', type: 'scheduled', highAlert: true, preAssess: ['lab:Platelets'], doses: [{ time: '12:30', given: 'CR (ER)', extra: true }, { time: '21:00' }] },
       { id: 'shp-ntg', name: 'Nitroglycerin', dose: '0.4 mg', route: 'Sublingual', freq: 'Every 5 minutes PRN x 3 doses', type: 'prn', indication: 'Chest pain', preAssess: ['Pain', 'SBP', 'HR'], instructions: 'For chest pain, obtain 12-lead ECG and notify provider immediately to evaluate for IV nitroglycerin.', lastGiven: { time: '11:40', by: 'ER RN' } },
       { id: 'shp-er-tica', name: 'Ticagrelor (loading dose)', dose: '180 mg', route: 'PO', freq: 'Once', type: 'once', doses: [{ time: '11:45', given: 'Given in ER' }] },
       { id: 'shp-er-asa', name: 'Aspirin (chewed)', dose: '325 mg', route: 'PO', freq: 'Once', type: 'once', doses: [{ time: '11:35', given: 'Given in ER' }] },

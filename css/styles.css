@@ -736,3 +736,12 @@ input.field-alert { border: 2px solid var(--danger) !important; background: #fde
 .no-flexgap .mg-scanbar label > * + * { margin-left: 6px; }
 .no-flexgap .cam-row > * + * { margin-left: 4px; }
 .no-flexgap .pick-order > * + * { margin-top: 8px; }
+
+/* MAR: scanned medications waiting to be documented, and the review screen after Save */
+.mg-queue { margin: 10px 0 0; padding: 8px 10px; background: #f3faf4; border: 2px solid #5aa469; border-radius: 4px; }
+.mg-queue-h { font-weight: 700; color: #1d5e2b; margin-bottom: 6px; }
+.mg-queue .grid { background: #fff; margin-bottom: 8px; }
+.mg-queue .form-actions .btn { margin-left: 8px; }
+.mar-review > .pt-verified { margin-bottom: 6px; }
+.adm-item { border: 1px solid #c9d3dd; border-radius: 6px; padding: 10px 12px; margin: 12px 0; background: #fff; }
+.adm-item .adm-h { font-size: 16px; margin: 0 0 6px; }

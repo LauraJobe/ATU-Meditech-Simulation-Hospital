@@ -34,10 +34,40 @@
 
   const include = { active: true, stat: true, iv: true, prn: true, dc: false };
   const verified = {};       // pid -> time the wristband was scanned on the MAR screen
-  // Leaving the MAR ends the verification: coming back means scanning the wristband again.
+  // pid -> medications scanned on the MAR and waiting to be documented: [{ med, dt, mode, scans: [unit] }].
+  // Like Expanse BMV: scan the wristband and every medication, then Save to review and Document them together.
+  const queue = {};
+  const queued = pid => queue[pid] || (queue[pid] = []);
+  // Leaving the MAR ends the verification and drops anything scanned but not documented.
   window.addEventListener('hashchange', () => {
-    Object.keys(verified).forEach(pid => { if (location.hash !== `#/patient/${pid}/mar`) delete verified[pid]; });
+    Object.keys(verified).concat(Object.keys(queue)).forEach(pid => { if (location.hash !== `#/patient/${pid}/mar`) { delete verified[pid]; delete queue[pid]; } });
   });
+
+  // One scanned unit for an order, or null when the barcode is not this medication.
+  function unitFor(med, parsed) {
+    if (!parsed) return null;
+    if (parsed.code === med.barcode.toUpperCase()) return { code: parsed.code, dose: Scan.parseDose(med.dose), label: `${med.name} ${med.dose}` };
+    if (parsed.kind === 'product' && parsed.key === Scan.drugKey(med)) return { code: parsed.code, dose: parsed.dose, label: `${med.name} ${Scan.fmt(parsed.dose)}` };
+    return null;
+  }
+  // Scanned units added up, compared with the ordered dose.
+  function tallyOf(med, mode, scans) {
+    if (!scans.length) return { total: null, code: '', html: '' };
+    const unit = (scans.find(x => x.dose) || {}).dose;
+    const total = unit ? { value: scans.reduce((n, x) => n + (x.dose ? x.dose.value : 0), 0), unit: unit.unit } : null;
+    const ordered = mode === 'infusion' ? null : Scan.parseDose(med.dose);
+    let code = '', status = '';
+    if (ordered && total && total.unit === ordered.unit) {
+      if (Math.abs(total.value - ordered.value) < 1e-6) { code = 'ok'; status = `<div class="tally-ok">✔ Scanned dose matches the ordered dose (${Scan.fmt(ordered)}).</div>`; }
+      else if (total.value < ordered.value) { code = 'low'; status = `<div class="tally-low">⚠ Scanned ${Scan.fmt(total)} is LESS than the ordered ${Scan.fmt(ordered)}. Scan the remaining ${Scan.fmt({ value: ordered.value - total.value, unit: ordered.unit })}.</div>`; }
+      else { code = 'high'; status = `<div class="tally-high">⛔ Scanned ${Scan.fmt(total)} EXCEEDS the ordered ${Scan.fmt(ordered)}. Remove the extra unit or edit the dose given before documenting.</div>`; }
+    }
+    return { total, code, html: `<div class="tally-list">Scanned: ${scans.map(x => `<span class="tally-unit">${esc(x.label)}</span>`).join(' + ')}${total && scans.length > 1 ? ` = <strong>${esc(Scan.fmt(total))}</strong>` : ''}</div>${status}` };
+  }
+  function addToQueue(p, med, dt, mode, unit) {
+    queued(p.id).push({ med, dt, mode, scans: [unit] });
+    App.render();
+  }
 
   // A medication scanned on the MAR screen: find its order, pick the dose, and open the administration.
   function scanOnMar(p, doc, code) {
@@ -46,7 +76,7 @@
     if (c === String(p.mrn).toUpperCase()) { verified[p.id] = p.clock.now(); UI.toast(`Patient verified: ${p.name.last}, ${p.name.first}.`); App.render(); return; }
     const otherPt = Model.allPatients().find(x => String(x.mrn).toUpperCase() === c);
     if (otherPt) {
-      delete verified[p.id];
+      delete verified[p.id]; delete queue[p.id];
       UI.modal({ title: 'WRONG PATIENT', body: `<div class="hard-stop"><strong>⛔ This wristband does not belong to ${esc(p.name.last)}, ${esc(p.name.first)}.</strong> Stop. Verify two patient identifiers before giving any medication.</div>`, buttons: [{ label: 'OK' }] });
       App.render();
       return;
@@ -55,6 +85,14 @@
     if (!parsed) { UI.toast('Barcode not recognized.', 'warn'); return; }
     if (!verified[p.id]) {
       UI.modal({ title: 'Scan the Wristband First', body: '<p>Scan the patient\'s wristband before scanning medications.</p>', buttons: [{ label: 'OK' }] });
+      return;
+    }
+    // Another unit of a medication already scanned adds to it (2 × 325 mg = 650 mg).
+    const already = queued(p.id).find(x => unitFor(x.med, parsed));
+    if (already) {
+      const unit = unitFor(already.med, parsed);
+      already.scans.push(unit);
+      App.render();
       return;
     }
     const matches = parsed.kind === 'rx' ? p.meds.filter(m => m.id === parsed.medId) : p.meds.filter(m => Scan.drugKey(m) === parsed.key);
@@ -70,7 +108,7 @@
     const exact = m => { const d = Scan.parseDose(m.dose); return strength && d && d.unit === strength.unit && Math.abs(d.value - strength.value) < 1e-6; };
     const pending = m => (m.doseTimes || []).filter(dt => ['due', 'overdue', 'future'].includes(Model.doseStatus(p, doc, m, dt).code)).sort((a, b) => a.time - b.time);
     const dueNow = m => pending(m).some(dt => ['due', 'overdue'].includes(Model.doseStatus(p, doc, m, dt).code));
-    const opts = { ptVerified: true, scans: [parsed.code] };
+    const opts = { unit: parsed };
     // Same drug on more than one active order (loading + maintenance, 5 mg + 10 mg PRN): the nurse picks the order.
     if (active.length > 1) {
       const sorted = active.slice().sort((a, b) => (dueNow(b) - dueNow(a)) || (exact(b) - exact(a)));
@@ -92,20 +130,36 @@
     scanOrder(p, doc, active[0], opts, pending);
   }
   function scanOrder(p, doc, med, opts, pending) {
+    const unit = unitFor(med, opts.unit);
     const t = typeOf(med);
-    if (t === 'continuous') return administer(p, doc, med, null, 'infusion', opts);
-    if (t === 'prn') return administer(p, doc, med, null, 'prn', opts);
+    if (t === 'continuous') return addToQueue(p, med, null, 'infusion', unit);
+    if (t === 'prn') return addToQueue(p, med, null, 'prn', unit);
     const list = pending(med);
     if (!list.length) { UI.modal({ title: 'No Dose Due', body: `<p>All scheduled doses of ${esc(med.name)} in view are documented. Do not give an extra dose without an order.</p>`, buttons: [{ label: 'OK' }] }); return; }
     const dt = list[0];
     const s = Model.doseStatus(p, doc, med, dt).code;
-    if (s === 'due' || s === 'overdue') return administer(p, doc, med, dt, 'dose', opts);
+    if (s === 'due' || s === 'overdue') return addToQueue(p, med, dt, 'dose', unit);
     UI.modal({
       title: 'Dose Not Due Now',
       body: `<p><strong>${esc(Model.medLabel(med))}</strong></p><p>The next scheduled dose is <strong>${esc(U.fmtDT(dt.time))}</strong>. Are you charting this for the <strong>${esc(U.fmtTime(dt.time))}</strong> scheduled dose?</p>`,
-      buttons: [{ label: 'No — Cancel', onClick: () => UI.toast('Scan cancelled. Nothing was charted.') }, { label: `Yes — Chart ${U.fmtTime(dt.time)} Dose`, cls: 'btn-primary', onClick: () => { setTimeout(() => administer(p, doc, med, dt, 'dose', opts), 0); } }]
+      buttons: [{ label: 'No — Cancel', onClick: () => UI.toast('Scan cancelled. Nothing was charted.') }, { label: `Yes — ${U.fmtTime(dt.time)} Dose`, cls: 'btn-primary', onClick: () => { setTimeout(() => addToQueue(p, med, dt, 'dose', unit), 0); } }]
     });
   }
+
+  // The scanned medications waiting to be documented, shown under the scan bar.
+  function queuePanel(p) {
+    const list = queued(p.id);
+    if (!list.length) return '';
+    return `<div class="mg-queue"><div class="mg-queue-h">Scanned — ready to document (${list.length})</div>
+      <table class="grid"><thead><tr><th>Medication</th><th>Scheduled</th><th>Scanned</th><th></th></tr></thead><tbody>
+      ${list.map((x, i) => `<tr><td><strong>${esc(x.med.name)}</strong> ${esc([x.med.dose, x.med.route].filter(y => y && y !== '—').join(' '))}<div class="muted small">${esc(x.med.freq)}</div></td>
+        <td class="nowrap">${x.dt ? esc(U.fmtDT(x.dt.time)) : x.mode === 'prn' ? 'PRN' : 'Infusion'}</td>
+        <td>${tallyOf(x.med, x.mode, x.scans).html}</td>
+        <td><button type="button" class="btn btn-sm" data-unqueue="${i}" aria-label="Remove ${esc(x.med.name)}">✕ Remove</button></td></tr>`).join('')}
+      </tbody></table>
+      <div class="form-actions"><button type="button" class="btn" data-qclear>Clear All</button><button type="button" class="btn btn-primary" data-qsave>Save</button></div></div>`;
+  }
+
   const days = 3;            // yesterday, today, tomorrow
   const DAY = 86400000;
   const dayStart = t => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
@@ -272,7 +326,8 @@
       return `${Views.worklist.band(p, vLine)}
         <div class="mg-scanbar"><label>Scan <input id="mar-scan" autocomplete="off" placeholder="${v ? 'Scan medication barcode' : 'Scan patient wristband'}"></label>
           <button type="button" class="btn btn-sm cam-btn" data-cam="mar" title="Use the tablet camera as a scanner">📷 Camera</button>
-          <span class="muted small">${v ? 'Scan each medication unit; the order opens automatically.' : 'Scan the wristband first, then each medication.'}</span></div>
+          <span class="muted small">${v ? 'Scan every medication you are giving, then Save to review and document them.' : 'Scan the wristband first, then each medication.'}</span></div>
+        ${queuePanel(p)}
         <div class="mg-include">Include: ${chk('active', 'Active')}${chk('stat', 'STAT/ONE')}${chk('iv', 'IVs')}${chk('prn', 'PRNs')}${chk('dc', 'Discontinued')}</div>
         <p class="muted small">Click a time cell to administer (red = overdue, yellow = due within ${C.medWindowMinutes} minutes, green = given). PRN: click <strong>PRN ⊕</strong>. Infusions: click today's cell to document, <strong>⇅</strong> to titrate, <strong>P</strong> for the protocol. Click a medication for Medication Detail (history, protocol, corrections).</p>
         <div class="scroll-x"><table class="grid mar-grid">
@@ -299,6 +354,11 @@
         if (Screens.mode() === 'observer') { UI.toast('Observer mode is view only. You cannot document.', 'warn'); return; }
         CameraScan.open(code => scanOnMar(p, Store.doc(p.id), code), { title: verified[p.id] ? 'Scan Medication' : 'Scan Patient Wristband' });
       });
+      root.querySelectorAll('[data-unqueue]').forEach(b => b.addEventListener('click', () => { queued(p.id).splice(Number(b.dataset.unqueue), 1); App.render(); }));
+      const qc = root.querySelector('[data-qclear]');
+      if (qc) qc.addEventListener('click', () => { delete queue[p.id]; UI.toast('Scanned medications cleared. Nothing was charted.'); App.render(); });
+      const qs = root.querySelector('[data-qsave]');
+      if (qs) qs.addEventListener('click', () => review(p, Store.doc(p.id)));
       root.querySelectorAll('[data-inc]').forEach(b => b.addEventListener('change', () => { include[b.dataset.inc] = b.checked; App.render(); }));
       root.querySelectorAll('[data-select]').forEach(c => {
         const open = () => medDetail(p, doc, p.meds.find(m => m.id === c.dataset.select));
@@ -404,8 +464,8 @@
     });
   }
 
-  function administer(p, doc, med, dt, mode, opts) {
-    opts = opts || {};
+  // Warnings, allergy box, pre-administration assessment, and documentation fields for one medication.
+  function itemParts(p, doc, med, dt, mode) {
     const conflicts = Model.allergyConflicts(p, med);
     const now = p.clock.now();
     const warnings = [];
@@ -433,17 +493,6 @@
       return `<label class="field"><span>${esc(label)}</span><input type="number" step="any" name="pre_${key}" required>
         <small class="muted">${last ? 'Last charted: ' + esc(last.value) + ' at ' + U.fmtTime(last.time) : 'No prior value'}</small></label>`;
     }).join('');
-
-    const scan = `<fieldset class="scan">
-        <legend>Barcode verification</legend>
-        <div class="form-grid">
-          <label class="field"><span>1. Scan patient wristband</span><span class="cam-row"><input name="scanPt" autocomplete="off" ${opts.ptVerified ? `value="${esc(p.mrn)}"` : 'autofocus'} placeholder="Scan or type MRN"><button type="button" class="btn btn-sm cam-btn" data-cam="pt" aria-label="Scan wristband with camera">📷</button></span><small class="scan-msg" data-msg="pt"></small></label>
-          <label class="field"><span>2. Scan medication barcode${mode === 'infusion' ? '' : ' (scan each unit)'}</span><span class="cam-row"><input name="scanMed" autocomplete="off" ${opts.ptVerified ? 'autofocus' : ''} placeholder="Scan medication label, then Enter"><button type="button" class="btn btn-sm cam-btn" data-cam="med" aria-label="Scan medication with camera">📷</button></span><small class="scan-msg" data-msg="med"></small></label>
-        </div>
-        <div class="scan-tally" aria-live="polite"></div>
-        <label class="check"><input type="checkbox" name="noScan" data-single="1"> Unable to scan</label>
-        <label class="field scan-reason" hidden><span>Reason unable to scan</span><select name="noScanReason">${UI.options(['Wristband unreadable', 'Medication barcode damaged/missing', 'Scanner unavailable', 'Emergency situation', 'Other'])}</select></label>
-      </fieldset>`;
 
     const allergyBox = conflicts.length ? `<div class="hard-stop">
         <strong>⚠ ALLERGY ALERT</strong> — Patient is allergic to ${conflicts.map(a => `<strong>${esc(a.agent)}</strong> (${esc(a.reaction)})`).join(', ')}.
@@ -479,111 +528,45 @@
         ${med.highAlert ? `<label class="check"><input type="checkbox" name="doubleCheck" data-single="1"> Independent double check completed (high-alert medication)</label>
           <label class="field"><span>Second RN / verifier</span><input name="verifier"></label>` : ''}`;
     }
-
-    UI.modal({
-      title: (mode === 'infusion' ? 'Document Infusion — ' : 'Administer — ') + med.name,
-      wide: true,
-      body: `<div class="mar-dialog">
-          <div class="mar-order"><strong>${esc(Model.medLabel(med))}</strong>
-            ${dt ? `<div>Scheduled: ${U.fmtDT(dt.time)}</div>` : ''}
-            ${med.instructions ? `<div class="med-instr">${esc(med.instructions)}</div>` : ''}</div>
-          ${warnings.map(w => `<div class="warn-box">${w}</div>`).join('')}
+    const html = `${warnings.map(w => `<div class="warn-box">${w}</div>`).join('')}
           ${allergyBox}
-          ${scan}
+          %SCAN%
           ${pre ? `<fieldset><legend>Pre-administration assessment</legend><div class="form-grid">${pre}</div><div class="hold-live"></div></fieldset>` : ''}
           <fieldset><legend>Documentation</legend>${body}
             <label class="field"><span>Comment</span><textarea name="comment" rows="2"></textarea></label>
-          </fieldset>
-        </div>`,
-      onOpen(api) {
-        const el = api.el;
-        const q = s => el.querySelector(s);
-        const setMsg = (which, ok, text) => { const m = q(`[data-msg="${which}"]`); m.textContent = text; m.className = 'scan-msg ' + (ok ? 'ok' : 'bad'); };
-        const checkPt = () => {
-          const v = q('[name="scanPt"]').value.trim().toUpperCase();
-          if (!v) { setMsg('pt', false, ''); return; }
-          if (v === String(p.mrn).toUpperCase()) { setMsg('pt', true, `✔ Patient verified: ${p.name.last}, ${p.name.first}`); return; }
-          const other = Model.allPatients().find(x => String(x.mrn).toUpperCase() === v && Screens.canSee(x));
-          setMsg('pt', false, other ? `✖ WRONG PATIENT — this wristband belongs to ${other.name.last}, ${other.name.first}` : '✖ Wristband does not match this patient');
-        };
-        // Each medication scan is one unit; units add up toward the ordered dose.
-        const scans = api.scans = [];
-        const ordered = mode === 'infusion' ? null : Scan.parseDose(med.dose);
-        const tally = q('.scan-tally');
-        const doseField = q('[name="dose"]');
-        const showTally = () => {
-          if (!scans.length) { tally.innerHTML = ''; return; }
-          const total = scans.reduce((n, x) => n + (x.dose ? x.dose.value : 0), 0);
-          const unit = (scans.find(x => x.dose) || {}).dose;
-          const tot = unit ? { value: total, unit: unit.unit } : null;
-          api.scannedTotal = tot;
-          let status = '';
-          if (ordered && tot && tot.unit === ordered.unit) {
-            if (Math.abs(tot.value - ordered.value) < 1e-6) status = `<div class="tally-ok">✔ Scanned dose matches the ordered dose (${Scan.fmt(ordered)}).</div>`;
-            else if (tot.value < ordered.value) status = `<div class="tally-low">⚠ Scanned ${Scan.fmt(tot)} is LESS than the ordered ${Scan.fmt(ordered)}. Scan the remaining ${Scan.fmt({ value: ordered.value - tot.value, unit: ordered.unit })}.</div>`;
-            else status = `<div class="tally-high">⛔ Scanned ${Scan.fmt(tot)} EXCEEDS the ordered ${Scan.fmt(ordered)}. Edit the dose given before charting.</div>`;
-          }
-          tally.innerHTML = `<div class="tally-list">Scanned: ${scans.map(x => `<span class="tally-unit">${esc(x.label)}</span>`).join(' + ')}${tot && scans.length > 1 ? ` = <strong>${esc(Scan.fmt(tot))}</strong>` : ''}</div>${status}`;
-          if (doseField && tot) { doseField.value = doseField.type === 'number' ? tot.value : Scan.fmt(tot); doseField.classList.toggle('field-alert', !!(ordered && tot.unit === ordered.unit && tot.value > ordered.value)); }
-        };
-        const addScan = code => {
-          if (!String(code || '').trim()) return;
-          const parsed = Scan.parseCode(code);
-          const c = parsed ? parsed.code : String(code).trim().toUpperCase();
-          let unit = null;
-          if (c === med.barcode.toUpperCase()) unit = { code: c, dose: Scan.parseDose(med.dose), label: `${med.name} ${med.dose}` };
-          else if (parsed && parsed.kind === 'product' && parsed.key === Scan.drugKey(med)) unit = { code: c, dose: parsed.dose, label: `${med.name} ${Scan.fmt(parsed.dose)}` };
-          if (!unit) {
-            const other = parsed && parsed.kind === 'rx' ? p.meds.find(m => m.id === parsed.medId) : parsed && parsed.kind === 'product' ? { name: parsed.key.toLowerCase(), dose: Scan.fmt(parsed.dose) } : null;
-            setMsg('med', false, other ? `✖ WRONG MEDICATION — scanned ${other.name} ${other.dose}. Not added.` : '✖ Barcode does not match this order. Not added.');
-            return;
-          }
-          scans.push(unit);
-          setMsg('med', true, `✔ Medication verified: ${unit.label}`);
-          showTally();
-        };
-        (opts.scans || []).forEach(addScan);
-        const medIn = q('[name="scanMed"]');
-        medIn.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addScan(medIn.value); medIn.value = ''; } });
-        medIn.addEventListener('change', () => { if (medIn.value.trim()) { addScan(medIn.value); medIn.value = ''; } });
-        ['input', 'change'].forEach(ev => q('[name="scanPt"]').addEventListener(ev, checkPt));
-        q('[name="scanPt"]').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); medIn.focus(); } });
-        if (opts.ptVerified) checkPt();
-        q('[data-cam="pt"]').addEventListener('click', () => CameraScan.open(code => { q('[name="scanPt"]').value = code; checkPt(); medIn.focus(); }, { title: 'Scan Patient Wristband' }));
-        q('[data-cam="med"]').addEventListener('click', () => CameraScan.open(code => addScan(code), { title: 'Scan Medication' }));
-        q('[name="noScan"]').addEventListener('change', e => { q('.scan-reason').hidden = !e.target.checked; });
-        const act = q('select[name="action"]');
-        if (act && mode === 'dose') act.addEventListener('change', () => { q('.not-given').hidden = act.value !== 'Not Given'; });
-        const wc = q('[data-wcalc]');
-        if (wc) el.addEventListener('input', () => {
-          if (med.weightDose) { const n = Number(q('[name="dose"]').value); wc.textContent = n ? '= ' + Views.protocol.bolusCalc(p, med, n) : 'Enter the dose you calculated from the protocol weight.'; }
-          if (med.weightRate) { const c = Views.protocol.rateCalc(p, med, Number(q('[name="rate"]').value)); wc.textContent = c ? '= ' + c.text : 'Enter the rate in units/kg/hr.'; }
-        });
-        const live = q('.hold-live');
-        if (live) el.addEventListener('input', () => {
-          const hits = evalHold(med, U.formValues(el));
-          live.innerHTML = hits.length ? `<div class="warn-box"><strong>Hold parameter met:</strong> ${hits.map(h => `${esc(h.p)} ${esc(h.op)} ${esc(h.v)}`).join(', ')}. Consider holding the dose and notifying the provider.</div>` : '';
-        });
-      },
-      buttons: [
-        { label: 'Cancel' },
-        { label: 'Sign & Save', cls: 'btn-primary', onClick: api => save(api, p, med, dt, mode, conflicts) }
-      ]
+          </fieldset>`;
+    return { conflicts, html };
+  }
+
+  // Live behavior inside one medication's fields: Not Given reason, weight-based math, hold parameters.
+  function wireItem(el, p, med, mode) {
+    const q = sel => el.querySelector(sel);
+    const act = q('select[name="action"]');
+    if (act && mode === 'dose') act.addEventListener('change', () => { q('.not-given').hidden = act.value !== 'Not Given'; });
+    const wc = q('[data-wcalc]');
+    if (wc) el.addEventListener('input', () => {
+      if (med.weightDose) { const n = Number(q('[name="dose"]').value); wc.textContent = n ? '= ' + Views.protocol.bolusCalc(p, med, n) : 'Enter the dose you calculated from the protocol weight.'; }
+      if (med.weightRate) { const c = Views.protocol.rateCalc(p, med, Number(q('[name="rate"]').value)); wc.textContent = c ? '= ' + c.text : 'Enter the rate in units/kg/hr.'; }
+    });
+    const live = q('.hold-live');
+    if (live) el.addEventListener('input', () => {
+      const hits = evalHold(med, U.formValues(el));
+      live.innerHTML = hits.length ? `<div class="warn-box"><strong>Hold parameter met:</strong> ${hits.map(h => `${esc(h.p)} ${esc(h.op)} ${esc(h.v)}`).join(', ')}. Consider holding the dose and notifying the provider.</div>` : '';
     });
   }
 
-  function save(api, p, med, dt, mode, conflicts) {
-    const el = api.el;
-    const body = el.querySelector('.modal-body');
+  // Check one medication's documentation. Returns { error } or { data, time } ready to chart.
+  // sc = { ptOK, scanPt, scans, scannedTotal, noScan, noScanReason }
+  function buildEntry(el, p, med, dt, mode, conflicts, sc) {
     const v = U.formValues(el);
-    const ptOK = v.scanPt && v.scanPt.toUpperCase() === String(p.mrn).toUpperCase();
-    const scans = api.scans || [];
+    const scans = sc.scans || [];
     const medOK = scans.length > 0;
     const given = mode === 'infusion' || v.action === 'Given';
+    const fail = error => ({ error });
 
-    if (v.scanPt && !ptOK) return fail('The wristband scanned does not match this patient. Stop and verify patient identity.');
-    if (C.requireBarcodeScan && given && !(ptOK && medOK) && !v.noScan) return fail('Scan the patient wristband and the medication, or check "Unable to scan" and give a reason.');
-    if (v.noScan && !v.noScanReason) return fail('Select a reason you were unable to scan.');
+    if (sc.scanPt && !sc.ptOK) return fail('The wristband scanned does not match this patient. Stop and verify patient identity.');
+    if (C.requireBarcodeScan && given && !(sc.ptOK && medOK) && !sc.noScan) return fail('Scan the patient wristband and the medication, or check "Unable to scan" and give a reason.');
+    if (sc.noScan && !sc.noScanReason) return fail('Select a reason you were unable to scan.');
     if (given && conflicts.length && !v.allergyOverride) return fail('Allergy alert: review the alert. Either choose "Not Given" or document an override.');
     if (given && conflicts.length && !v.allergyReason) return fail('Enter the allergy override reason.');
     if (mode === 'dose' && v.action === 'Not Given' && !v.reason) return fail('Select the reason the dose was not given.');
@@ -611,7 +594,7 @@
     const doseGiven = Scan.parseDose(v.dose);
     if (given && ordered && doseGiven && doseGiven.unit === ordered.unit) {
       if (doseGiven.value > ordered.value) return fail(`The dose given (${Scan.fmt(doseGiven)}) exceeds the ordered dose (${Scan.fmt(ordered)}). Edit the dose given; return extra medication to the pharmacy or waste it with a witness.`);
-      const scanned = api.scannedTotal;
+      const scanned = sc.scannedTotal;
       if (scanned && scanned.unit === doseGiven.unit && doseGiven.value > scanned.value + 1e-6) return fail(`The dose given (${Scan.fmt(doseGiven)}) is more than you scanned (${Scan.fmt(scanned)}). Scan the remaining medication.`);
       if (doseGiven.value < ordered.value && !v.comment) return fail(`The dose given (${Scan.fmt(doseGiven)}) is less than the ordered ${Scan.fmt(ordered)}. Scan the remaining dose, or explain the partial dose in the Comment.`);
     }
@@ -621,23 +604,164 @@
     const preAssess = {};
     Object.keys(v).filter(k => k.startsWith('pre_')).forEach(k => { preAssess[k.slice(4)] = v[k]; });
     const holds = evalHold(med, v).map(h => `${h.p} ${h.op} ${h.v}`);
-
-    const data = {
-      medId: med.id, medName: med.name, doseKey: dt ? dt.key : null, prn: mode === 'prn', infusion: mode === 'infusion',
-      action: mode === 'infusion' ? v.action : v.action,
-      dose: v.dose, route: v.route, site: v.site, rate: v.rate, prnReason: v.prnReason, reason: v.action === 'Not Given' ? v.reason : '',
-      scan: { patient: ptOK ? 'verified' : 'not scanned', med: medOK ? 'verified' : 'not scanned', units: scans.map(x => x.code), unableReason: v.noScan ? v.noScanReason : '' },
-      override: (v.noScan || (conflicts.length && v.allergyOverride)) ? true : false,
-      allergyOverride: conflicts.length && v.allergyOverride ? v.allergyReason : '',
-      doubleCheck: v.doubleCheck ? (v.verifier || 'Yes') : '',
-      preAssess, holdParamsMet: holds, comment: [weightNote, v.comment].filter(Boolean).join(' — ')
+    return {
+      time: UI.readTime(p, el),
+      given,
+      data: {
+        medId: med.id, medName: med.name, doseKey: dt ? dt.key : null, prn: mode === 'prn', infusion: mode === 'infusion',
+        action: v.action,
+        dose: v.dose, route: v.route, site: v.site, rate: v.rate, prnReason: v.prnReason, reason: v.action === 'Not Given' ? v.reason : '',
+        scan: { patient: sc.ptOK ? 'verified' : 'not scanned', med: medOK ? 'verified' : 'not scanned', units: scans.map(x => x.code), unableReason: sc.noScan ? sc.noScanReason : '' },
+        override: (sc.noScan || (conflicts.length && v.allergyOverride)) ? true : false,
+        allergyOverride: conflicts.length && v.allergyOverride ? v.allergyReason : '',
+        doubleCheck: v.doubleCheck ? (v.verifier || 'Yes') : '',
+        preAssess, holdParamsMet: holds, comment: [weightNote, v.comment].filter(Boolean).join(' — ')
+      }
     };
-    Store.add(p.id, 'mar', data, UI.readTime(p, el), p.clock.now());
-    UI.toast(mode === 'infusion' ? 'Infusion documented.' : given ? `${med.name} documented as given.` : `${med.name} documented as not given.`);
-    App.render();
-    return true;
+  }
 
-    function fail(msg) { UI.formError(body, msg); return false; }
+  // Review screen after Save: every scanned medication, confirmed and documented together.
+  function review(p, doc) {
+    const list = queued(p.id).slice();
+    if (!list.length) return;
+    const items = list.map(x => Object.assign({}, x, itemParts(p, doc, x.med, x.dt, x.mode), { tally: tallyOf(x.med, x.mode, x.scans) }));
+    UI.modal({
+      title: 'Document Administration',
+      wide: true,
+      body: `<div class="mar-review">
+          <div class="pt-verified">✔ Patient verified: ${esc(p.name.last)}, ${esc(p.name.first)} · MRN ${esc(p.mrn)}</div>
+          <p class="muted small">Confirm each medication you are giving, then select <strong>Document</strong>. Nothing is charted until you do.</p>
+          <div class="review-msg"></div>
+          ${items.map((x, i) => `<section class="adm-item" data-item="${i}">
+            <h3 class="adm-h">${i + 1}. ${esc(Model.medLabel(x.med))}</h3>
+            <div class="mar-order">${x.dt ? `Scheduled: ${U.fmtDT(x.dt.time)}` : x.mode === 'prn' ? 'PRN' : 'Infusion'}${x.med.instructions ? `<div class="med-instr">${esc(x.med.instructions)}</div>` : ''}</div>
+            ${x.html.replace('%SCAN%', () => `<div class="scan-tally">${x.tally.html}</div>`)}
+          </section>`).join('')}
+        </div>`,
+      onOpen(api) {
+        items.forEach((x, i) => {
+          const el = api.el.querySelector(`[data-item="${i}"]`);
+          wireItem(el, p, x.med, x.mode);
+          // Fill the dose given from the scanned total.
+          const df = el.querySelector('[name="dose"]');
+          if (df && x.tally.total) df.value = df.type === 'number' ? x.tally.total.value : Scan.fmt(x.tally.total);
+          if (df) df.classList.toggle('field-alert', x.tally.code === 'high');
+        });
+      },
+      buttons: [
+        { label: 'Back to MAR' },
+        { label: 'Document', cls: 'btn-primary', onClick: api => {
+          api.el.querySelectorAll('.mar-review .form-error').forEach(e => e.remove());
+          const results = items.map((x, i) => {
+            const el = api.el.querySelector(`[data-item="${i}"]`);
+            return { el, r: buildEntry(el, p, x.med, x.dt, x.mode, x.conflicts, { ptOK: true, scans: x.scans, scannedTotal: x.tally.total }) };
+          });
+          const bad = results.filter(x => x.r.error);
+          if (bad.length) {
+            bad.forEach(x => UI.formError(x.el, x.r.error));
+            UI.formError(api.el.querySelector('.review-msg'), `${bad.length} of ${items.length} medication${items.length > 1 ? 's need' : ' needs'} attention. Nothing was charted.`);
+            bad[0].el.scrollIntoView({ block: 'start' });
+            return false;
+          }
+          results.forEach(x => Store.add(p.id, 'mar', x.r.data, x.r.time, p.clock.now()));
+          delete queue[p.id];
+          UI.toast(`${results.length} medication${results.length > 1 ? 's' : ''} documented.`);
+          App.render();
+          return true;
+        } }
+      ]
+    });
+  }
+
+  // Single-medication window (clicking a time cell, PRN ⊕, or an infusion cell without scanning first).
+  function administer(p, doc, med, dt, mode, opts) {
+    opts = opts || {};
+    const parts = itemParts(p, doc, med, dt, mode);
+    const conflicts = parts.conflicts;
+    const scan = `<fieldset class="scan">
+        <legend>Barcode verification</legend>
+        <div class="form-grid">
+          <label class="field"><span>1. Scan patient wristband</span><span class="cam-row"><input name="scanPt" autocomplete="off" ${opts.ptVerified ? `value="${esc(p.mrn)}"` : 'autofocus'} placeholder="Scan or type MRN"><button type="button" class="btn btn-sm cam-btn" data-cam="pt" aria-label="Scan wristband with camera">📷</button></span><small class="scan-msg" data-msg="pt"></small></label>
+          <label class="field"><span>2. Scan medication barcode${mode === 'infusion' ? '' : ' (scan each unit)'}</span><span class="cam-row"><input name="scanMed" autocomplete="off" ${opts.ptVerified ? 'autofocus' : ''} placeholder="Scan medication label, then Enter"><button type="button" class="btn btn-sm cam-btn" data-cam="med" aria-label="Scan medication with camera">📷</button></span><small class="scan-msg" data-msg="med"></small></label>
+        </div>
+        <div class="scan-tally" aria-live="polite"></div>
+        <label class="check"><input type="checkbox" name="noScan" data-single="1"> Unable to scan</label>
+        <label class="field scan-reason" hidden><span>Reason unable to scan</span><select name="noScanReason">${UI.options(['Wristband unreadable', 'Medication barcode damaged/missing', 'Scanner unavailable', 'Emergency situation', 'Other'])}</select></label>
+      </fieldset>`;
+
+    UI.modal({
+      title: (mode === 'infusion' ? 'Document Infusion — ' : 'Administer — ') + med.name,
+      wide: true,
+      body: `<div class="mar-dialog">
+          <div class="mar-order"><strong>${esc(Model.medLabel(med))}</strong>
+            ${dt ? `<div>Scheduled: ${U.fmtDT(dt.time)}</div>` : ''}
+            ${med.instructions ? `<div class="med-instr">${esc(med.instructions)}</div>` : ''}</div>
+          ${parts.html.replace('%SCAN%', () => scan)}
+        </div>`,
+      onOpen(api) {
+        const el = api.el;
+        const q = s => el.querySelector(s);
+        const setMsg = (which, ok, text) => { const m = q(`[data-msg="${which}"]`); m.textContent = text; m.className = 'scan-msg ' + (ok ? 'ok' : 'bad'); };
+        const checkPt = () => {
+          const v = q('[name="scanPt"]').value.trim().toUpperCase();
+          if (!v) { setMsg('pt', false, ''); return; }
+          if (v === String(p.mrn).toUpperCase()) { setMsg('pt', true, `✔ Patient verified: ${p.name.last}, ${p.name.first}`); return; }
+          const other = Model.allPatients().find(x => String(x.mrn).toUpperCase() === v && Screens.canSee(x));
+          setMsg('pt', false, other ? `✖ WRONG PATIENT — this wristband belongs to ${other.name.last}, ${other.name.first}` : '✖ Wristband does not match this patient');
+        };
+        // Each medication scan is one unit; units add up toward the ordered dose.
+        const scans = api.scans = [];
+        const ordered = mode === 'infusion' ? null : Scan.parseDose(med.dose);
+        const tally = q('.scan-tally');
+        const doseField = q('[name="dose"]');
+        const showTally = () => {
+          const t = tallyOf(med, mode, scans);
+          api.scannedTotal = t.total;
+          tally.innerHTML = t.html;
+          if (doseField && t.total) { doseField.value = doseField.type === 'number' ? t.total.value : Scan.fmt(t.total); doseField.classList.toggle('field-alert', !!(ordered && t.total.unit === ordered.unit && t.total.value > ordered.value)); }
+        };
+        const addScan = code => {
+          if (!String(code || '').trim()) return;
+          const parsed = Scan.parseCode(code);
+          const unit = unitFor(med, parsed);
+          if (!unit) {
+            const other = parsed && parsed.kind === 'rx' ? p.meds.find(m => m.id === parsed.medId) : parsed && parsed.kind === 'product' ? { name: parsed.key.toLowerCase(), dose: Scan.fmt(parsed.dose) } : null;
+            setMsg('med', false, other ? `✖ WRONG MEDICATION — scanned ${other.name} ${other.dose}. Not added.` : '✖ Barcode does not match this order. Not added.');
+            return;
+          }
+          scans.push(unit);
+          setMsg('med', true, `✔ Medication verified: ${unit.label}`);
+          showTally();
+        };
+        (opts.scans || []).forEach(addScan);
+        const medIn = q('[name="scanMed"]');
+        medIn.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addScan(medIn.value); medIn.value = ''; } });
+        medIn.addEventListener('change', () => { if (medIn.value.trim()) { addScan(medIn.value); medIn.value = ''; } });
+        ['input', 'change'].forEach(ev => q('[name="scanPt"]').addEventListener(ev, checkPt));
+        q('[name="scanPt"]').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); medIn.focus(); } });
+        if (opts.ptVerified) checkPt();
+        q('[data-cam="pt"]').addEventListener('click', () => CameraScan.open(code => { q('[name="scanPt"]').value = code; checkPt(); medIn.focus(); }, { title: 'Scan Patient Wristband' }));
+        q('[data-cam="med"]').addEventListener('click', () => CameraScan.open(code => addScan(code), { title: 'Scan Medication' }));
+        q('[name="noScan"]').addEventListener('change', e => { q('.scan-reason').hidden = !e.target.checked; });
+        wireItem(el, p, med, mode);
+      },
+      buttons: [
+        { label: 'Cancel' },
+        { label: 'Sign & Save', cls: 'btn-primary', onClick: api => {
+          const el = api.el;
+          const v = U.formValues(el);
+          const r = buildEntry(el, p, med, dt, mode, conflicts, {
+            scanPt: v.scanPt, ptOK: !!v.scanPt && v.scanPt.toUpperCase() === String(p.mrn).toUpperCase(),
+            scans: api.scans || [], scannedTotal: api.scannedTotal, noScan: v.noScan, noScanReason: v.noScanReason
+          });
+          if (r.error) { UI.formError(el.querySelector('.modal-body'), r.error); return false; }
+          Store.add(p.id, 'mar', r.data, r.time, p.clock.now());
+          UI.toast(mode === 'infusion' ? 'Infusion documented.' : r.given ? `${med.name} documented as given.` : `${med.name} documented as not given.`);
+          App.render();
+          return true;
+        } }
+      ]
+    });
   }
 
   function effectiveness(p, med, refId) {

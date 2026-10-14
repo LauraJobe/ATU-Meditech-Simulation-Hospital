@@ -4,6 +4,28 @@ A simulation electronic health record for nursing students to document in during
 
 It's a static website with no server, database, or build step. Host it free on GitHub Pages and open it in any browser on the sim lab workstations.
 
+## EMR Orientation (before simulation)
+
+**orientation.html** — `https://laurajobe.github.io/ATU-Meditech-Simulation-Hospital/orientation.html` — is a practice version of this same EHR for students to use before sim day. It looks and works exactly like the simulation site, but:
+
+- It has one **practice patient, Morgan, Taylor** (community-acquired pneumonia, sulfa allergy), not the simulation patients, so orientation never previews a scenario.
+- Practice charting is saved separately (`storagePrefix` `atuSimEHR.orient`) and never mixes with simulation documentation.
+- A **guided task panel** (right side; along the bottom on tablets) lists nine tasks that check themselves off from what the student does:
+  1. Open your patient from the PCS Status Board
+  2. Check allergies and code status (short question)
+  3. Find the latest hemoglobin in Diagnostics (short question)
+  4. Acknowledge the new order
+  5. Chart a set of vital signs from the Worklist
+  6. Complete a focused assessment (e.g., Pain Assessment)
+  7. Give a scheduled medication on the MAR (scan the wristband and the medication, Save, Document)
+  8. Give a PRN (two 325 mg acetaminophen labels add up to 650 mg) and document its effectiveness
+  9. Write a nursing note
+- **Show me** opens the right screen and highlights where to start. **Practice labels** on the MAR stand in for a scanner: tap the wristband, then the medication labels — the MAR treats each tap as a scan.
+- The scheduled meds are due whenever the student opens the chart (`fixedTimes` in `js/data/orientation-patients.js`), so the MAR works the same in a morning or afternoon session.
+- When all nine tasks are done, **Print completion summary** prints the student's name, group, and the time each task was completed, with a line for faculty initials. **Start over** erases that student's practice charting.
+
+Files: `orientation.html`, `js/orientation-config.js`, `js/data/orientation-patients.js`, `js/views/tutorial.js` (tasks are defined at the top — add, remove, or reword them there).
+
 ## What students can do
 
 | Chart section | What it does |

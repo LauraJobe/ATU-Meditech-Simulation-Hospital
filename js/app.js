@@ -157,6 +157,7 @@
       if (!Store.session()) {
         app.innerHTML = Screens.login.render();
         Screens.login.bind(app);
+        if (window.Tutorial) Tutorial.afterRender(app, r);
         return;
       }
       if (r.page === 'patient' && r.pid) {
@@ -233,6 +234,8 @@
           Store.clearSession(); Store.setInstructor(false); location.hash = '#/'; App.render();
         }, 'Sign Out');
       });
+      // Orientation page only: the guided task panel (js/views/tutorial.js).
+      if (window.Tutorial) Tutorial.afterRender(app, r);
     }
   };
 

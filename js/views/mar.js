@@ -386,6 +386,8 @@
     }
   };
   Views.mar.detail = medDetail;
+  // Feed a barcode to the MAR scan box (used by the orientation page's practice labels).
+  Views.mar.scan = (p, code) => scanOnMar(p, Store.doc(p.id), code);
 
   /* ---------------- Medications folder tab (Current Visit list) ---------------- */
 

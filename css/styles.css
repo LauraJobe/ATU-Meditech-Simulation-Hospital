@@ -745,3 +745,49 @@ input.field-alert { border: 2px solid var(--danger) !important; background: #fde
 .mar-review > .pt-verified { margin-bottom: 6px; }
 .adm-item { border: 1px solid #c9d3dd; border-radius: 6px; padding: 10px 12px; margin: 12px 0; background: #fff; }
 .adm-item .adm-h { font-size: 16px; margin: 0 0 6px; }
+
+/* ---------- EMR Orientation (orientation.html): guided task panel and practice labels ---------- */
+.tut { position: fixed; top: 0; right: 0; bottom: 0; z-index: 60; width: 330px; overflow-y: auto; background: #fff; border-left: 3px solid #2f8f5b; box-shadow: -4px 0 16px rgba(0,0,0,.15); font-size: 14px; }
+body.tut-open #app { margin-right: 330px; }
+body.tut-open .toolbar { z-index: 30; }
+.tut-h { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: #e7f5ec; border-bottom: 1px solid #b9dcc6; position: sticky; top: 0; }
+.no-flexgap .tut-h > * + * { margin-left: 8px; }
+.tut-count { margin-left: auto; font-size: 12px; color: #2b5d3e; }
+.tut-min { border: 1px solid #9fb3c8; background: #fff; border-radius: 4px; width: 26px; height: 24px; cursor: pointer; font-weight: 700; }
+.tut-bar { height: 6px; background: #e3e7eb; }
+.tut-bar span { display: block; height: 100%; background: #2fa84f; }
+.tut-list { list-style: none; margin: 0; padding: 6px 10px; counter-reset: tut; }
+.tut-list li { counter-increment: tut; padding: 6px 0; border-bottom: 1px solid #eef1f4; }
+.tut-t { display: flex; align-items: flex-start; gap: 8px; }
+.no-flexgap .tut-t > * + * { margin-left: 8px; }
+.tut-mark { flex: none; width: 22px; height: 22px; border-radius: 50%; border: 2px solid #9fb3c8; display: grid; place-items: center; font-size: 12px; font-weight: 700; color: #fff; }
+.tut-mark:empty::before { content: counter(tut); color: #5a6b7c; }
+.tut-done .tut-mark { background: #2fa84f; border-color: #2fa84f; }
+.tut-done .tut-t { color: #5a6b7c; }
+.tut-cur .tut-t { font-weight: 700; color: #1b2733; }
+.tut-cur .tut-mark { border-color: #2f8f5b; }
+.tut-how { margin: 6px 0 6px 30px; color: #34495e; line-height: 1.45; }
+.tut-quiz { margin: 6px 0 6px 30px; }
+.tut-quiz .field { margin-bottom: 6px; }
+.tut-msg { font-size: 13px; margin-top: 4px; }
+.tut-msg.bad { color: #b3261e; }
+.tut-show { margin-left: 30px; }
+.tut-complete { margin: 6px 10px; padding: 10px; background: #e7f5ec; border-radius: 6px; }
+.tut-complete .btn { margin-top: 8px; }
+.tut-foot { display: flex; justify-content: space-between; padding: 6px 10px 10px; }
+.tut-link { border: none; background: none; color: #1a5fa8; text-decoration: underline; cursor: pointer; font: inherit; font-size: 13px; }
+.tut-pill { position: fixed; right: 12px; bottom: 12px; z-index: 60; border: 2px solid #2f8f5b; background: #e7f5ec; color: #1d5e2b; border-radius: 20px; padding: 8px 14px; font-weight: 700; cursor: pointer; box-shadow: 0 6px 16px rgba(0,0,0,.2); }
+.tut-glow { outline: 4px solid #f2c230 !important; outline-offset: 2px; box-shadow: 0 0 0 8px rgba(242, 194, 48, .35) !important; transition: outline-color .2s; }
+.tut-labels { margin: 8px 0 0; padding: 8px 10px; background: #fffbea; border: 1px dashed #d8b84a; border-radius: 4px; }
+.tut-labels-h { font-weight: 700; margin-bottom: 6px; color: #7a5a00; }
+.tut-label { display: inline-flex; align-items: center; gap: 6px; margin: 0 6px 6px 0; padding: 6px 10px; border: 1px solid #9fb3c8; border-radius: 4px; background: #fff; cursor: pointer; font: inherit; font-size: 13px; }
+.no-flexgap .tut-label > * + * { margin-left: 6px; }
+.tut-label:hover { background: #eef6ff; }
+.tut-wrist { border-color: #2f7f7b; background: #e8f6f5; font-weight: 700; }
+.tut-bars { width: 26px; height: 16px; background: repeating-linear-gradient(90deg, #111 0 2px, #fff 2px 3px, #111 3px 4px, #fff 4px 6px); }
+@media print { #tut-root { display: none; } }
+/* Tablets and phones: the panel docks along the bottom and the page scrolls above it. */
+@media (max-width: 1100px) {
+  .tut { top: auto; left: 0; width: auto; max-height: 38vh; border-left: none; border-top: 3px solid #2f8f5b; box-shadow: 0 -4px 16px rgba(0,0,0,.15); }
+  body.tut-open #app { margin-right: 0; padding-bottom: 40vh; }
+}

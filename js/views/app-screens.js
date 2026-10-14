@@ -64,7 +64,7 @@
             <option value="Instructor">Instructor</option></select></label>
           <label class="field"><span>Simulation experience</span><select name="experience" required>
             <option value="">— Select your sim experience —</option>
-            ${C.experiences.map(x => `<option value="${esc(x.id)}">${esc(x.label)}</option>`).join('')}
+            ${C.experiences.map(x => `<option value="${esc(x.id)}" ${C.experiences.length === 1 ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}
 </select></label>
           <fieldset class="field login-mode"><legend>Sign in as</legend>
             <label class="check"><input type="radio" name="mode" value="student" checked> <span><strong>Documenting nurse</strong> — I am charting in this simulation</span></label>

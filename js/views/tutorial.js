@@ -1,8 +1,9 @@
 /*
  * EMR Orientation — guided task panel (orientation.html only).
  * A floating checklist of practice tasks on the practice patient. Each task checks itself off
- * from what the student actually charts (or from a short question). "Show me" opens the right
- * screen and highlights where to start. On the MAR, practice labels stand in for a scanner.
+ * from what the student actually charts (or from a short question). "Show me" highlights the
+ * next thing to tap on the current screen (it never opens a screen for the student).
+ * On the MAR, practice labels stand in for a scanner.
  * When every task is done, the student can print a completion summary for faculty.
  */
 (function () {
@@ -16,53 +17,91 @@
 
   /* ---------- Per-student progress (kept on this device) ---------- */
   const key = () => `${C.storagePrefix}.tutorial.${((Store.session() || {}).name || 'guest').toLowerCase()}`;
+  // Inside an LMS (SCORM package, js/scorm.js) progress is also saved in the LMS, so it survives a new
+  // device or cleared browser data; it is merged in once per page load.
+  let lmsSaved = window.LMS && LMS.available ? LMS.restore() : null;
+  let lmsSent = '';
   function load() {
-    try { return Object.assign({ quiz: {}, doneAt: {}, collapsed: false }, JSON.parse(localStorage.getItem(key()) || '{}')); }
-    catch (e) { return { quiz: {}, doneAt: {}, collapsed: false }; }
+    let st;
+    try { st = Object.assign({ quiz: {}, doneAt: {}, collapsed: false }, JSON.parse(localStorage.getItem(key()) || '{}')); }
+    catch (e) { st = { quiz: {}, doneAt: {}, collapsed: false }; }
+    if (lmsSaved) {
+      Object.keys(lmsSaved.doneAt || {}).forEach(k => { if (!st.doneAt[k]) st.doneAt[k] = lmsSaved.doneAt[k]; });
+      Object.keys(lmsSaved.quiz || {}).forEach(k => { if (lmsSaved.quiz[k]) st.quiz[k] = true; });
+      if (lmsSaved.opened && !st.opened) st.opened = lmsSaved.opened;
+    }
+    return st;
   }
   function save(st) { try { localStorage.setItem(key(), JSON.stringify(st)); } catch (e) { /* storage blocked */ } }
+  function report(st, done) {
+    if (!(window.LMS && LMS.available)) return;
+    const state = { quiz: st.quiz, doneAt: st.doneAt, opened: st.opened || null };
+    const sig = done + JSON.stringify(state);
+    if (sig === lmsSent) return;
+    lmsSent = sig;
+    LMS.progress(done, TASKS.length, state);
+  }
 
   const active = (doc, sec) => (doc[sec] || []).filter(e => e.status === 'active');
+
+  // "Show me" never changes the screen: it highlights the next thing to tap on the screen the student
+  // is on. Each task lists its targets from the deepest step to the first; the first one on screen glows.
+  const ROW = `.census-row[data-open="${PID}"]`;                       // status board: open the patient
+  const HOME = 'a.tb-btn[href="#/census"]';                            // back to the status board
+  const DOC_BTN = '.tb-split a.tb-btn[href$="/worklist"]';             // Document (the Worklist)
+  const DOC_CARET = '.tb-split .tb-caret';                             // Document ▾ menu
+  const onMar = () => /\/mar$/.test(location.hash);
+  const hgbRow = () => Array.from(document.querySelectorAll('th.dx-test')).filter(th => /^Hgb\b/.test(th.textContent.trim())).map(th => th.closest('tr'));
+  const worklistSteps = key => [
+    { sel: '[data-wl="document"]:not([disabled])', when: () => !!document.querySelector(`.wl-row[data-key="${key}"].wl-checked`) },
+    { sel: `.wl-row[data-key="${key}"]` },
+    { sel: DOC_BTN }, { sel: ROW }];
+  const marSteps = medLabels => [
+    { sel: '[data-qsave]', when: onMar },
+    { sel: medLabels, when: () => onMar() && !!document.querySelector('.pt-verified') },
+    { sel: '.tut-label.tut-wrist', when: onMar },
+    { sel: '.tb-menu:not([hidden]) a[href$="/mar"]' },
+    { sel: DOC_CARET }, { sel: ROW }];
 
   const TASKS = [
     { id: 'open', title: 'Open your patient',
       how: 'On the <strong>PCS Status Board</strong>, double-click <strong>Morgan, Taylor</strong> (or select the row, then <strong>Open Chart</strong>).',
-      show: { hash: '#/census', sel: `.census-row[data-open="${PID}"]` },
+      show: [{ sel: ROW }, { sel: HOME }],
       done: st => !!st.opened },
     { id: 'safety', title: 'Check allergies and code status',
       how: 'In the chart, find the patient panel with <strong>Special Indicators</strong> and <strong>Allergies</strong> (beside the chart tabs). Then answer:',
-      show: { hash: chart('summary'), sel: '.side' },
+      show: [{ sel: '.side .side-sec' }, { sel: '.side' }, { sel: ROW }],
       quiz: [{ name: 'allergy', label: 'Allergy', options: ['No known drug allergies', 'Penicillin', 'Sulfa drugs', 'Latex'], answer: 'Sulfa drugs' },
              { name: 'code', label: 'Code status', options: ['Full Code', 'DNR', 'DNR/DNI'], answer: 'Full Code' }],
       done: st => !!st.quiz.safety },
     { id: 'hgb', title: 'Find the latest hemoglobin (Hgb)',
       how: 'Open the <strong>Diagnostics</strong> tab. Results run from oldest to newest, left to right — use the newest column.',
-      show: { hash: chart('results'), sel: `.ftab[href="${chart('results')}"]` },
+      show: [{ find: hgbRow }, { sel: `.ftab[href="${chart('results')}"]` }, { sel: ROW }],
       quiz: [{ name: 'hgb', label: 'Latest Hgb (g/dL)', input: true, answer: '11.8' }],
       done: st => !!st.quiz.hgb },
     { id: 'ack', title: 'Acknowledge the new order',
       how: 'Select <strong>Orders</strong> in the toolbar. Find the order marked <strong>NEW</strong> (ambulate in the hallway) and acknowledge it.',
-      show: { hash: chart('orders'), sel: '[data-ack="prac-o-new"], [data-action="ackall"]' },
+      show: [{ sel: '[data-ack="prac-o-new"]' }, { sel: 'a.tb-btn[href$="/orders"]' }, { sel: ROW }],
       done: (st, p, doc) => Model.isAcked(doc, 'prac-o-new') },
     { id: 'vitals', title: 'Chart a set of vital signs',
       how: 'Select <strong>Document</strong> (the Worklist). Check the <strong>Vital Signs</strong> row, select <strong>Document</strong>, and enter the vital signs you obtained.',
-      show: { hash: chart('worklist'), sel: '.wl-row[data-key="vitals"]' },
+      show: worklistSteps('vitals'),
       done: (st, p, doc) => active(doc, 'vitals').length > 0 },
     { id: 'assess', title: 'Complete a focused assessment',
       how: 'On the Worklist, check <strong>Pain Assessment</strong> (or another assessment), select <strong>Document</strong>, and complete the form.',
-      show: { hash: chart('worklist'), sel: '.wl-row[data-key="form:pain"]' },
+      show: worklistSteps('form:pain'),
       done: (st, p, doc) => active(doc, 'assess').length > 0 },
     { id: 'sched', title: 'Give a scheduled medication',
       how: 'Open the <strong>MAR</strong> (Document ▾ → Mar). Tap the <strong>wristband</strong> practice label, then the label for a scheduled medication (ceftriaxone or lisinopril). Select <strong>Save</strong>, review, then <strong>Document</strong>.',
-      show: { hash: chart('mar'), sel: '.tut-labels' },
+      show: marSteps('.tut-label[data-code="RX-PRAC-LISINOPRIL"], .tut-label[data-code="RX-PRAC-CEFTRIAXONE"]'),
       done: (st, p, doc) => active(doc, 'mar').some(e => SCHEDULED.includes(e.data.medId) && e.data.action === 'Given' && e.data.scan && e.data.scan.patient === 'verified' && e.data.scan.med === 'verified') },
     { id: 'prn', title: 'Give a PRN and document its effectiveness',
       how: 'On the MAR, scan the wristband, then <strong>two acetaminophen 325 mg</strong> labels (they add up to the 650 mg dose). Save and Document. Then select <strong>Reassess</strong> on the acetaminophen row to document how well it worked.',
-      show: { hash: chart('mar'), sel: `[data-prn="${PRN}"], .tut-labels` },
+      show: [{ sel: '[data-effect][data-med="' + PRN + '"]' }].concat(marSteps('.tut-label[data-code="NDC-ACETAMINOPHEN-325MG"]')),
       done: (st, p, doc) => { const m = active(doc, 'mar'); return m.some(e => e.data.medId === PRN && e.data.action === 'Given') && m.some(e => e.data.medId === PRN && e.data.action === 'Effectiveness'); } },
     { id: 'note', title: 'Write a nursing note',
       how: 'Select <strong>Document ▾ → Write Note</strong>. Describe the care you gave, then sign the note.',
-      show: { hash: chart('summary'), sel: '.tb-split .tb-caret' },
+      show: [{ sel: '.tb-menu:not([hidden]) [data-docmenu="note"]' }, { sel: DOC_CARET }, { sel: ROW }],
       done: (st, p, doc) => active(doc, 'notes').length > 0 }
   ];
 
@@ -71,7 +110,8 @@
     const doc = Store.doc(PID);
     let changed = false;
     const list = TASKS.map(t => {
-      const ok = !!t.done(st, p, doc);
+      // A task stays done once done (also when progress was restored from the LMS on another device).
+      const ok = !!st.doneAt[t.id] || !!t.done(st, p, doc);
       if (ok && !st.doneAt[t.id]) { st.doneAt[t.id] = Date.now(); changed = true; }
       return { t, ok };
     });
@@ -101,6 +141,7 @@
     if (App.current && App.current.id === PID && !st.opened) { st.opened = Date.now(); save(st); }
     const list = status(st);
     const n = list.filter(x => x.ok).length;
+    report(st, n);
     const current = list.find(x => !x.ok);
     // The open panel takes its own space beside (or below) the EHR so it never covers a button.
     document.body.classList.toggle('tut-open', !st.collapsed);
@@ -116,7 +157,7 @@
           return `<li class="${ok ? 'tut-done' : cur ? 'tut-cur' : ''}"><div class="tut-t"><span class="tut-mark" aria-hidden="true">${ok ? '✔' : ''}</span>${esc(t.title)}</div>
             ${cur ? `<div class="tut-how">${t.how}</div>${t.quiz ? quizHtml(t) : ''}<button type="button" class="btn btn-sm tut-show" data-show="${t.id}">👀 Show me</button>` : ''}</li>`;
         }).join('')}</ol>
-        ${current ? '' : `<div class="tut-complete"><strong>Orientation complete!</strong> You are ready to chart in simulation.<button type="button" class="btn btn-primary btn-block" data-tut="summary">Print completion summary</button></div>`}
+        ${current ? '' : `<div class="tut-complete"><strong>Orientation complete!</strong> You are ready to chart in simulation.${window.LMS && LMS.available ? ' Your completion has been recorded in Blackboard.' : ''}<button type="button" class="btn btn-primary btn-block" data-tut="summary">Print completion summary</button></div>`}
         <div class="tut-foot"><button type="button" class="tut-link" data-tut="summary">Progress summary</button><button type="button" class="tut-link" data-tut="reset">Start over</button></div>
       </aside>`;
     }
@@ -132,10 +173,14 @@
       Store.saveDoc(PID, {});
       Store.restartScenario(PID);
       try { localStorage.removeItem(key()); } catch (e) { /* ignore */ }
+      // Clear the saved progress in the LMS too (a completion already recorded there is kept).
+      lmsSaved = null; lmsSent = '';
+      if (window.LMS && LMS.available) LMS.progress(0, TASKS.length, { quiz: {}, doneAt: {}, opened: null });
       location.hash = '#/census';
       App.render();
     }, 'Start Over'));
-    on('[data-show]', e => showMe(TASKS.find(t => t.id === e.currentTarget.dataset.show)));
+    // stopPropagation keeps an open toolbar menu (Document ▾) open so its item can be highlighted.
+    on('[data-show]', e => { e.stopPropagation(); showMe(TASKS.find(t => t.id === e.currentTarget.dataset.show)); });
     el.querySelectorAll('[data-quiz]').forEach(f => f.addEventListener('submit', e => {
       e.preventDefault();
       const t = TASKS.find(x => x.id === f.dataset.quiz);
@@ -150,14 +195,17 @@
   }
 
   function showMe(t) {
-    const glow = () => {
-      const els = document.querySelectorAll(t.show.sel);
-      if (!els.length) { UI.toast('Open the screen named in the step, then try Show me again.', 'info'); return; }
-      els.forEach(x => x.classList.add('tut-glow'));
-      els[0].scrollIntoView({ block: 'center' });
-      setTimeout(() => els.forEach(x => x.classList.remove('tut-glow')), 4500);
-    };
-    if (location.hash !== t.show.hash) { location.hash = t.show.hash; setTimeout(glow, 450); } else glow();
+    const visible = el => el.offsetParent !== null || el.getClientRects().length > 0;
+    let els = [];
+    for (const step of t.show) {
+      if (step.when && !step.when()) continue;
+      els = (step.find ? step.find() : Array.from(document.querySelectorAll(step.sel))).filter(Boolean).filter(visible);
+      if (els.length) break;
+    }
+    if (!els.length) { UI.toast('Read the step above for where to start. Return To takes you back to the status board.', 'info'); return; }
+    els.forEach(x => x.classList.add('tut-glow'));
+    els[0].scrollIntoView({ block: 'center' });
+    setTimeout(() => els.forEach(x => x.classList.remove('tut-glow')), 4500);
   }
 
   /* ---------- Practice labels on the MAR (tap = scan) ---------- */
@@ -205,6 +253,9 @@
 
   window.Tutorial = {
     afterRender(app) {
+      // In an LMS, fill in the student's name on the sign-in screen.
+      const nameIn = !Store.session() && app.querySelector('.login-card input[name="name"]');
+      if (nameIn && !nameIn.value && window.LMS && LMS.available) nameIn.value = LMS.studentName();
       if (location.hash.indexOf(`#/patient/${PID}/mar`) === 0) practiceLabels(app);
       render();
     },

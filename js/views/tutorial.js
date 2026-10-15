@@ -17,11 +17,30 @@
 
   /* ---------- Per-student progress (kept on this device) ---------- */
   const key = () => `${C.storagePrefix}.tutorial.${((Store.session() || {}).name || 'guest').toLowerCase()}`;
+  // Inside an LMS (SCORM package, js/scorm.js) progress is also saved in the LMS, so it survives a new
+  // device or cleared browser data; it is merged in once per page load.
+  let lmsSaved = window.LMS && LMS.available ? LMS.restore() : null;
+  let lmsSent = '';
   function load() {
-    try { return Object.assign({ quiz: {}, doneAt: {}, collapsed: false }, JSON.parse(localStorage.getItem(key()) || '{}')); }
-    catch (e) { return { quiz: {}, doneAt: {}, collapsed: false }; }
+    let st;
+    try { st = Object.assign({ quiz: {}, doneAt: {}, collapsed: false }, JSON.parse(localStorage.getItem(key()) || '{}')); }
+    catch (e) { st = { quiz: {}, doneAt: {}, collapsed: false }; }
+    if (lmsSaved) {
+      Object.keys(lmsSaved.doneAt || {}).forEach(k => { if (!st.doneAt[k]) st.doneAt[k] = lmsSaved.doneAt[k]; });
+      Object.keys(lmsSaved.quiz || {}).forEach(k => { if (lmsSaved.quiz[k]) st.quiz[k] = true; });
+      if (lmsSaved.opened && !st.opened) st.opened = lmsSaved.opened;
+    }
+    return st;
   }
   function save(st) { try { localStorage.setItem(key(), JSON.stringify(st)); } catch (e) { /* storage blocked */ } }
+  function report(st, done) {
+    if (!(window.LMS && LMS.available)) return;
+    const state = { quiz: st.quiz, doneAt: st.doneAt, opened: st.opened || null };
+    const sig = done + JSON.stringify(state);
+    if (sig === lmsSent) return;
+    lmsSent = sig;
+    LMS.progress(done, TASKS.length, state);
+  }
 
   const active = (doc, sec) => (doc[sec] || []).filter(e => e.status === 'active');
 
@@ -91,7 +110,8 @@
     const doc = Store.doc(PID);
     let changed = false;
     const list = TASKS.map(t => {
-      const ok = !!t.done(st, p, doc);
+      // A task stays done once done (also when progress was restored from the LMS on another device).
+      const ok = !!st.doneAt[t.id] || !!t.done(st, p, doc);
       if (ok && !st.doneAt[t.id]) { st.doneAt[t.id] = Date.now(); changed = true; }
       return { t, ok };
     });
@@ -121,6 +141,7 @@
     if (App.current && App.current.id === PID && !st.opened) { st.opened = Date.now(); save(st); }
     const list = status(st);
     const n = list.filter(x => x.ok).length;
+    report(st, n);
     const current = list.find(x => !x.ok);
     // The open panel takes its own space beside (or below) the EHR so it never covers a button.
     document.body.classList.toggle('tut-open', !st.collapsed);
@@ -136,7 +157,7 @@
           return `<li class="${ok ? 'tut-done' : cur ? 'tut-cur' : ''}"><div class="tut-t"><span class="tut-mark" aria-hidden="true">${ok ? '✔' : ''}</span>${esc(t.title)}</div>
             ${cur ? `<div class="tut-how">${t.how}</div>${t.quiz ? quizHtml(t) : ''}<button type="button" class="btn btn-sm tut-show" data-show="${t.id}">👀 Show me</button>` : ''}</li>`;
         }).join('')}</ol>
-        ${current ? '' : `<div class="tut-complete"><strong>Orientation complete!</strong> You are ready to chart in simulation.<button type="button" class="btn btn-primary btn-block" data-tut="summary">Print completion summary</button></div>`}
+        ${current ? '' : `<div class="tut-complete"><strong>Orientation complete!</strong> You are ready to chart in simulation.${window.LMS && LMS.available ? ' Your completion has been recorded in Blackboard.' : ''}<button type="button" class="btn btn-primary btn-block" data-tut="summary">Print completion summary</button></div>`}
         <div class="tut-foot"><button type="button" class="tut-link" data-tut="summary">Progress summary</button><button type="button" class="tut-link" data-tut="reset">Start over</button></div>
       </aside>`;
     }
@@ -152,6 +173,9 @@
       Store.saveDoc(PID, {});
       Store.restartScenario(PID);
       try { localStorage.removeItem(key()); } catch (e) { /* ignore */ }
+      // Clear the saved progress in the LMS too (a completion already recorded there is kept).
+      lmsSaved = null; lmsSent = '';
+      if (window.LMS && LMS.available) LMS.progress(0, TASKS.length, { quiz: {}, doneAt: {}, opened: null });
       location.hash = '#/census';
       App.render();
     }, 'Start Over'));
@@ -229,6 +253,9 @@
 
   window.Tutorial = {
     afterRender(app) {
+      // In an LMS, fill in the student's name on the sign-in screen.
+      const nameIn = !Store.session() && app.querySelector('.login-card input[name="name"]');
+      if (nameIn && !nameIn.value && window.LMS && LMS.available) nameIn.value = LMS.studentName();
       if (location.hash.indexOf(`#/patient/${PID}/mar`) === 0) practiceLabels(app);
       render();
     },

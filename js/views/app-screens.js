@@ -22,16 +22,35 @@
   Screens.mode = () => Store.instructorUnlocked() ? 'faculty' : ((Store.session() || {}).observer ? 'observer' : 'student');
   Screens.MODE_LABEL = { student: 'Student', observer: 'Observer', faculty: 'Faculty' };
 
-  // Switch modes. Faculty needs the PIN; leaving Observer also needs the PIN so observers can't start charting on their own.
+  // Switch modes. Faculty needs the PIN every time; leaving Observer also needs the PIN so observers can't start
+  // charting on their own. Going back to Student from Faculty never asks.
   Screens.setMode = function (to) {
     const from = Screens.mode();
     if (to === from) return;
+    if (C.orientation && to !== 'student') return;   // EMR Orientation stays in Student mode
     const apply = () => {
       const s = Store.session();
       if (to === 'faculty') { Store.setInstructor(true); }
       else { Store.setInstructor(false); if (s) { s.observer = to === 'observer'; delete s.viewExperience; Store.setSession(s); } }
       UI.toast(`Switched to ${Screens.MODE_LABEL[to]} mode${to === 'observer' ? ' — view only' : ''}.`);
+      // Instructor Tools is faculty-only: leaving Faculty there goes to the status board
+      // (otherwise the page would ask for the PIN again to stay on Instructor Tools).
+      if (to !== 'faculty' && /^#\/instructor/.test(location.hash)) { location.hash = '#/census'; return; }
       App.render();
+    };
+    // Faculty who signed in without a sim experience choose one before charting as a student.
+    const withExperience = then => {
+      const s = Store.session();
+      if (to === 'faculty' || (s.experience && s.experience !== 'all')) return then();
+      UI.modal({
+        title: 'Choose a Sim Experience',
+        body: `<p>Student and Observer modes show one sim experience. Which one?</p>
+          <label class="field"><span>Simulation experience</span><select name="experience">${C.experiences.map(x => `<option value="${esc(x.id)}" ${x.id === s.viewExperience ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}</select></label>`,
+        buttons: [{ label: 'Cancel' }, { label: 'Continue', cls: 'btn-primary', onClick: api => {
+          const sess = Store.session(); sess.experience = U.formValues(api.el).experience; Store.setSession(sess);
+          setTimeout(then, 0);
+        } }]
+      });
     };
     if (to === 'faculty' || from === 'observer') {
       UI.modal({
@@ -40,13 +59,12 @@
           <label class="field"><span>Instructor PIN</span><input type="password" name="pin" autofocus inputmode="numeric"></label>`,
         buttons: [{ label: 'Cancel' }, { label: 'Switch', cls: 'btn-primary', onClick: api => {
           if (U.formValues(api.el).pin !== String(C.instructorPin)) { UI.formError(api.el.querySelector('.modal-body'), 'Incorrect PIN.'); return false; }
-          if (to === 'faculty') { Store.setInstructor(true); UI.toast('Switched to Faculty mode.'); App.render(); }
-          else { Store.setInstructor(false); const s = Store.session(); s.observer = false; Store.setSession(s); UI.toast('Switched to Student mode.'); App.render(); }
+          setTimeout(() => withExperience(apply), 0);
         } }]
       });
       return;
     }
-    apply();
+    withExperience(apply);
   };
 
   Screens.experienceLabel = id => id === 'all' ? 'All Experiences' : ((C.experiences.find(x => x.id === id) || {}).label || id);
@@ -59,17 +77,20 @@
           <div class="login-brand"><div class="logo-mark" aria-hidden="true">✚</div><div><div class="brand-1">${esc(C.hospitalName)}</div><div class="brand-2">${esc(C.systemName)} · Simulation Electronic Health Record</div></div></div>
           <div class="sim-warning">SIMULATION ONLY — Do not enter real patient information.</div>
           <label class="field"><span>Full name</span><input name="name" required autofocus placeholder="First Last"></label>
-          <label class="field"><span>Role</span><select name="cred">
-            <option value="SN">Student Nurse (SN)</option><option value="RN">Registered Nurse (RN)</option>
-            <option value="Instructor">Instructor</option></select></label>
+          ${C.orientation
+            // EMR Orientation: every user is a documenting student nurse.
+            ? '<div class="field"><span>Role</span><div class="login-fixed">Student Nurse (SN)</div><input type="hidden" name="cred" value="SN"></div>'
+            : `<label class="field"><span>Role</span><select name="cred">
+            <option value="SN">Student Nurse (SN)</option><option value="Faculty">Faculty</option></select></label>
+          <label class="field login-pin" hidden><span>Instructor PIN</span><input type="password" name="pin" inputmode="numeric" autocomplete="off"></label>`}
           <label class="field"><span>Simulation experience</span><select name="experience" required>
             <option value="">— Select your sim experience —</option>
             ${C.experiences.map(x => `<option value="${esc(x.id)}" ${C.experiences.length === 1 ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}
 </select></label>
-          <fieldset class="field login-mode"><legend>Sign in as</legend>
+          ${C.orientation ? '' : `<fieldset class="field login-mode"><legend>Sign in as</legend>
             <label class="check"><input type="radio" name="mode" value="student" checked> <span><strong>Documenting nurse</strong> — I am charting in this simulation</span></label>
             <label class="check"><input type="radio" name="mode" value="observer"> <span><strong>Observer (view only)</strong> — I am watching; I can read the chart but not document or acknowledge</span></label>
-          </fieldset>
+          </fieldset>`}
           <label class="field"><span>Clinical group / cohort (optional)</span><input name="group" placeholder="e.g., Level 3 — Group A"></label>
           <button class="btn btn-primary btn-block" type="submit">Sign In</button>
           <p class="muted small">Your name is attached to every entry as your electronic signature.</p>
@@ -77,10 +98,30 @@
         </form></div>`;
     },
     bind(root) {
+      // Faculty: show the PIN, hide the student-only choices, and make the experience optional.
+      const role = root.querySelector('select[name="cred"]');
+      if (role) role.addEventListener('change', () => {
+        const fac = role.value === 'Faculty';
+        root.querySelector('.login-pin').hidden = !fac;
+        const modeSet = root.querySelector('.login-mode'); if (modeSet) modeSet.hidden = fac;
+        const exp = root.querySelector('select[name="experience"]');
+        exp.required = !fac;
+        exp.options[0].textContent = fac ? '— All experiences —' : '— Select your sim experience —';
+        if (fac) root.querySelector('[name="pin"]').focus();
+      });
       root.querySelector('form').addEventListener('submit', e => {
         e.preventDefault();
         const v = U.formValues(e.target);
         if (!v.name) return;
+        if (v.cred === 'Faculty') {
+          // Faculty sign in straight to Faculty mode with the PIN; the experience is optional (all are visible).
+          if (v.pin !== String(C.instructorPin)) { UI.formError(e.target, 'Incorrect instructor PIN.'); return; }
+          Store.setSession({ name: v.name, cred: 'Faculty', group: v.group, experience: v.experience || 'all', observer: false, signedIn: Date.now() });
+          Store.setInstructor(true);
+          location.hash = '#/census';
+          App.render();
+          return;
+        }
         if (!v.experience) { UI.formError(e.target, 'Choose your simulation experience.'); return; }
         Store.setSession({ name: v.name, cred: v.cred, group: v.group, experience: v.experience, observer: v.mode === 'observer', signedIn: Date.now() });
         location.hash = '#/census';

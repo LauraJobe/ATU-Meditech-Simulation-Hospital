@@ -23,9 +23,11 @@
   Screens.MODE_LABEL = { student: 'Student', observer: 'Observer', faculty: 'Faculty' };
 
   // Switch modes. Faculty needs the PIN; leaving Observer also needs the PIN so observers can't start charting on their own.
+  // The PIN is asked once per sign-in: after it has been entered, switching back and forth does not ask again.
   Screens.setMode = function (to) {
     const from = Screens.mode();
     if (to === from) return;
+    if (C.orientation && to !== 'student') return;   // EMR Orientation stays in Student mode
     const apply = () => {
       const s = Store.session();
       if (to === 'faculty') { Store.setInstructor(true); }
@@ -33,20 +35,34 @@
       UI.toast(`Switched to ${Screens.MODE_LABEL[to]} mode${to === 'observer' ? ' — view only' : ''}.`);
       App.render();
     };
-    if (to === 'faculty' || from === 'observer') {
+    // Faculty who signed in without a sim experience choose one before charting as a student.
+    const withExperience = then => {
+      const s = Store.session();
+      if (to === 'faculty' || (s.experience && s.experience !== 'all')) return then();
+      UI.modal({
+        title: 'Choose a Sim Experience',
+        body: `<p>Student and Observer modes show one sim experience. Which one?</p>
+          <label class="field"><span>Simulation experience</span><select name="experience">${C.experiences.map(x => `<option value="${esc(x.id)}" ${x.id === s.viewExperience ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}</select></label>`,
+        buttons: [{ label: 'Cancel' }, { label: 'Continue', cls: 'btn-primary', onClick: api => {
+          const sess = Store.session(); sess.experience = U.formValues(api.el).experience; Store.setSession(sess);
+          setTimeout(then, 0);
+        } }]
+      });
+    };
+    if ((to === 'faculty' || from === 'observer') && !Store.pinVerified()) {
       UI.modal({
         title: to === 'faculty' ? 'Switch to Faculty' : 'Leave Observer Mode',
         body: `<p>${to === 'faculty' ? 'Faculty mode shows every experience and the instructor tools.' : 'An instructor must enter the PIN to change an observer to a documenting student.'}</p>
           <label class="field"><span>Instructor PIN</span><input type="password" name="pin" autofocus inputmode="numeric"></label>`,
         buttons: [{ label: 'Cancel' }, { label: 'Switch', cls: 'btn-primary', onClick: api => {
           if (U.formValues(api.el).pin !== String(C.instructorPin)) { UI.formError(api.el.querySelector('.modal-body'), 'Incorrect PIN.'); return false; }
-          if (to === 'faculty') { Store.setInstructor(true); UI.toast('Switched to Faculty mode.'); App.render(); }
-          else { Store.setInstructor(false); const s = Store.session(); s.observer = false; Store.setSession(s); UI.toast('Switched to Student mode.'); App.render(); }
+          Store.setPinVerified(true);
+          setTimeout(() => withExperience(apply), 0);
         } }]
       });
       return;
     }
-    apply();
+    withExperience(apply);
   };
 
   Screens.experienceLabel = id => id === 'all' ? 'All Experiences' : ((C.experiences.find(x => x.id === id) || {}).label || id);
@@ -63,8 +79,8 @@
             // EMR Orientation: every user is a documenting student nurse.
             ? '<div class="field"><span>Role</span><div class="login-fixed">Student Nurse (SN)</div><input type="hidden" name="cred" value="SN"></div>'
             : `<label class="field"><span>Role</span><select name="cred">
-            <option value="SN">Student Nurse (SN)</option><option value="RN">Registered Nurse (RN)</option>
-            <option value="Instructor">Instructor</option></select></label>`}
+            <option value="SN">Student Nurse (SN)</option><option value="Faculty">Faculty</option></select></label>
+          <label class="field login-pin" hidden><span>Instructor PIN</span><input type="password" name="pin" inputmode="numeric" autocomplete="off"></label>`}
           <label class="field"><span>Simulation experience</span><select name="experience" required>
             <option value="">— Select your sim experience —</option>
             ${C.experiences.map(x => `<option value="${esc(x.id)}" ${C.experiences.length === 1 ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}
@@ -80,10 +96,30 @@
         </form></div>`;
     },
     bind(root) {
+      // Faculty: show the PIN, hide the student-only choices, and make the experience optional.
+      const role = root.querySelector('select[name="cred"]');
+      if (role) role.addEventListener('change', () => {
+        const fac = role.value === 'Faculty';
+        root.querySelector('.login-pin').hidden = !fac;
+        const modeSet = root.querySelector('.login-mode'); if (modeSet) modeSet.hidden = fac;
+        const exp = root.querySelector('select[name="experience"]');
+        exp.required = !fac;
+        exp.options[0].textContent = fac ? '— All experiences —' : '— Select your sim experience —';
+        if (fac) root.querySelector('[name="pin"]').focus();
+      });
       root.querySelector('form').addEventListener('submit', e => {
         e.preventDefault();
         const v = U.formValues(e.target);
         if (!v.name) return;
+        if (v.cred === 'Faculty') {
+          // Faculty sign in straight to Faculty mode with the PIN; the experience is optional (all are visible).
+          if (v.pin !== String(C.instructorPin)) { UI.formError(e.target, 'Incorrect instructor PIN.'); return; }
+          Store.setSession({ name: v.name, cred: 'Faculty', group: v.group, experience: v.experience || 'all', observer: false, signedIn: Date.now() });
+          Store.setInstructor(true); Store.setPinVerified(true);
+          location.hash = '#/census';
+          App.render();
+          return;
+        }
         if (!v.experience) { UI.formError(e.target, 'Choose your simulation experience.'); return; }
         Store.setSession({ name: v.name, cred: v.cred, group: v.group, experience: v.experience, observer: v.mode === 'observer', signedIn: Date.now() });
         location.hash = '#/census';
@@ -194,12 +230,13 @@
   /* ---------------- Instructor tools ---------------- */
   Screens.unlock = function (then) {
     if (Store.instructorUnlocked()) { then(); return; }
+    if (Store.pinVerified()) { Store.setInstructor(true); then(); return; }
     UI.modal({
       title: 'Instructor Tools',
       body: '<label class="field"><span>Instructor PIN</span><input type="password" name="pin" autofocus inputmode="numeric"></label>',
       buttons: [{ label: 'Cancel' }, { label: 'Unlock', cls: 'btn-primary', onClick: api => {
         if (U.formValues(api.el).pin !== String(C.instructorPin)) { UI.formError(api.el.querySelector('.modal-body'), 'Incorrect PIN.'); return false; }
-        Store.setInstructor(true);
+        Store.setInstructor(true); Store.setPinVerified(true);
         then();
       } }]
     });

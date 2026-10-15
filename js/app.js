@@ -72,13 +72,13 @@
       <div class="tb-group tb-right">
         <div class="tb-info"><div class="tb-clock"><span id="clock">${U.fmtDT(clock)}</span></div>
           <div class="tb-user">${esc(s.name)}, ${esc(s.cred)} · ${esc(exp)}</div></div>
-        <div class="tb-split tb-mode">
+        ${C.orientation ? '' /* EMR Orientation stays in Student mode: no mode menu */ : `<div class="tb-split tb-mode">
           <a class="tb-btn tb-mode-btn" href="#" data-action="mode" aria-haspopup="true">${svg('gear')}<span>${esc(Screens.MODE_LABEL[Screens.mode()])} ▾</span></a>
           <div class="tb-menu tb-mode-menu" hidden role="menu">
             <div class="ml-menu-h">Chart mode</div>
             ${['student', 'observer', 'faculty'].map(m => `<a role="menuitem" href="#" data-setmode="${m}" class="${Screens.mode() === m ? 'ml-on' : ''}">${Screens.MODE_LABEL[m]}${m === 'observer' ? ' (view only)' : m === 'faculty' ? ' (PIN)' : ' (documenting)'}</a>`).join('')}
             ${Screens.mode() === 'faculty' ? '<a role="menuitem" href="#/instructor">Instructor Tools…</a>' : ''}
-          </div></div>
+          </div></div>`}
         <a class="tb-btn" href="#" data-action="logout">${svg('suspend')}<span>Suspend</span></a>
       </div>
     </header>
@@ -231,7 +231,7 @@
       app.querySelector('[data-action="logout"]').addEventListener('click', e => {
         e.preventDefault();
         UI.confirm('Suspend session', 'Sign out of the simulation EHR? Your documentation stays saved on this device.', () => {
-          Store.clearSession(); Store.setInstructor(false); location.hash = '#/'; App.render();
+          Store.clearSession(); Store.setInstructor(false); Store.setPinVerified(false); location.hash = '#/'; App.render();
         }, 'Sign Out');
       });
       // Orientation page only: the guided task panel (js/views/tutorial.js).

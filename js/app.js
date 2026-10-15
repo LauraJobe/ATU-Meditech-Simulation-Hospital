@@ -231,7 +231,7 @@
       app.querySelector('[data-action="logout"]').addEventListener('click', e => {
         e.preventDefault();
         UI.confirm('Suspend session', 'Sign out of the simulation EHR? Your documentation stays saved on this device.', () => {
-          Store.clearSession(); Store.setInstructor(false); Store.setPinVerified(false); location.hash = '#/'; App.render();
+          Store.clearSession(); Store.setInstructor(false); location.hash = '#/'; App.render();
         }, 'Sign Out');
       });
       // Orientation page only: the guided task panel (js/views/tutorial.js).

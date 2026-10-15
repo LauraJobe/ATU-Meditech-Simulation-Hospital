@@ -22,8 +22,8 @@
   Screens.mode = () => Store.instructorUnlocked() ? 'faculty' : ((Store.session() || {}).observer ? 'observer' : 'student');
   Screens.MODE_LABEL = { student: 'Student', observer: 'Observer', faculty: 'Faculty' };
 
-  // Switch modes. Faculty needs the PIN; leaving Observer also needs the PIN so observers can't start charting on their own.
-  // The PIN is asked once per sign-in: after it has been entered, switching back and forth does not ask again.
+  // Switch modes. Faculty needs the PIN every time; leaving Observer also needs the PIN so observers can't start
+  // charting on their own. Going back to Student from Faculty never asks.
   Screens.setMode = function (to) {
     const from = Screens.mode();
     if (to === from) return;
@@ -33,6 +33,9 @@
       if (to === 'faculty') { Store.setInstructor(true); }
       else { Store.setInstructor(false); if (s) { s.observer = to === 'observer'; delete s.viewExperience; Store.setSession(s); } }
       UI.toast(`Switched to ${Screens.MODE_LABEL[to]} mode${to === 'observer' ? ' — view only' : ''}.`);
+      // Instructor Tools is faculty-only: leaving Faculty there goes to the status board
+      // (otherwise the page would ask for the PIN again to stay on Instructor Tools).
+      if (to !== 'faculty' && /^#\/instructor/.test(location.hash)) { location.hash = '#/census'; return; }
       App.render();
     };
     // Faculty who signed in without a sim experience choose one before charting as a student.
@@ -49,14 +52,13 @@
         } }]
       });
     };
-    if ((to === 'faculty' || from === 'observer') && !Store.pinVerified()) {
+    if (to === 'faculty' || from === 'observer') {
       UI.modal({
         title: to === 'faculty' ? 'Switch to Faculty' : 'Leave Observer Mode',
         body: `<p>${to === 'faculty' ? 'Faculty mode shows every experience and the instructor tools.' : 'An instructor must enter the PIN to change an observer to a documenting student.'}</p>
           <label class="field"><span>Instructor PIN</span><input type="password" name="pin" autofocus inputmode="numeric"></label>`,
         buttons: [{ label: 'Cancel' }, { label: 'Switch', cls: 'btn-primary', onClick: api => {
           if (U.formValues(api.el).pin !== String(C.instructorPin)) { UI.formError(api.el.querySelector('.modal-body'), 'Incorrect PIN.'); return false; }
-          Store.setPinVerified(true);
           setTimeout(() => withExperience(apply), 0);
         } }]
       });
@@ -115,7 +117,7 @@
           // Faculty sign in straight to Faculty mode with the PIN; the experience is optional (all are visible).
           if (v.pin !== String(C.instructorPin)) { UI.formError(e.target, 'Incorrect instructor PIN.'); return; }
           Store.setSession({ name: v.name, cred: 'Faculty', group: v.group, experience: v.experience || 'all', observer: false, signedIn: Date.now() });
-          Store.setInstructor(true); Store.setPinVerified(true);
+          Store.setInstructor(true);
           location.hash = '#/census';
           App.render();
           return;
@@ -230,13 +232,12 @@
   /* ---------------- Instructor tools ---------------- */
   Screens.unlock = function (then) {
     if (Store.instructorUnlocked()) { then(); return; }
-    if (Store.pinVerified()) { Store.setInstructor(true); then(); return; }
     UI.modal({
       title: 'Instructor Tools',
       body: '<label class="field"><span>Instructor PIN</span><input type="password" name="pin" autofocus inputmode="numeric"></label>',
       buttons: [{ label: 'Cancel' }, { label: 'Unlock', cls: 'btn-primary', onClick: api => {
         if (U.formValues(api.el).pin !== String(C.instructorPin)) { UI.formError(api.el.querySelector('.modal-body'), 'Incorrect PIN.'); return false; }
-        Store.setInstructor(true); Store.setPinVerified(true);
+        Store.setInstructor(true);
         then();
       } }]
     });

@@ -31,9 +31,6 @@
 
     instructorUnlocked() { try { return sessionStorage.getItem(P + 'instructor') === '1'; } catch (e) { return false; } },
     setInstructor(on) { try { on ? sessionStorage.setItem(P + 'instructor', '1') : sessionStorage.removeItem(P + 'instructor'); } catch (e) { /* ignore */ } },
-    // The instructor PIN was entered during this sign-in: switching modes does not ask again until Sign Out.
-    pinVerified() { try { return sessionStorage.getItem(P + 'pinok') === '1'; } catch (e) { return false; } },
-    setPinVerified(on) { try { on ? sessionStorage.setItem(P + 'pinok', '1') : sessionStorage.removeItem(P + 'pinok'); } catch (e) { /* ignore */ } },
 
     // Real time (ms) at which a patient's scenario started. Set on first open.
     scenarioStart(pid) {

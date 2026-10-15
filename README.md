@@ -21,7 +21,7 @@ It's a static website with no server, database, or build step. Host it free on G
   7. Give a scheduled medication on the MAR (scan the wristband and the medication, Save, Document)
   8. Give a PRN (two 325 mg acetaminophen labels add up to 650 mg) and document its effectiveness
   9. Write a nursing note
-- **Show me** opens the right screen and highlights where to start. **Practice labels** on the MAR stand in for a scanner: tap the wristband, then the medication labels — the MAR treats each tap as a scan.
+- **Show me** highlights the next thing to tap on the screen the student is on (for example the Diagnostics tab, then the Hgb row; the Orders button, then Acknowledge). It never opens a screen for them. **Practice labels** on the MAR stand in for a scanner: tap the wristband, then the medication labels — the MAR treats each tap as a scan.
 - The scheduled meds are due whenever the student opens the chart (`fixedTimes` in `js/data/orientation-patients.js`), so the MAR works the same in a morning or afternoon session.
 - When all nine tasks are done, **Print completion summary** prints the student's name, group, and the time each task was completed, with a line for faculty initials. **Start over** erases that student's practice charting.
 

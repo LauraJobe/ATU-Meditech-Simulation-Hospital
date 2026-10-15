@@ -59,17 +59,20 @@
           <div class="login-brand"><div class="logo-mark" aria-hidden="true">✚</div><div><div class="brand-1">${esc(C.hospitalName)}</div><div class="brand-2">${esc(C.systemName)} · Simulation Electronic Health Record</div></div></div>
           <div class="sim-warning">SIMULATION ONLY — Do not enter real patient information.</div>
           <label class="field"><span>Full name</span><input name="name" required autofocus placeholder="First Last"></label>
-          <label class="field"><span>Role</span><select name="cred">
+          ${C.orientation
+            // EMR Orientation: every user is a documenting student nurse.
+            ? '<div class="field"><span>Role</span><div class="login-fixed">Student Nurse (SN)</div><input type="hidden" name="cred" value="SN"></div>'
+            : `<label class="field"><span>Role</span><select name="cred">
             <option value="SN">Student Nurse (SN)</option><option value="RN">Registered Nurse (RN)</option>
-            <option value="Instructor">Instructor</option></select></label>
+            <option value="Instructor">Instructor</option></select></label>`}
           <label class="field"><span>Simulation experience</span><select name="experience" required>
             <option value="">— Select your sim experience —</option>
             ${C.experiences.map(x => `<option value="${esc(x.id)}" ${C.experiences.length === 1 ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}
 </select></label>
-          <fieldset class="field login-mode"><legend>Sign in as</legend>
+          ${C.orientation ? '' : `<fieldset class="field login-mode"><legend>Sign in as</legend>
             <label class="check"><input type="radio" name="mode" value="student" checked> <span><strong>Documenting nurse</strong> — I am charting in this simulation</span></label>
             <label class="check"><input type="radio" name="mode" value="observer"> <span><strong>Observer (view only)</strong> — I am watching; I can read the chart but not document or acknowledge</span></label>
-          </fieldset>
+          </fieldset>`}
           <label class="field"><span>Clinical group / cohort (optional)</span><input name="group" placeholder="e.g., Level 3 — Group A"></label>
           <button class="btn btn-primary btn-block" type="submit">Sign In</button>
           <p class="muted small">Your name is attached to every entry as your electronic signature.</p>

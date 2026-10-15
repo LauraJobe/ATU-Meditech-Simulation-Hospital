@@ -791,3 +791,4 @@ body.tut-open .toolbar { z-index: 30; }
   .tut { top: auto; left: 0; width: auto; max-height: 38vh; border-left: none; border-top: 3px solid #2f8f5b; box-shadow: 0 -4px 16px rgba(0,0,0,.15); }
   body.tut-open #app { margin-right: 0; padding-bottom: 40vh; }
 }
+.login-fixed { padding: 7px 10px; border: 1px solid #c9d3dd; border-radius: 4px; background: #f3f5f7; font-weight: 600; }

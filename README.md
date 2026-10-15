@@ -8,6 +8,7 @@ It's a static website with no server, database, or build step. Host it free on G
 
 **orientation.html** — `https://laurajobe.github.io/ATU-Meditech-Simulation-Hospital/orientation.html` — is a practice version of this same EHR for students to use before sim day. It looks and works exactly like the simulation site, but:
 
+- Sign-in is simplified: the role is always **Student Nurse (SN)** and there is no Documenting / Observer choice.
 - It has one **practice patient, Morgan, Taylor** (community-acquired pneumonia, sulfa allergy), not the simulation patients, so orientation never previews a scenario.
 - Practice charting is saved separately (`storagePrefix` `atuSimEHR.orient`) and never mixes with simulation documentation.
 - A **guided task panel** (right side; along the bottom on tablets) lists nine tasks that check themselves off from what the student does:

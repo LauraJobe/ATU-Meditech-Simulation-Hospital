@@ -47,7 +47,7 @@
 
   // Every text code on every chart (base meds, event meds, unit-dose products), by short code.
   function textCodes(p) {
-    const meds = [...(p.meds || []), ...(p.events || []).flatMap(e => e.meds || [])];
+    const meds = [...(p.meds || []), ...(p.events || []).flatMap(e => e.meds || []), ...(window.Model && Model.enteredMeds ? Model.enteredMeds(p.id) : [])];
     return meds.flatMap(m => [m.barcode || ('RX-' + String(m.id).toUpperCase()), ...(m.type !== 'continuous' ? products(m).map(d => productCode(m, d)) : [])]);
   }
   function expand(c) {

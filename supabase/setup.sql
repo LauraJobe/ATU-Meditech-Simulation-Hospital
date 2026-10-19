@@ -110,6 +110,10 @@ begin
   if p_section not in ('vitals', 'assess', 'mar', 'io', 'notes', 'orders', 'ack', 'careplan', 'heparin', 'tar') then
     raise exception 'Unknown chart section %', p_section;
   end if;
+  -- Approving, entering, or discontinuing orders is for faculty logins only.
+  if p_section = 'orders' and coalesce(p_entry->'data'->>'kind', '') in ('approval', 'faculty', 'dc') then
+    perform public.ehr__require(array['faculty']);
+  end if;
   if public.ehr__patient(p_app, p_session, p_patient) <> p_epoch then return 'stale'; end if;
   insert into public.ehr_entries (app, session_id, id, patient_id, epoch, section, entry, author)
     values (p_app, p_session, p_id, p_patient, p_epoch, p_section, p_entry, auth.uid())

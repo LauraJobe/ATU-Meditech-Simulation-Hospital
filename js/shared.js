@@ -203,7 +203,7 @@
     if (!auth()) return;
     try {
       const pts = await selectAll('ehr_patients', '', 'patient_id,epoch,real_start,released');
-      const all = mirrors();
+      const all = mirrors(), prevAll = mirrors();
       const since = full || !firstPullDone ? null : read('since', null);
       const resetPids = [];
       const alerts = [];
@@ -223,6 +223,10 @@
       rows.forEach(r => {
         const m = all[r.patient_id] || (all[r.patient_id] = emptyMirror());
         if (r.epoch !== m.epoch) return;
+        // New faculty orders and approvals from another device: tell students once.
+        const k = r.section === 'orders' && r.entry.data && r.entry.data.kind;
+        if (firstPullDone && (k === 'faculty' || (k === 'approval' && r.entry.data.decision === 'approved')) && !((prevAll[r.patient_id] || emptyMirror()).doc.orders || []).some(x => x.id === r.entry.id) &&
+          !outbox().some(o => o.op === 'add' && o.entry.id === r.entry.id)) alerts.push({ pid: r.patient_id, order: true });
         placeEntry(m.doc, r.section, r.entry);
         if (!newest || r.updated_at > newest) newest = r.updated_at;
       });
@@ -240,7 +244,7 @@
       if (!firstPullDone || before !== JSON.stringify(all)) needsRender = true;
       firstPullDone = true;
       if (!outbox().length) { status = 'shared'; lastError = ''; }
-      alerts.forEach(a => releaseAlert(a.pid, a.ev));
+      alerts.forEach(a => a.order ? orderAlert(a.pid) : releaseAlert(a.pid, a.ev));
     } catch (e) {
       if (e instanceof NetError) { status = 'offline'; lastError = e.message; }
       else if (auth()) { status = 'error'; lastError = e.message; }
@@ -255,6 +259,13 @@
     const e = (p.events || []).find(x => x.id === ev);
     if (!e) return;
     UI.toast(`${p.name.first} ${p.name.last}: ${e.title || 'New orders'} released — now available in the Orders tab.`, 'info');
+  }
+
+  function orderAlert(pid) {
+    if (!window.Screens || Screens.mode() !== 'student') return;
+    const p = Model.base(pid);
+    if (!p || !Screens.canSee(p)) return;
+    UI.toast(`${p.name.first} ${p.name.last}: new order — acknowledge it in the Orders tab.`, 'info');
   }
 
   // Redraw with other devices' charting, but never while someone is typing or in a dialog.

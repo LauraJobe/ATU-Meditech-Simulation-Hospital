@@ -1,5 +1,7 @@
 /* Orders — Expanse-style current orders by category, acknowledgment, order detail (ⓘ),
-   protocol links (P), and verbal/telephone order entry. */
+   protocol links (P), verbal/telephone order entry (students; faculty approve), and
+   faculty order entry. Approved and faculty orders show as NEW for students to acknowledge,
+   and medication orders go on the MAR (Model.enteredOrders). */
 (function () {
   'use strict';
   const esc = U.esc;
@@ -13,11 +15,30 @@
   const BAND_ORDER = ['Medications', 'IV Fluids', 'Blood Products', 'Laboratory', 'Imaging', 'Diagnostics', 'Nursing Care', 'Respiratory Care', 'Diet', 'Consults', 'Other'];
   const COLS = '<colgroup><col><col class="oc-by"><col class="oc-time"><col class="oc-status"><col class="oc-act"><col class="oc-i"></colgroup>';
 
-  // All orders as one list: provider orders, medication orders, and nursing-entered verbal/telephone orders.
+  const faculty = () => Screens.mode() === 'faculty';
+  const MED_CATS = ['Medication', 'IV Fluids'];
+  const ROUTES = ['PO', 'IV push', 'IVPB', 'IV', 'IM', 'SubQ', 'SL', 'PR', 'Topical', 'Inhaled', 'Nebulized', 'Transdermal', 'NG tube', 'Other'];
+  const TYPES = [['scheduled', 'Scheduled'], ['prn', 'PRN'], ['once', 'One time / STAT'], ['continuous', 'Continuous / IV infusion']];
+
+  // All orders as one list: provider orders, medication orders (including approved and faculty orders),
+  // plus student verbal/telephone orders that are waiting for faculty or were not approved.
   function allOrders(p, doc) {
-    const verbal = doc.orders.map(e => ({ id: e.id, verbal: e, cat: e.data.cat, text: e.data.text, by: e.data.provider, time: e.time,
-      status: e.status === 'error' ? 'Entered in error' : 'Active', type: e.data.type }));
-    return [...p.orders, ...Model.medOrders(p), ...verbal];
+    const student = doc.orders.filter(e => !e.data.kind).map(e => {
+      const eo = Model.enteredOrders(p.id, doc).find(x => x.entry.id === e.id);
+      if (eo && eo.state === 'active') return null;      // shown as a real order (and on the MAR)
+      return { id: 'ord-' + String(e.id).toLowerCase(), verbal: e, eo, cat: e.data.cat, text: e.data.text, by: e.data.provider, time: e.time,
+        status: e.status === 'error' ? 'Entered in error' : eo && eo.state === 'declined' ? 'Not approved' : 'Pending faculty approval', type: e.data.type };
+    }).filter(Boolean);
+    return [...p.orders, ...Model.medOrders(p), ...student];
+  }
+
+  // "Telephone order · read back ✔ · received by … · approved by …" or "Entered by faculty …"
+  function enteredLine(eo) {
+    if (!eo) return '';
+    if (eo.faculty) return `Entered by ${Model.signature(eo.entry)} (faculty)`;
+    const parts = [`${eo.entry.data.type} order`, 'read back ✔', `received by ${Model.signature(eo.entry)}`];
+    if (eo.decision) parts.push(`${eo.state === 'declined' ? 'not approved' : 'approved'} by ${Model.signature(eo.decision)}`);
+    return parts.join(' · ');
   }
 
   function orderText(o) {
@@ -30,18 +51,21 @@
   function row(p, doc, o) {
     const acked = Model.isAcked(doc, o.id);
     const conflict = o.med && Model.allergyConflicts(p, o.med).length;
-    const status = o.status === 'Active' ? (o.verbal ? 'Active — needs co-sign' : o.med ? 'Active' : 'Ordered') : o.status;
-    return `<tr class="ord-row ${o.status === 'Discontinued' || o.status === 'Entered in error' ? 'dc' : ''} ${o.isNew && !acked ? 'row-new' : ''}">
+    const status = o.status === 'Active' ? (o.med ? 'Active' : 'Ordered') : o.status;
+    const pending = o.verbal && o.status === 'Pending faculty approval';
+    return `<tr class="ord-row ${o.status === 'Discontinued' || o.status === 'Entered in error' || o.status === 'Not approved' ? 'dc' : ''} ${o.isNew && !acked ? 'row-new' : ''} ${pending ? 'row-pending' : ''}">
       <td>
         ${o.isNew && !acked ? UI.badge('NEW', 'new') + ' ' : ''}${o.priority ? UI.badge(o.priority, 'danger') + ' ' : ''}${conflict ? UI.badge('ALLERGY', 'danger') + ' ' : ''}
         ${orderText(o)} ${o.protocol ? Views.protocol.link(p, o.protocol) : ''}
-        ${o.verbal ? `<div class="muted small">${esc(o.type)} order · read back ✔ · received by ${esc(Model.signature(o.verbal))}</div>` : ''}
+        ${o.verbal ? `<div class="muted small">${esc(enteredLine(o.eo) || `${o.type} order · read back ✔ · received by ${Model.signature(o.verbal)}`)}</div>` : ''}
+        ${o.entered ? `<div class="muted small">${esc(enteredLine(o.entered))}</div>` : ''}
+        ${o.eo && o.eo.state === 'declined' && o.eo.decision.data.reason ? `<div class="small declined-reason">Not approved: ${esc(o.eo.decision.data.reason)}</div>` : ''}
         ${o.med && o.med.indication ? `<div class="muted small">Reason: ${esc(o.med.indication)}</div>` : ''}
       </td>
       <td>${esc(o.by || '')}</td>
       <td class="nowrap">${esc(U.fmtDT(o.time))}${o.dcTime ? `<br>${esc(U.fmtDT(o.dcTime))}` : ''}</td>
       <td>${esc(status)}</td>
-      <td class="nowrap">${o.isNew ? (acked ? '<span class="muted small">Ack’d</span>' : `<button class="btn btn-sm btn-primary" data-ack="${esc(o.id)}">Acknowledge</button>`) : ''}</td>
+      <td class="nowrap">${pending && faculty() ? `<button class="btn btn-sm btn-primary" data-approve="${esc(o.verbal.id)}">Review</button>` : ''}${o.isNew ? (acked ? '<span class="muted small">Ack’d</span>' : `<button class="btn btn-sm btn-primary" data-ack="${esc(o.id)}">Acknowledge</button>`) : ''}</td>
       <td><button type="button" class="i-link" data-info="${esc(o.id)}" title="Order detail" aria-label="Order detail">i</button></td>
     </tr>`;
   }
@@ -59,7 +83,9 @@
       m && (m.holdIf || []).length && ['Hold parameters', m.holdIf.map(h => `${h.p} ${h.op} ${h.v}`).join(' or ')],
       m && (m.preAssess || []).length && ['Assess before giving', m.preAssess.map(k => k.replace('lab:', 'lab: ')).join(', ')],
       o.detail && !m && ['Detail', o.detail],
-      o.verbal && ['Order type', `${o.type} order — read back and verified; received by ${Model.signature(o.verbal)}; pending provider co-signature`],
+      o.verbal && ['Order type', `${o.type} order — read back and verified; received by ${Model.signature(o.verbal)}`],
+      (o.eo || o.entered) && ['Entered', enteredLine(o.eo || o.entered)],
+      o.eo && o.eo.state === 'declined' && ['Not approved', o.eo.decision.data.reason || '(no reason given)'],
       o.verbal && o.verbal.status === 'error' && ['Entered in error', o.verbal.error.reason],
       o.isNew && ['Acknowledged', ack ? `${U.fmtDT(ack.time)} by ${Model.signature(ack)}` : 'Not yet acknowledged']
     ].filter(r => r && r[1]);
@@ -68,7 +94,9 @@
       body: `<dl class="kv">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
         ${o.protocol && Views.protocol.get(p, o.protocol) ? `<h4>Protocol</h4>${Views.protocol.html(Views.protocol.get(p, o.protocol))}` : ''}`,
       buttons: [
+        o.verbal && o.verbal.status === 'active' && o.status === 'Pending faculty approval' && faculty() ? { label: 'Review / Approve', cls: 'btn-primary', onClick: () => { setTimeout(() => review(p, o.verbal), 0); } } : null,
         o.verbal && o.verbal.status === 'active' ? { label: 'Mark in Error', cls: 'btn-danger', onClick: () => { setTimeout(() => UI.errorEntry(p, 'orders', o.verbal.id), 0); } } : null,
+        o.entered && faculty() && o.status === 'Active' ? { label: 'Discontinue', cls: 'btn-danger', onClick: () => { setTimeout(() => discontinue(p, o), 0); } } : null,
         { label: 'Close' }
       ].filter(Boolean)
     });
@@ -82,6 +110,7 @@
       all.forEach(o => { const band = BAND[o.cat] || o.cat || 'Other'; (groups[band] = groups[band] || []).push(o); });
       const order = [...BAND_ORDER, ...Object.keys(groups).filter(c => !BAND_ORDER.includes(c))];
       const pending = Model.unackedOrders(p, doc);
+      const waiting = Model.enteredOrders(p.id, doc).filter(o => o.state === 'pending');
       const body = order.filter(c => groups[c]).map(band => `<tr class="ord-band"><th colspan="6">${esc(band)}</th></tr>
         ${groups[band].sort((a, b) => (a.status === 'Discontinued') - (b.status === 'Discontinued') || a.time - b.time).map(o => row(p, doc, o)).join('')}`).join('');
 
@@ -94,10 +123,13 @@
         </div>
         <div class="ord-tabs" role="tablist">
           <button class="ord-tab ord-tab-on" role="tab" aria-selected="true">CURRENT</button>
-          <button class="ord-tab" data-action="verbal">ENTER <small>(verbal / telephone)</small></button>
+          ${faculty() ? '<button class="ord-tab" data-action="facorder">ENTER <small>(faculty order)</small></button>' : '<button class="ord-tab" data-action="verbal">ENTER <small>(verbal / telephone)</small></button>'}
           <button class="ord-tab" disabled>RECONCILE</button>
           <button class="ord-tab" disabled>TRANSFER/ADMIT</button>
         </div>
+        ${waiting.length ? `<div class="alert ${faculty() ? 'alert-warn' : 'alert-info'} ord-waiting">${faculty()
+          ? `<strong>${waiting.length} student order${waiting.length === 1 ? '' : 's'} waiting for your approval.</strong> Click <strong>Review</strong> on the order.`
+          : `${waiting.length} verbal/telephone order${waiting.length === 1 ? ' is' : 's are'} waiting for faculty approval. Once approved, ${waiting.length === 1 ? 'it shows' : 'they show'} as NEW to acknowledge${waiting.some(o => MED_CATS.includes(o.cat)) ? ', and medications appear on the MAR' : ''}.`}</div>` : ''}
         <table class="grid orders-grid">${COLS}
           <thead><tr><th>Orders by Category</th><th>Provider</th><th>Date</th><th>Status</th><th></th><th></th></tr></thead>
           <tbody>${body}</tbody></table>
@@ -118,10 +150,134 @@
       });
       root.querySelectorAll('[data-info]').forEach(b => b.addEventListener('click', () => { const o = all.find(x => x.id === b.dataset.info); if (o) detail(p, doc, o); }));
       Views.protocol.bind(root, p);
-      root.querySelector('[data-action="verbal"]').addEventListener('click', () => openVerbal(p));
+      const verbal = root.querySelector('[data-action="verbal"]');
+      if (verbal) verbal.addEventListener('click', () => openVerbal(p));
+      const fac = root.querySelector('[data-action="facorder"]');
+      if (fac) fac.addEventListener('click', () => facultyOrder(p));
+      root.querySelectorAll('[data-approve]').forEach(b => b.addEventListener('click', () => {
+        const e = doc.orders.find(x => x.id === b.dataset.approve); if (e) review(p, e);
+      }));
     }
   };
   Views.orders.detail = detail;
+  Views.orders.review = (p, e) => review(p, e);
+
+  /* ---------- Faculty: order form, approval, order entry, discontinue ---------- */
+
+  // One form for approving a student order and for entering a faculty order.
+  function orderForm(p, o) {
+    const m = o.med || {};
+    const isMed = MED_CATS.includes(o.cat);
+    return `<div class="form-grid">
+        <label class="field"><span>Category</span><select name="cat" data-ofcat>${UI.options(CATS, o.cat || 'Medication', false)}</select></label>
+        <label class="field"><span>Ordering provider</span><input name="provider" value="${esc(o.provider || p.attending)}" required></label>
+        <label class="field"><span>Priority</span><select name="priority">${UI.options(['Routine', 'STAT', 'ASAP'], o.priority || 'Routine', false)}</select></label>
+      </div>
+      <fieldset class="of-med" ${isMed ? '' : 'hidden'}><legend>Medication (goes on the MAR)</legend>
+        <div class="form-grid">
+          <label class="field"><span>Medication</span><input name="mname" value="${esc(m.name || '')}" placeholder="e.g., Ondansetron"></label>
+          <label class="field"><span>Dose</span><input name="mdose" value="${esc(m.dose || '')}" placeholder="e.g., 4 mg  or  100 mL/hr"></label>
+          <label class="field"><span>Route</span><select name="mroute">${UI.options(ROUTES, m.route || 'PO', false)}</select></label>
+          <label class="field"><span>Type</span><select name="mtype">${TYPES.map(([v, l]) => `<option value="${v}" ${(m.type || 'scheduled') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+          <label class="field"><span>Frequency</span><input name="mfreq" value="${esc(m.freq || '')}" placeholder="e.g., Every 6 hours, Daily, BID, Every 4 hours PRN"></label>
+          <label class="field"><span>Reason / PRN indication</span><input name="mind" value="${esc(m.indication || '')}" placeholder="e.g., Nausea"></label>
+        </div>
+        <label class="field"><span>Instructions (optional)</span><input name="minstr" value="${esc(m.instructions || '')}"></label>
+        <label class="check"><input type="checkbox" name="firstNow" ${o.firstNow !== false ? 'checked' : ''}> Scheduled: first dose due now, then the standard times for the frequency</label>
+        <label class="check"><input type="checkbox" name="highAlert" ${m.highAlert ? 'checked' : ''}> High-alert medication (independent double check)</label>
+        <p class="muted small">Daily, BID, TID, QID, every 4/6/8/12 hours, and HS use the hospital's standard times. Other "every N hours" frequencies give a dose every N hours. PRN orders need no times.</p>
+      </fieldset>
+      <label class="field"><span>Order text <span class="muted small" data-oftexthint>${isMed ? '(optional — built from the medication fields if blank)' : ''}</span></span><textarea name="text" rows="3">${esc(o.text || '')}</textarea></label>`;
+  }
+  function bindOrderForm(el) {
+    const cat = el.querySelector('[data-ofcat]');
+    cat.addEventListener('change', () => {
+      const med = MED_CATS.includes(cat.value);
+      el.querySelector('.of-med').hidden = !med;
+      el.querySelector('[data-oftexthint]').textContent = med ? '(optional — built from the medication fields if blank)' : '';
+    });
+  }
+  // Read the form; returns { order } or { error }.
+  function readOrderForm(el) {
+    const v = U.formValues(el);
+    const order = { cat: v.cat, provider: v.provider || '', priority: v.priority, text: (v.text || '').trim() };
+    if (MED_CATS.includes(v.cat)) {
+      const type = v.mtype;
+      if (!v.mname || !v.mdose) return { error: 'Enter the medication name and dose (it goes on the MAR).' };
+      if ((type === 'scheduled' || type === 'prn') && !v.mfreq) return { error: 'Enter the frequency.' };
+      const freq = v.mfreq || (type === 'once' ? 'Once' : type === 'continuous' ? 'Continuous' : '');
+      order.med = { name: v.mname.trim(), dose: v.mdose.trim(), route: v.mroute, freq: type === 'prn' && !/prn/i.test(freq) ? freq + ' PRN' : freq, type };
+      if (v.mind) order.med.indication = v.mind.trim();
+      if (v.minstr) order.med.instructions = v.minstr.trim();
+      if (v.highAlert) order.med.highAlert = true;
+      order.firstNow = !!v.firstNow;
+      if (!order.text) order.text = Model.medLabel(order.med);
+    } else if (!order.text) return { error: 'Enter the order text.' };
+    return { order };
+  }
+
+  function review(p, e) {
+    const d = e.data;
+    UI.modal({
+      title: 'Review Student Order', wide: true,
+      body: `<div class="review-src">
+          <div><strong>${esc(d.type)} order</strong> received ${esc(U.fmtDT(e.time))} by ${esc(Model.signature(e))} · read back ✔</div>
+          <div>Provider: ${esc(d.provider || '')} · Category: ${esc(d.cat || '')}</div>
+          <blockquote>${esc(d.text)}</blockquote>
+        </div>
+        <p class="muted small">Approve to make it an active order: students see it as <strong>NEW</strong> to acknowledge, and medications go on the MAR. Correct or complete any field first.</p>
+        ${orderForm(p, { cat: d.cat, provider: d.provider, text: d.text })}`,
+      onOpen: api => bindOrderForm(api.el),
+      buttons: [
+        { label: 'Cancel' },
+        { label: 'Not Approved…', cls: 'btn-danger', onClick: () => { setTimeout(() => decline(p, e), 0); } },
+        { label: 'Approve Order', cls: 'btn-primary', onClick: api => {
+          const r = readOrderForm(api.el);
+          if (r.error) { UI.formError(api.el.querySelector('.modal-body'), r.error); return false; }
+          Store.add(p.id, 'orders', { kind: 'approval', ref: e.id, decision: 'approved', order: r.order }, p.clock.now(), p.clock.now());
+          UI.toast('Order approved — students will see it as NEW to acknowledge' + (r.order.med ? ' and on the MAR.' : '.'));
+          App.render();
+        } }
+      ]
+    });
+  }
+
+  function decline(p, e) {
+    UI.modal({
+      title: 'Order Not Approved',
+      body: `<p>${esc(e.data.text)}</p><label class="field"><span>Reason (shown to the student)</span><textarea name="reason" rows="2" placeholder="e.g., Clarify the dose with the provider"></textarea></label>`,
+      buttons: [{ label: 'Cancel' }, { label: 'Not Approved', cls: 'btn-danger', onClick: api => {
+        Store.add(p.id, 'orders', { kind: 'approval', ref: e.id, decision: 'declined', reason: (U.formValues(api.el).reason || '').trim() }, p.clock.now(), p.clock.now());
+        UI.toast('Order marked not approved.', 'warn');
+        App.render();
+      } }]
+    });
+  }
+
+  function facultyOrder(p) {
+    UI.modal({
+      title: 'Enter Order (Faculty)', wide: true,
+      body: `<p class="muted small">The order is active right away: students see it as <strong>NEW</strong> to acknowledge, and medications go on the MAR. To print a barcode label for a new medication, use Instructor Tools → Print Wristbands & Med Labels.</p>
+        ${orderForm(p, { cat: 'Medication' })}`,
+      onOpen: api => bindOrderForm(api.el),
+      buttons: [{ label: 'Cancel' }, { label: 'Save Order', cls: 'btn-primary', onClick: api => {
+        const r = readOrderForm(api.el);
+        if (r.error) { UI.formError(api.el.querySelector('.modal-body'), r.error); return false; }
+        Store.add(p.id, 'orders', Object.assign({ kind: 'faculty' }, r.order), p.clock.now(), p.clock.now());
+        UI.toast('Order entered' + (r.order.med ? ' and added to the MAR.' : '.'));
+        App.render();
+      } }]
+    });
+  }
+
+  function discontinue(p, o) {
+    const eo = o.entered;
+    UI.confirm('Discontinue order', `Discontinue "${o.text}"? It stays on the order list as Discontinued${o.med ? ' and no more doses are due on the MAR' : ''}.`, () => {
+      Store.add(p.id, 'orders', { kind: 'dc', ref: eo.entry.id }, p.clock.now(), p.clock.now());
+      UI.toast('Order discontinued.', 'warn');
+      App.render();
+    }, 'Discontinue');
+  }
 
   function openVerbal(p) {
     UI.modal({
@@ -135,7 +291,7 @@
         </div>
         <label class="field"><span>Order (drug, dose, route, frequency, or complete order text)</span><textarea name="text" rows="3" required></textarea></label>
         <label class="check"><input type="checkbox" name="readBack" data-single="1"> I read the complete order back to the provider and the provider confirmed it (RBTO / RBVO).</label>
-        <p class="muted">Verbal/telephone orders are flagged for provider co-signature. Medications ordered this way must also be administered and documented on the eMAR.</p>`,
+        <p class="muted">The order goes to <strong>faculty for approval</strong>. Once approved it appears as a NEW order to acknowledge, and medications appear on the MAR.</p>`,
       buttons: [
         { label: 'Cancel' },
         { label: 'Save Order', cls: 'btn-primary', onClick: api => {
@@ -143,7 +299,7 @@
           if (!v.text) { UI.formError(api.el.querySelector('.modal-body'), 'Enter the order text.'); return false; }
           if (!v.readBack) { UI.formError(api.el.querySelector('.modal-body'), 'Read-back verification is required before saving a verbal or telephone order.'); return false; }
           Store.add(p.id, 'orders', { type: v.type, cat: v.cat, provider: v.provider, text: v.text, readBack: true }, UI.readTime(p, api.el), p.clock.now());
-          UI.toast('Order saved — pending provider co-signature.');
+          UI.toast('Order saved — waiting for faculty approval.');
           App.render();
         } }
       ]

@@ -34,6 +34,7 @@ Files: `orientation.html`, `js/orientation-config.js`, `js/data/orientation-pati
 - **Grade:** *Incomplete* until all nine tasks are done, then *Completed* with a score of **100**. While in progress the score is the percent of tasks done (e.g., 3 of 9 = 33). An earned score is never lowered — **Start over** keeps the recorded completion. Grade by completion or by score (100 = complete).
 - **Resume:** progress is saved in Blackboard (`cmi.suspend_data`), so students can leave and come back, even on another device. Their practice charting itself stays on the device they used; finished tasks stay checked off.
 - **Name:** the sign-in name is filled in from Blackboard.
+- **No printing in Blackboard:** the *Print completion summary* button is hidden in the SCORM package (Blackboard records the completion); students can still view their progress. The regular orientation link keeps the print button.
 - Outside an LMS (the GitHub Pages link) the same page works as before and reports nothing (`js/scorm.js`).
 - **Rebuild after changing the orientation:** `node tools/build-scorm.cjs`, then upload the new zip to Blackboard (replace the package).
 

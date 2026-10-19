@@ -42,13 +42,13 @@
   </div>
   <div id="out"></div>
 
-  <script src="js/config.js?v=2026.10.19-3"></script>
-  <script src="js/data/patients.js?v=2026.10.19-3"></script>
-  <script src="js/data/patients-imported.js?v=2026.10.19-3"></script>
-  <script src="js/util.js?v=2026.10.19-3"></script>
-  <script src="js/scan.js?v=2026.10.19-3"></script>
-  <script src="js/store.js?v=2026.10.19-3"></script>
-  <script src="js/model.js?v=2026.10.19-3"></script>
+  <script src="js/config.js?v=2026.10.19-4"></script>
+  <script src="js/data/patients.js?v=2026.10.19-4"></script>
+  <script src="js/data/patients-imported.js?v=2026.10.19-4"></script>
+  <script src="js/util.js?v=2026.10.19-4"></script>
+  <script src="js/scan.js?v=2026.10.19-4"></script>
+  <script src="js/store.js?v=2026.10.19-4"></script>
+  <script src="js/model.js?v=2026.10.19-4"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
   <script>
     (function () {
@@ -63,7 +63,8 @@
       function draw() {
         const list = pick.value ? pts.filter(p => p.id === pick.value) : pts;
         document.getElementById('out').innerHTML = list.map(p => {
-          const meds = [...(p.meds || []), ...(p.events || []).flatMap(e => e.meds || [])].filter(m => m.status !== 'Do Not Administer');
+          // Includes medications ordered during the sim (faculty orders and approved student orders).
+          const meds = [...(p.meds || []), ...(p.events || []).flatMap(e => e.meds || []), ...Model.enteredMeds(p.id)].filter(m => m.status !== 'Do Not Administer');
           const allergy = p.nkda || !(p.allergies || []).length ? '' : p.allergies.map(a => a.agent).join(', ');
           return `<section class="patient">
             <h2>${esc(p.name.last)}, ${esc(p.name.first)}</h2>

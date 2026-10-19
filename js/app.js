@@ -84,7 +84,14 @@
     </header>
     <div class="sim-strip">SIMULATION — FOR EDUCATIONAL USE ONLY · NOT A REAL MEDICAL RECORD</div>
     ${Screens.mode() === 'observer' ? '<div class="observer-strip" role="status">OBSERVER MODE — VIEW ONLY. You can review the chart but cannot document, give medications, or acknowledge orders or results.</div>' : ''}
-    ${Screens.mode() === 'faculty' ? '<div class="faculty-strip" role="status">FACULTY MODE — all experiences visible. Switch back to Student before handing this computer to a student.</div>' : ''}`;
+    ${Screens.mode() === 'faculty' ? `<div class="faculty-strip" role="status">FACULTY MODE — all experiences visible. Switch back to Student before handing this computer to a student.${waitingOrders()}</div>` : ''}`;
+  }
+
+  // Faculty: student verbal/telephone orders waiting for approval, on every screen.
+  function waitingOrders() {
+    const list = Model.allPatients().map(b => ({ b, n: Model.enteredOrders(b.id).filter(o => o.state === 'pending').length })).filter(x => x.n);
+    if (!list.length) return '';
+    return ` <span class="fs-orders">⚠ Orders waiting for approval: ${list.map(x => `<a href="#/patient/${esc(x.b.id)}/orders">${esc(x.b.name.last)}, ${esc(x.b.name.first)} (${x.n})</a>`).join(' · ')}</span>`;
   }
 
   function tabs(p, doc, tab) {

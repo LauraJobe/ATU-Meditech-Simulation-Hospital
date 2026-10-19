@@ -106,6 +106,22 @@ To refresh after that repository changes: `node tools/import-atu-sim-hospital.cj
 
 > **Important:** a device that is **not connected** to the shared chart saves documentation only in its own browser (localStorage). Connect every classroom device (below) so faculty, students, and observers see the same chart.
 
+## Orders entered during the sim
+
+**Student verbal/telephone orders need faculty approval.** A student enters the order on **Orders → ENTER (verbal / telephone)** with read-back. It shows as **Pending faculty approval**.
+
+**Faculty review it in Faculty mode.** Faculty see **Orders waiting for approval** in the faculty banner on every screen, with a link to the patient. On the patient's Orders screen, click **Review** to check or complete the order (for medications: drug, dose, route, type, frequency, reason). Then choose:
+- **Approve Order**: the order becomes active, shows as **NEW** for students to acknowledge, and medications appear on the **MAR**. For scheduled medications you can make the first dose due now.
+- **Not Approved…**: the student sees the order crossed out, with your reason.
+
+**Faculty can enter their own orders.** In Faculty mode, **Orders → ENTER (faculty order)** works the same way: the order is active right away, students see it as NEW to acknowledge, and medications go on the MAR. In an order's **i** detail, faculty can **Discontinue** an order entered this way.
+
+**Labels and scanning.** New medications print on **Print Wristbands & Med Labels**, and their labels scan on the MAR. Common drugs also scan with the unit-dose product labels.
+
+**Allergy check.** A new medication whose name matches a patient allergy is flagged **ALLERGY**.
+
+On connected computers, orders, approvals, and discontinues are shared like other charting. Students get a "new order — acknowledge it in the Orders tab" notice.
+
 ## Shared charting across devices (Supabase)
 
 When a device is connected, everything charted on it (vitals, assessments, MAR, notes, I&O, acknowledgments, entered-in-error marks) and every faculty release, clock restart, and reset is saved to the class's shared chart and appears on every other connected device within a few seconds. The EMR Orientation is never shared; practice charting stays on each device.

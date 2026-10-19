@@ -169,15 +169,79 @@
       p.vitalsPrior.push(...stamp(ev.vitals, rt, extra));
       (ev.meds || []).forEach(m => p.meds.push(prepMed(clock, m, rt, extra, ctx)));
     });
+
+    // Orders entered during the sim: faculty orders, and student verbal/telephone orders once
+    // faculty approve them. Each is NEW until a student acknowledges it; medications go on the MAR.
+    M.enteredOrders(pid).filter(o => o.state === 'active').forEach(o => {
+      const extra = { isNew: true, entered: o };
+      if (o.med) {
+        const med = prepMed(clock, M.enteredMed(o), o.activeTime, extra, ctx);
+        if (o.dcTime) { med.status = 'Discontinued'; med.dcTime = o.dcTime; }
+        p.meds.push(med);
+      } else {
+        p.orders.push({ id: o.id, cat: o.cat || 'Nursing', text: o.text, by: o.provider, time: o.activeTime, priority: o.priority,
+          status: o.dcTime ? 'Discontinued' : 'Active', dcTime: o.dcTime, isNew: true, entered: o });
+      }
+    });
     return p;
   };
+
+  /* ---------- Orders entered during the sim ---------- */
+
+  // doc.orders holds three kinds of entries:
+  //   (no kind)        student verbal/telephone order — pending until faculty decide
+  //   kind 'faculty'   order entered by faculty — active right away
+  //   kind 'approval'  faculty decision on a student order: { ref, decision: 'approved'|'declined', order, reason }
+  //   kind 'dc'        faculty discontinued an entered order: { ref }
+  // An approval or discontinue marked "entered in error" no longer counts.
+  M.enteredOrders = function (pid, doc) {
+    doc = doc || Store.doc(pid);
+    const live = (doc.orders || []).filter(e => e.status === 'active');
+    const decision = {}, dc = {};
+    live.forEach(e => { if (e.data.kind === 'approval') decision[e.data.ref] = e; if (e.data.kind === 'dc') dc[e.data.ref] = e; });
+    return live.filter(e => !e.data.kind || e.data.kind === 'faculty').map(e => {
+      const faculty = e.data.kind === 'faculty';
+      const d = faculty ? null : decision[e.id];
+      const state = faculty ? 'active' : !d ? 'pending' : d.data.decision === 'approved' ? 'active' : 'declined';
+      const o = Object.assign({}, e.data, state === 'active' && d ? d.data.order : {});
+      return {
+        id: 'ord-' + String(e.id).toLowerCase(), entry: e, decision: d || null, faculty, state,
+        cat: o.cat, text: o.text, provider: o.provider, priority: o.priority === 'Routine' ? '' : o.priority, med: o.med || null, firstNow: !!o.firstNow,
+        orderTime: e.time, activeTime: faculty ? e.time : d ? d.time : null,
+        dcTime: dc[e.id] && state === 'active' ? dc[e.id].time : null, dcEntry: dc[e.id] || null
+      };
+    });
+  };
+
+  // Medication definition for an entered order, in the same form as the patient data.
+  M.enteredMed = function (o) {
+    const m = Object.assign({}, o.med, { id: o.id, orderedBy: o.provider });
+    const every = /(?:every|q)\s*(\d+(?:\.\d+)?)\s*(?:h|hr|hrs|hours?)\b/i.exec(m.freq || '');
+    if (m.type === 'prn' && every && !m.minIntervalHr) m.minIntervalHr = Number(every[1]);
+    if (m.type === 'continuous' && !m.rate) m.rate = m.dose;
+    if (m.type === 'once') m.doses = [{ at: 0 }];
+    if (m.type === 'scheduled') {
+      if (!M.standardTimes(m.freq) && every) {
+        // No standard schedule for this frequency (e.g., every 2 hours): doses every N hours for 24 hours.
+        const n = Number(every[1]) * 60;
+        m.fixedTimes = true;
+        m.doses = []; for (let t = 0; t < 1440; t += n) m.doses.push({ at: t });
+      } else if (!M.standardTimes(m.freq)) { m.fixedTimes = true; m.doses = [{ at: 0 }]; }
+      else if (o.firstNow) m.doses = [{ at: 0 }];   // first dose now, then the standard times
+    }
+    return m;
+  };
+  // Medications from entered orders (for labels and barcode lookups).
+  M.enteredMeds = pid => M.enteredOrders(pid).filter(o => o.state === 'active' && o.med).map(M.enteredMed);
 
   /* ---------- Medications ---------- */
 
   M.medLabel = m => [m.name, m.dose, m.route, m.freq].filter(x => x && x !== '—').join(' — ');
 
   M.allergyConflicts = (p, med) =>
-    (p.allergies || []).filter(a => (a.tags || []).some(t => (med.tags || []).includes(t)));
+    (p.allergies || []).filter(a => (a.tags || []).some(t => (med.tags || []).includes(t)) ||
+      // Orders entered during the sim have no drug-class tags: match the allergy name in the drug name.
+      (med.entered && (String(a.agent).match(/[A-Za-z]{4,}/g) || []).some(w => new RegExp(w, 'i').test(med.name))));
 
   M.marEntries = (doc, medId) => doc.mar.filter(e => e.data.medId === medId);
 
@@ -223,7 +287,7 @@
 
   M.medOrders = p => p.meds.map(m => ({
     id: m.id, cat: 'Medication', text: M.medLabel(m), detail: [m.indication ? 'Indication: ' + m.indication : '', m.instructions, m.holdReason].filter(Boolean).join(' '),
-    by: m.orderedBy || p.attending, time: m.orderTime, dcTime: m.dcTime, status: m.status, isNew: m.isNew, priority: m.priority, protocol: m.protocol, med: m
+    by: m.orderedBy || p.attending, time: m.entered ? m.entered.orderTime : m.orderTime, dcTime: m.dcTime, status: m.status, isNew: m.isNew, priority: m.priority, protocol: m.protocol, med: m, entered: m.entered
   }));
 
   M.isAcked = (doc, ref) => doc.ack.some(e => e.status === 'active' && e.data.ref === ref);

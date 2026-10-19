@@ -116,32 +116,28 @@ When a device is connected, everything charted on it (vitals, assessments, MAR, 
 - **Not shared yet — offline (n waiting)** — no connection. The entries stay on this device (even after a reload) and are sent automatically when the connection returns. Each entry is stored only once, even if it is sent more than once.
 - **Not connected — this device only** — this device has not been connected yet.
 
-**Roles are enforced by the server**, based on the classroom login the device connected with:
+**Logins.** Set up the same way as the original ATU Simulation Hospital: **one hospital login, `Atusim1@atu.edu`, connects every simulation computer.** Students still type their own names at sign-in, and Student, Observer, or Faculty (PIN) is chosen on each computer's screen.
 
-| Login | Can do |
+Optional: for stricter control, create separate student, observer, and faculty logins as well. The server then enforces the role (a student login can never release or reset, an observer login can never chart):
+
+| Login | Server allows |
 |---|---|
-| Student | Chart and give medications for the class session |
-| Observer | View only |
-| Faculty | Everything students can do, plus release orders/results, restart the clock, and reset patients |
+| `Atusim1@atu.edu` (hospital login) | Everything; the screen mode decides |
+| `faculty@atusim.test` (optional) | Everything |
+| `student@atusim.test` (optional) | Charting and medications only |
+| `observer@atusim.test` (optional) | View only |
 
-The Student/Faculty choice and PIN on the sign-in screen still control what the screen shows; the login decides what the server accepts. For example, a student login cannot release orders even with the PIN.
+**Reset Patient** clears that patient's student charting and releases on **every** connected computer and restarts the clock. No copy is kept. Other patients are not changed. Entries from a previous group's computer that was offline during the reset are refused, so they never enter the new group's chart.
 
-**Reset Patient** (faculty login) clears that patient's student charting and releases on **every** connected device and restarts the clock. No copy is kept. Other patients are not changed. Entries from a previous group's device that was offline during the reset are refused, so they never enter the new group's chart.
-
-Every entry keeps the student name typed at sign-in, the classroom login, and the time.
+Every entry keeps the student name typed at sign-in, the login the computer is connected with, and the time.
 
 ### One-time setup (faculty)
 
 1. **Supabase project:** the URL and the **publishable** key are in `js/config.js` (`shared`). Only those two belong in the website. **Never** put the database password or a secret / service_role key in any file.
-2. **Classroom logins:** in Supabase go to **Authentication → Users → Add user → Create new user**. Create the three below, each with a password you choose, and check **Auto Confirm User**:
-   - `faculty@atusim.test`
-   - `student@atusim.test`
-   - `observer@atusim.test`
-
-   (Different emails work too; change them at the bottom of `supabase/setup.sql`.)
+2. **Hospital login:** in Supabase go to **Authentication → Users → Add user → Create new user**. Email `Atusim1@atu.edu`, a password you choose, and check **Auto Confirm User**. (Optional: also create `faculty@atusim.test`, `student@atusim.test`, `observer@atusim.test` the same way.)
 3. **Turn off public sign-ups:** **Authentication → Sign In / Providers → Allow new users to sign up: off**. Logins that are not in the approved list get no access in any case.
-4. **Run the setup script:** **SQL Editor → New query**, paste all of [`supabase/setup.sql`](supabase/setup.sql), and click **Run**. The last result lists the three logins and their roles. Run it again any time you add logins; it keeps existing charting.
-5. **Connect each device once:** open the EHR, tap **Not connected — this device only** on the sign-in screen, and enter the classroom login for that device (student, observer, or faculty). The device stays connected until **Disconnect this device** is chosen.
+4. **Run the setup script:** **SQL Editor → New query**, paste all of [`supabase/setup.sql`](supabase/setup.sql), and click **Run**. The last result lists the approved logins. Run it again any time you add a login; it keeps existing charting.
+5. **Connect each computer once:** open the EHR, tap **Not connected — this device only** on the sign-in screen. The email is already filled in; enter the hospital password and choose **Connect**. The computer stays connected (also after Sign Out) until **Disconnect this device** is chosen.
 
 To run a separate chart, for example two sections at the same time, set a different `session` in `js/config.js` on a copy of the site.
 

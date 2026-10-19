@@ -7,7 +7,7 @@ window.EHR_CONFIG = {
   systemName: 'SimEHR',
   // Shown on the sign-in screen. Also bump ?v= in index.html, orientation.html, and labels.html when files change,
   // so browsers (older iPads especially) load the new files instead of a saved copy.
-  version: '2026.10.19-2',
+  version: '2026.10.19-3',
 
   // Simulation experiences students choose from at sign-in. Each patient in
   // js/data/patients.js lists the experience ids it belongs to.
@@ -44,7 +44,9 @@ window.EHR_CONFIG = {
     url: 'https://kscueqerezcvcqwrupwn.supabase.co',
     key: 'sb_publishable_sT1gC7nOddS_B3fk5AWLvQ_M4ohLU_N',
     app: 'atu-meditech-sim',
-    session: 'classroom'
+    session: 'classroom',
+    // Filled in on the Shared connection screen: the one hospital login used on every sim computer.
+    defaultEmail: 'Atusim1@atu.edu'
   },
 
   // Prefix for all browser storage keys. Change it to start fresh everywhere.

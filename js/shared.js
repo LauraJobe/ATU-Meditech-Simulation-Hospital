@@ -2,7 +2,8 @@
  * Shared charting across devices (Supabase). Set up with supabase/setup.sql; configured by
  * EHR_CONFIG.shared in js/config.js (public project URL + publishable key only).
  *
- * Each device signs in once with a classroom login (Shared connection). The login's role
+ * Each device signs in once (Shared connection), normally with the one hospital login used on
+ * every simulation computer (EHR_CONFIG.shared.defaultEmail). The login's role
  * (student / observer / faculty) is checked by the server for every change.
  *
  *   - The chart on screen = the shared chart (mirror) + this device's changes still waiting
@@ -276,9 +277,9 @@
   async function signIn(email, password) {
     const { body } = await http('/auth/v1/token?grant_type=password', { method: 'POST', headers: headers(), body: JSON.stringify({ email, password }) });
     saveAuth(body, null);
-    const { body: rows } = await api(`/rest/v1/ehr_members?select=role&user_id=eq.${q(body.user.id)}`);
-    if (!rows.length) { write('auth', null); throw new ServerError('This login has not been approved for the shared chart. Faculty: run the "Approve the classroom logins" part of supabase/setup.sql.', 403); }
-    const a = auth(); a.role = rows[0].role; write('auth', a);
+    const { body: rows } = await api(`/rest/v1/ehr_members?select=role,label&user_id=eq.${q(body.user.id)}`);
+    if (!rows.length) { write('auth', null); throw new ServerError('This login has not been approved for the shared chart. Faculty: add it to the "Approve the logins" part of supabase/setup.sql and run it.', 403); }
+    const a = auth(); a.role = rows[0].role; a.label = rows[0].label || ''; write('auth', a);
     // The shared chart replaces this device's own charting (a copy is kept on the device).
     if (!read('backup', null)) {
       const copy = {};
@@ -325,7 +326,7 @@
       const n = outbox().length;
       UI.modal({
         title: 'Shared Connection',
-        body: `<p>This device is connected to the shared chart as <strong>${esc(a.email || '')}</strong> (${esc(a.role || '')}).</p>
+        body: `<p>This device is connected to the shared chart as <strong>${esc(a.email || '')}</strong> (${esc(a.label || a.role || '')}).</p>
           <p>${n ? `<strong>${n} change${n === 1 ? '' : 's'} not shared yet.</strong> They stay on this device and are sent as soon as the connection works.` : 'All charting on this device has been shared.'}</p>
           ${lastError ? `<p class="muted small">Last problem: ${esc(lastError)}</p>` : ''}
           <p class="muted small">Session: ${esc(cfg.session)}. Faculty releases and resets need a faculty login. Observer logins are view only.</p>`,
@@ -338,19 +339,19 @@
     }
     UI.modal({
       title: 'Shared Connection',
-      body: `<p>Connect this device once so faculty, students, and observers see the same chart on every device.
-        Use the classroom login your faculty gave you (not your Blackboard login).</p>
+      body: `<p>Connect this computer once so faculty, students, and observers see the same chart on every computer.
+        Use the hospital login from your faculty (not your Blackboard login). The computer stays connected until it is disconnected here.</p>
         <form class="sh-form" onsubmit="return false">
-          <label class="field"><span>Classroom login (email)</span><input name="email" type="email" autocomplete="username" autocapitalize="off" required></label>
+          <label class="field"><span>Hospital login (email)</span><input name="email" type="email" autocomplete="username" autocapitalize="off" required value="${esc(cfg.defaultEmail || '')}"></label>
           <label class="field"><span>Password</span><input name="password" type="password" autocomplete="current-password" required></label>
         </form>`,
       buttons: [{ label: 'Cancel' }, { label: 'Connect', cls: 'btn-primary', onClick: api => {
         const v = U.formValues(api.el);
         const body = api.el.querySelector('.modal-body');
-        if (!v.email || !v.password) { UI.formError(body, 'Enter the classroom login and password.'); return false; }
+        if (!v.email || !v.password) { UI.formError(body, 'Enter the hospital login and password.'); return false; }
         const btns = api.el.querySelectorAll('.modal-foot .btn'); btns.forEach(b => { b.disabled = true; });
         signIn(v.email.trim(), v.password).then(role => {
-          api.close(); UI.toast(`Connected to the shared chart (${role}).`); App.render();
+          api.close(); UI.toast('Connected to the shared chart.'); App.render();
         }).catch(e => {
           btns.forEach(b => { b.disabled = false; });
           UI.formError(body, e instanceof NetError ? 'Could not reach the shared chart. Check the internet connection and try again.'

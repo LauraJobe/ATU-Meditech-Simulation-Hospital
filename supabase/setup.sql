@@ -196,14 +196,22 @@ grant execute on function public.ehr_release(text, text, text, text, boolean, bi
 grant execute on function public.ehr_reset_patient(text, text, text) to authenticated;
 
 -- -------------------------------------------------------------------------------------
--- Approve the classroom logins. First create them in Authentication → Users → Add user
+-- Approve the logins. First create them in Authentication → Users → Add user
 -- → Create new user (check "Auto Confirm User"). Then run this file (or just this part).
--- Change the emails here if you used different ones; add more lines for more logins.
+--
+-- Standard setup (same as the original ATU Simulation Hospital): ONE hospital login,
+-- Atusim1@atu.edu, used on every simulation computer. It has full access; Student,
+-- Observer, and Faculty (PIN) are chosen on each computer's screen.
+--
+-- Optional: separate student / observer / faculty logins make the server itself enforce
+-- the role (a student login can never release or reset). Create only the ones you want;
+-- lines for logins that do not exist are skipped. Emails here must be lowercase.
 -- -------------------------------------------------------------------------------------
 insert into public.ehr_members (user_id, role, label)
 select id, v.role, v.label
   from auth.users u
   join (values
+    ('atusim1@atu.edu',      'faculty',  'Hospital login (all computers)'),
     ('faculty@atusim.test',  'faculty',  'Faculty'),
     ('student@atusim.test',  'student',  'Student nurse'),
     ('observer@atusim.test', 'observer', 'Observer')

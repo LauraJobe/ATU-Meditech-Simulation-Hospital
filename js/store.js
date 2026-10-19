@@ -1,7 +1,8 @@
 /*
  * Browser storage for student documentation.
- * Everything lives in this browser's localStorage, so each workstation keeps
- * its own charting. Use Instructor Tools > Export to save a copy.
+ * Everything lives in this browser's localStorage. When the device is connected to the
+ * shared chart (js/shared.js), each change is also sent to the server and the shared
+ * chart from other devices is written back here. Use Instructor Tools > Export to save a copy.
  */
 (function () {
   'use strict';
@@ -20,6 +21,7 @@
     catch (e) { alert('This browser could not save your documentation (storage is full or blocked).'); return false; }
   }
   function remove(key) { try { localStorage.removeItem(P + key); } catch (e) { /* ignore */ } }
+  const shared = () => !!(window.Shared && Shared.on());
 
   const Store = {
     SECTIONS,
@@ -35,10 +37,10 @@
     // Real time (ms) at which a patient's scenario started. Set on first open.
     scenarioStart(pid) {
       let s = read('sim.' + pid, null);
-      if (!s) { s = { realStart: Date.now() }; write('sim.' + pid, s); }
+      if (!s) { s = { realStart: Date.now() }; write('sim.' + pid, s); if (shared()) Shared.startClock(pid, s.realStart); }
       return s.realStart;
     },
-    restartScenario(pid) { write('sim.' + pid, { realStart: Date.now() }); },
+    restartScenario(pid) { const t = Date.now(); write('sim.' + pid, { realStart: t }); if (shared()) Shared.restartClock(pid, t); },
 
     // Student documentation for one patient
     doc(pid) {
@@ -52,6 +54,7 @@
     add(pid, section, data, time, recorded) {
       const s = Store.session() || { name: 'Unknown', cred: '' };
       if (s.observer && !Store.instructorUnlocked()) { if (window.UI) UI.toast('Observer mode is view only — nothing was saved.', 'warn'); return null; }
+      if (shared() && Shared.role() === 'observer') { if (window.UI) UI.toast('This device is connected to the shared chart with an observer login (view only) — nothing was saved.', 'warn'); return null; }
       const d = Store.doc(pid);
       const entry = {
         id: U.uid(), time, recorded, data, status: 'active',
@@ -59,6 +62,7 @@
       };
       d[section].push(entry);
       Store.saveDoc(pid, d);
+      if (shared()) Shared.add(pid, section, entry);
       return entry;
     },
 
@@ -71,12 +75,13 @@
       e.status = 'error';
       e.error = { reason, by: s.name + (s.cred ? ', ' + s.cred : ''), at: when };
       Store.saveDoc(pid, d);
+      if (shared()) Shared.markError(pid, id, e.error);
     },
 
     // Instructor-released scenario events: { eventId: realTimeReleased }
     released: pid => read('released.' + pid, {}),
-    release(pid, eventId) { const r = Store.released(pid); r[eventId] = Date.now(); write('released.' + pid, r); },
-    unrelease(pid, eventId) { const r = Store.released(pid); delete r[eventId]; write('released.' + pid, r); },
+    release(pid, eventId) { const r = Store.released(pid); r[eventId] = Date.now(); write('released.' + pid, r); if (shared()) Shared.release(pid, eventId, true, r[eventId]); },
+    unrelease(pid, eventId) { const r = Store.released(pid); delete r[eventId]; write('released.' + pid, r); if (shared()) Shared.release(pid, eventId, false, 0); },
 
     // Patients added through Instructor Tools (JSON import)
     customPatients: () => read('customPatients', []),
@@ -87,7 +92,12 @@
     },
     deleteCustomPatient(id) { write('customPatients', Store.customPatients().filter(x => x.id !== id)); },
 
-    resetPatient(pid) { remove('doc.' + pid); remove('released.' + pid); remove('sim.' + pid); },
+    // Connected devices reset the shared chart (all devices) and return a promise of true/false.
+    resetPatient(pid) {
+      if (shared()) return Shared.reset(pid);
+      remove('doc.' + pid); remove('released.' + pid); remove('sim.' + pid);
+      return true;
+    },
 
     exportAll(pids) {
       const out = { app: 'ATU SimEHR', version: 1, exported: new Date().toISOString(), patients: {} };

@@ -8,5 +8,7 @@ Object.assign(window.EHR_CONFIG, {
   systemName: 'SimEHR Orientation',
   // Separate storage: practice charting never mixes with simulation documentation.
   storagePrefix: 'atuSimEHR.orient',
+  // Practice charting stays on the device: never part of the shared classroom chart.
+  shared: null,
   experiences: [{ id: 'orient', label: 'EMR Orientation' }]
 });

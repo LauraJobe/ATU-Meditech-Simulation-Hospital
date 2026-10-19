@@ -43,6 +43,7 @@
   }
 
   const active = (doc, sec) => (doc[sec] || []).filter(e => e.status === 'active');
+  const inLMS = () => !!(window.LMS && LMS.available);   // running as the SCORM package in Blackboard
 
   // "Show me" never changes the screen: it highlights the next thing to tap on the screen the student
   // is on. Each task lists its targets from the deepest step to the first; the first one on screen glows.
@@ -157,7 +158,7 @@
           return `<li class="${ok ? 'tut-done' : cur ? 'tut-cur' : ''}"><div class="tut-t"><span class="tut-mark" aria-hidden="true">${ok ? '✔' : ''}</span>${esc(t.title)}</div>
             ${cur ? `<div class="tut-how">${t.how}</div>${t.quiz ? quizHtml(t) : ''}<button type="button" class="btn btn-sm tut-show" data-show="${t.id}">👀 Show me</button>` : ''}</li>`;
         }).join('')}</ol>
-        ${current ? '' : `<div class="tut-complete"><strong>Orientation complete!</strong> You are ready to chart in simulation.${window.LMS && LMS.available ? ' Your completion has been recorded in Blackboard.' : ''}<button type="button" class="btn btn-primary btn-block" data-tut="summary">Print completion summary</button></div>`}
+        ${current ? '' : `<div class="tut-complete"><strong>Orientation complete!</strong> You are ready to chart in simulation.${inLMS() ? ' Your completion has been recorded in Blackboard.' : '<button type="button" class="btn btn-primary btn-block" data-tut="summary">Print completion summary</button>'}</div>`}
         <div class="tut-foot"><button type="button" class="tut-link" data-tut="summary">Progress summary</button><button type="button" class="tut-link" data-tut="reset">Start over</button></div>
       </aside>`;
     }
@@ -241,7 +242,8 @@
       <table class="grid"><thead><tr><th></th><th>Task</th><th>Completed</th></tr></thead><tbody>${rows}</tbody></table>`;
     UI.modal({
       title: 'Orientation Summary', wide: true, body: `<div class="tut-summary">${html}</div>`,
-      buttons: [{ label: 'Close' }, { label: 'Print', cls: 'btn-primary', onClick: () => {
+      // In Blackboard (SCORM) completion is graded automatically, so there is nothing to print.
+      buttons: inLMS() ? [{ label: 'Close' }] : [{ label: 'Close' }, { label: 'Print', cls: 'btn-primary', onClick: () => {
         const w = window.open('', '_blank');
         if (!w) { window.print(); return false; }
         w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>EMR Orientation Summary</title><style>body{font:14px Arial,sans-serif;margin:32px;color:#111}table{border-collapse:collapse;width:100%}th,td{border:1px solid #999;padding:6px 8px;text-align:left}th{background:#eee}</style></head><body>${html}<p style="margin-top:28px">Faculty initials: ____________ &nbsp; Date: ____________</p></body></html>`);

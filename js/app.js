@@ -71,7 +71,7 @@
       </div>` : '<div class="tb-center tb-title">' + esc(C.hospitalName) + ' · ' + esc(C.systemName) + '</div>'}
       <div class="tb-group tb-right">
         <div class="tb-info"><div class="tb-clock"><span id="clock">${U.fmtDT(clock)}</span></div>
-          <div class="tb-user">${esc(s.name)}, ${esc(s.cred)} · ${esc(exp)}</div></div>
+          <div class="tb-user">${esc(s.name)}, ${esc(s.cred)} · ${esc(exp)}</div>${window.Shared ? Shared.pill() : ''}</div>
         ${C.orientation ? '' /* EMR Orientation stays in Student mode: no mode menu */ : `<div class="tb-split tb-mode">
           <a class="tb-btn tb-mode-btn" href="#" data-action="mode" aria-haspopup="true">${svg('gear')}<span>${esc(Screens.MODE_LABEL[Screens.mode()])} ▾</span></a>
           <div class="tb-menu tb-mode-menu" hidden role="menu">
@@ -228,9 +228,11 @@
         menu.querySelectorAll('[data-setmode]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); close(); Screens.setMode(a.dataset.setmode); }));
       }
       document.body.classList.toggle('mode-observer', Screens.mode() === 'observer');
+      const sharedBtn = app.querySelector('.toolbar [data-action="shared"]');
+      if (sharedBtn) sharedBtn.addEventListener('click', () => Shared.dialog());
       app.querySelector('[data-action="logout"]').addEventListener('click', e => {
         e.preventDefault();
-        UI.confirm('Suspend session', 'Sign out of the simulation EHR? Your documentation stays saved on this device.', () => {
+        UI.confirm('Suspend session', window.Shared && Shared.on() ? 'Sign out of the simulation EHR? Your documentation stays in the shared chart.' : 'Sign out of the simulation EHR? Your documentation stays saved on this device.', () => {
           Store.clearSession(); Store.setInstructor(false); location.hash = '#/'; App.render();
         }, 'Sign Out');
       });

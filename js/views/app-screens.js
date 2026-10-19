@@ -93,6 +93,7 @@
           </fieldset>`}
           <label class="field"><span>Clinical group / cohort (optional)</span><input name="group" placeholder="e.g., Level 3 — Group A"></label>
           <button class="btn btn-primary btn-block" type="submit">Sign In</button>
+          ${window.Shared && Shared.configured ? `<div class="login-shared">${Shared.pill()}<span class="muted small">${Shared.on() ? '' : 'Connect once per device to share charting across devices.'}</span></div>` : ''}
           <p class="muted small">Your name is attached to every entry as your electronic signature.</p>
           <p class="muted small">Version ${U.esc(C.version || '')}</p>
         </form></div>`;
@@ -109,6 +110,8 @@
         exp.options[0].textContent = fac ? '— All experiences —' : '— Select your sim experience —';
         if (fac) root.querySelector('[name="pin"]').focus();
       });
+      const sh = root.querySelector('[data-action="shared"]');
+      if (sh) sh.addEventListener('click', () => Shared.dialog());
       root.querySelector('form').addEventListener('submit', e => {
         e.preventDefault();
         const v = U.formValues(e.target);
@@ -292,7 +295,10 @@
       root.querySelectorAll('[data-release]').forEach(b => b.addEventListener('click', () => { const [pid, ev] = b.dataset.release.split('|'); Store.release(pid, ev); UI.toast('Event released to the chart.'); App.render(); }));
       root.querySelectorAll('[data-unrelease]').forEach(b => b.addEventListener('click', () => { const [pid, ev] = b.dataset.unrelease.split('|'); Store.unrelease(pid, ev); App.render(); }));
       root.querySelectorAll('[data-restart]').forEach(b => b.addEventListener('click', () => UI.confirm('Restart clock', 'Set this chart\'s clock back to the scenario start time? Existing documentation keeps its times.', () => { Store.restartScenario(b.dataset.restart); App.render(); }, 'Restart')));
-      root.querySelectorAll('[data-reset]').forEach(b => b.addEventListener('click', () => UI.confirm('Reset patient', 'Erase ALL student documentation and released events for this patient? This cannot be undone. Export first if you need a copy.', () => { Store.resetPatient(b.dataset.reset); UI.toast('Patient reset.', 'warn'); App.render(); }, 'Erase & Reset')));
+      root.querySelectorAll('[data-reset]').forEach(b => b.addEventListener('click', () => UI.confirm('Reset patient', window.Shared && Shared.on()
+        ? 'Reset this patient for the next group? This erases ALL student documentation and released events on EVERY connected device and restarts the clock. No copy is kept. Other patients are not changed.'
+        : 'Erase ALL student documentation and released events for this patient? This cannot be undone. Export first if you need a copy.',
+        () => { Promise.resolve(Store.resetPatient(b.dataset.reset)).then(ok => { if (ok) UI.toast('Patient reset.', 'warn'); App.render(); }); }, 'Erase & Reset')));
       root.querySelectorAll('[data-delcustom]').forEach(b => b.addEventListener('click', () => UI.confirm('Remove patient', 'Remove this imported patient from this browser?', () => { Store.deleteCustomPatient(b.dataset.delcustom); Store.resetPatient(b.dataset.delcustom); App.render(); }, 'Remove')));
       root.querySelector('[data-action="export"]').addEventListener('click', () =>
         U.download(`SimEHR_export_${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.json`, JSON.stringify(Store.exportAll(pts()), null, 2)));

@@ -792,3 +792,13 @@ body.tut-open .toolbar { z-index: 30; }
   body.tut-open #app { margin-right: 0; padding-bottom: 40vh; }
 }
 .login-fixed { padding: 7px 10px; border: 1px solid #c9d3dd; border-radius: 4px; background: #f3f5f7; font-weight: 600; }
+
+/* Shared charting status (js/shared.js) */
+.sh-pill { display: inline-block; margin-top: 2px; padding: 1px 8px; border-radius: 10px; border: 1px solid transparent; font: inherit; font-size: 11px; font-weight: 600; cursor: pointer; }
+.sh-ok { background: #e3f4e6; color: #1c6b2c; border-color: #9fd3aa; }
+.sh-wait { background: #fff4d6; color: #7a5a00; border-color: #e8cd7a; }
+.sh-bad { background: #fde3e1; color: #a12a1f; border-color: #eba59f; }
+.sh-off { background: #eceef1; color: #4a5260; border-color: #c7ccd4; }
+.login-shared { margin-top: 12px; text-align: center; }
+.login-shared .sh-pill { font-size: 12px; padding: 4px 12px; margin-bottom: 4px; }
+.login-shared .muted { display: block; }

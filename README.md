@@ -98,13 +98,52 @@ To refresh after that repository changes: `node tools/import-atu-sim-hospital.cj
 
 ## Running a simulation
 
-1. **Before the sim:** open **Instructor** (PIN in `js/config.js`, default `2468`). Click **Reset Patient** for the patients you're using, then **Print Wristbands & Med Labels** and put the labels on the manikin and meds.
+1. **Before the sim:** open **Instructor** (PIN in `js/config.js`, default `2468`) on a device connected with the faculty login. Click **Reset Patient** for the patients you're using, then **Print Wristbands & Med Labels** and put the labels on the manikin and meds.
 2. **Students sign in** with their name, role, and sim experience, as a **documenting nurse** or an **observer (view only)**. The documenting student's name becomes the signature on every entry.
 3. The chart clock shows the **actual current time**. The first time a chart is opened, the scenario (written for its start time, e.g. 1400) is moved to begin at the current hour, rounded to the nearest hour. Scheduled doses, prior vitals, and results keep the same spacing as the scenario, so a dose written for 1 hour after start is still due 1 hour after the sim begins. Clock times in the chart may therefore differ from the Notion times; for example, a 0900 dose in a scenario written for 1000 but run at 1300 shows at 1200. Instructor Tools shows the shift. **Restart Clock** re-anchors the scenario to now.
 4. **During the sim:** in Instructor Tools, click **Release Now** on an event (STAT orders, new results, transfer orders). The new orders and results show up flagged **NEW** for the student to acknowledge and act on.
 5. **After the sim:** the student opens **Chart Report** and prints or saves it as a PDF, or you use **Export All Documentation** to save a JSON backup.
 
-> **Important:** documentation is saved in the browser on the computer where it was entered (localStorage). Release events and print reports on the same workstation the student used. Clearing browser data erases it, so export when you need a copy.
+> **Important:** a device that is **not connected** to the shared chart saves documentation only in its own browser (localStorage). Connect every classroom device (below) so faculty, students, and observers see the same chart.
+
+## Shared charting across devices (Supabase)
+
+When a device is connected, everything charted on it (vitals, assessments, MAR, notes, I&O, acknowledgments, entered-in-error marks) and every faculty release, clock restart, and reset is saved to the class's shared chart and appears on every other connected device within a few seconds. The EMR Orientation is never shared; practice charting stays on each device.
+
+**Header badge** (also on the sign-in screen; tap it for details):
+- **✓ Shared** — everything on this device is in the shared chart.
+- **Saving to shared chart… (n)** — sending now.
+- **Not shared yet — offline (n waiting)** — no connection. The entries stay on this device (even after a reload) and are sent automatically when the connection returns. Each entry is stored only once, even if it is sent more than once.
+- **Not connected — this device only** — this device has not been connected yet.
+
+**Roles are enforced by the server**, based on the classroom login the device connected with:
+
+| Login | Can do |
+|---|---|
+| Student | Chart and give medications for the class session |
+| Observer | View only |
+| Faculty | Everything students can do, plus release orders/results, restart the clock, and reset patients |
+
+The Student/Faculty choice and PIN on the sign-in screen still control what the screen shows; the login decides what the server accepts. For example, a student login cannot release orders even with the PIN.
+
+**Reset Patient** (faculty login) clears that patient's student charting and releases on **every** connected device and restarts the clock. No copy is kept. Other patients are not changed. Entries from a previous group's device that was offline during the reset are refused, so they never enter the new group's chart.
+
+Every entry keeps the student name typed at sign-in, the classroom login, and the time.
+
+### One-time setup (faculty)
+
+1. **Supabase project:** the URL and the **publishable** key are in `js/config.js` (`shared`). Only those two belong in the website. **Never** put the database password or a secret / service_role key in any file.
+2. **Classroom logins:** in Supabase go to **Authentication → Users → Add user → Create new user**. Create the three below, each with a password you choose, and check **Auto Confirm User**:
+   - `faculty@atusim.test`
+   - `student@atusim.test`
+   - `observer@atusim.test`
+
+   (Different emails work too; change them at the bottom of `supabase/setup.sql`.)
+3. **Turn off public sign-ups:** **Authentication → Sign In / Providers → Allow new users to sign up: off**. Logins that are not in the approved list get no access in any case.
+4. **Run the setup script:** **SQL Editor → New query**, paste all of [`supabase/setup.sql`](supabase/setup.sql), and click **Run**. The last result lists the three logins and their roles. Run it again any time you add logins; it keeps existing charting.
+5. **Connect each device once:** open the EHR, tap **Not connected — this device only** on the sign-in screen, and enter the classroom login for that device (student, observer, or faculty). The device stays connected until **Disconnect this device** is chosen.
+
+To run a separate chart, for example two sections at the same time, set a different `session` in `js/config.js` on a copy of the site.
 
 ## Put it online with GitHub Pages (one time, about 2 minutes)
 
@@ -162,5 +201,7 @@ js/config.js            settings
 js/data/patients.js     simulation patients (Level 3 from Notion)
 js/data/assessment-forms.js
 js/*.js, js/views/*.js  application code
+js/shared.js            shared charting across devices (Supabase)
+supabase/setup.sql      one-time database setup for shared charting
 docs/                   authoring guide + patient template
 ```

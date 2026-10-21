@@ -113,10 +113,9 @@
         return `<svg class="dm" viewBox="0 0 ${s} ${s}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="QR ${esc(code)}"><rect width="${s}" height="${s}" fill="#fff"/><path d="${path}" fill="#000"/></svg>`;
       };
       const dm = code => square === 'dm' ? DataMatrix.svg(code, 'dm') : qr(code);
-      const short = code => Scan.shortCode(code);
 
-      function medLabel(p, m, linear) {
-        const code = short(Model.barcodeFor(m));
+      function medLabel(p, x, linear) {
+        const m = x.m, code = x.code;
         return `<div class="lbl ${m.highAlert ? 'ha' : ''}">
           ${linear ? lin(code) : dm(code)}
           <div class="t"><div class="mn">${esc(m.name)}</div>
@@ -125,8 +124,8 @@
             <div class="cd">${m.highAlert ? '<span class="hat" title="High-alert medication">HA</span> ' : ''}<span class="num">${esc(code)}</span></div></div>
         </div>`;
       }
-      function unitLabel(m, d, linear) {
-        const code = short(Scan.productCode(m, d));
+      function unitLabel(x, linear) {
+        const m = x.m, d = x.d, code = x.code;
         return `<div class="lbl unit">
           ${linear ? lin(code) : dm(code)}
           <div class="t"><div class="mn">${esc(m.name.split(/\s+\(|\s+—/)[0])}</div>
@@ -142,11 +141,9 @@
         document.body.classList.toggle('lin-mode', linear);
         const list = pick.value ? pts.filter(p => p.id === pick.value) : pts;
         document.getElementById('out').innerHTML = list.map(p => {
-          // Includes medications ordered during the sim (faculty orders and approved student orders).
-          const meds = [...(p.meds || []), ...(p.events || []).flatMap(e => e.meds || []), ...Model.enteredMeds(p.id)].filter(m => m.status !== 'Do Not Administer');
+          // Includes medications from scenario events and orders entered during the sim (same list as Barcode Check).
+          const set = Model.labelSet(p), meds = set.meds, units = set.units;
           const allergy = p.nkda || !(p.allergies || []).length ? '' : p.allergies.map(a => a.agent).join(', ');
-          const units = meds.filter(m => m.type !== 'continuous').flatMap(m => Scan.products(m).map(d => ({ m, d })))
-            .filter((x, i, arr) => arr.findIndex(y => Scan.productCode(y.m, y.d) === Scan.productCode(x.m, x.d)) === i);
           return `<section class="patient">
             <h2>${esc(p.name.last)}, ${esc(p.name.first)}</h2>
             <div class="band ${allergy ? 'allergy' : ''}">
@@ -158,9 +155,9 @@
               <div class="codes"><div>${lin(p.mrn)}<div class="mrn">${esc(p.mrn)}</div></div>${dm(p.mrn)}</div>
             </div>
             <h3 class="sub">Patient medication labels</h3>
-            <div class="sheet">${meds.map(m => medLabel(p, m, linear)).join('')}</div>
+            <div class="sheet">${meds.map(x => medLabel(p, x, linear)).join('')}</div>
             ${units.length ? `<h3 class="sub">Unit-dose product labels <span class="note">— one per tablet/vial; the MAR adds them up (2 × 325 mg = 650 mg). Other strengths are included for practice catching wrong doses.</span></h3>
-            <div class="sheet">${units.map(x => unitLabel(x.m, x.d, linear)).join('')}</div>` : ''}
+            <div class="sheet">${units.map(x => unitLabel(x, linear)).join('')}</div>` : ''}
           </section>`;
         }).join('');
         document.querySelectorAll('svg[data-lin]').forEach(svg => {

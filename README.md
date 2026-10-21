@@ -72,6 +72,14 @@ Files: `orientation.html`, `js/orientation-config.js`, `js/data/orientation-pati
 
 Wristbands always carry a linear code and a square code for the MRN. A USB or Bluetooth hand scanner types into the MAR scan box like a keyboard. Prefixes some scanners add (`]C0`, `]d1`, `]Q1`) and a trailing Enter or Tab are ignored. Tested: every label for every patient decodes, and no two medications share a code. **Reprint labels printed before October 2026.**
 
+**Barcode Check (faculty).** **Instructor Tools → Barcode Check** checks printed labels without opening a chart or charting anything. Click in the scan box and scan with a hand scanner, or use **📷 Camera** (check **Keep the camera open** to scan label after label). Each scan shows:
+- **Wristband:** the patient, MRN, DOB, and allergies.
+- **Medication label:** the drug, dose, and patient, and whether the order is active on the MAR, waiting in a scenario event, or held or discontinued (students are stopped if they scan those).
+- **Unit-dose label:** the drug and strength, and which patients have orders for it.
+- **Not recognized:** for example an old label that needs reprinting. The raw text the scanner sent is shown, which helps troubleshoot scanner settings.
+
+Choose a patient (or scan their wristband) for a checklist of every label to print for them. Each label is ticked as it is scanned ("12 of 29 labels scanned"). **Clear checkmarks** starts over.
+
 **Older iPads (iOS 12.5.8):** the EHR runs on iOS 12. Camera scanning works only in **Safari** (on iOS 12–14.2 Chrome and other browsers cannot use the camera). Open the site in a Safari tab; a Home Screen shortcut is fine as long as it opens in Safari. A Bluetooth barcode scanner also works: tap the MAR scan box, then scan.
 
 Documentation follows legal-record rules. Entries are never deleted; they are **marked "entered in error"** with a reason and stay visible struck through. Entries charted more than 30 minutes after the event time are labeled **late entry**.

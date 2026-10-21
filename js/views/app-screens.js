@@ -35,7 +35,7 @@
       UI.toast(`Switched to ${Screens.MODE_LABEL[to]} mode${to === 'observer' ? ' — view only' : ''}.`);
       // Instructor Tools is faculty-only: leaving Faculty there goes to the status board
       // (otherwise the page would ask for the PIN again to stay on Instructor Tools).
-      if (to !== 'faculty' && /^#\/instructor/.test(location.hash)) { location.hash = '#/census'; return; }
+      if (to !== 'faculty' && /^#\/(instructor|barcodes)/.test(location.hash)) { location.hash = '#/census'; return; }
       App.render();
     };
     // Faculty who signed in without a sim experience choose one before charting as a student.
@@ -281,6 +281,7 @@
       return `<div class="page">
         <div class="page-head"><h1>Instructor Tools</h1><div>
           <a class="btn" href="labels.html" target="_blank" rel="noopener">Print Wristbands & Med Labels</a>
+          <a class="btn btn-primary" href="#/barcodes">Barcode Check</a>
           <button class="btn" data-action="export">Export All Documentation</button>
           <label class="btn">Import Documentation<input type="file" accept=".json,application/json" data-action="import" hidden></label>
           <label class="btn">Add Patient (JSON)<input type="file" accept=".json,application/json" data-action="addpt" hidden></label>

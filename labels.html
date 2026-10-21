@@ -6,49 +6,87 @@
   <meta name="robots" content="noindex">
   <title>Wristbands & Med Labels</title>
   <style>
+    /* Sizes are real millimeters: print at 100% / "Actual size" (not "Fit to page"). */
     :root { --nav: #13304d; --danger: #b3261e; --border: #c6d3e0; }
     * { box-sizing: border-box; }
     body { font: 13px/1.4 "Segoe UI", Roboto, Arial, sans-serif; margin: 0; padding: 16px; background: #edf1f5; color: #1b2733; }
-    .controls { background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin-bottom: 16px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
-    .controls h1 { font-size: 18px; margin: 0 auto 0 0; color: var(--nav); }
+    .controls { background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin-bottom: 16px; }
+    .controls .row { display: flex; flex-wrap: wrap; align-items: center; margin: -4px; }
+    .controls .row > * { margin: 4px; }
+    .controls h1 { font-size: 18px; margin: 4px auto 4px 4px; color: var(--nav); }
     button, select { font: inherit; padding: 6px 12px; border-radius: 4px; border: 1px solid #9fb3c8; background: #fff; cursor: pointer; }
     button.primary { background: #1b6fb5; color: #fff; border-color: #135589; }
+    .note { color: #5a6b7c; font-size: 12px; margin: 8px 0 0; }
     .patient { background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin-bottom: 16px; page-break-inside: avoid; }
     .patient h2 { font-size: 15px; margin: 0 0 8px; color: var(--nav); }
-    .band { display: flex; align-items: center; gap: 16px; border: 2px solid #1b2733; border-radius: 18px; padding: 8px 18px; max-width: 760px; margin-bottom: 12px; }
-    .band.allergy { border-color: var(--danger); box-shadow: inset 0 0 0 4px #fdecea; }
-    .band .who { flex: 1; }
-    .band .nm { font-size: 16px; font-weight: 800; }
+    h3.sub { font-size: 12px; margin: 10px 0 4px; color: var(--nav); }
+
+    /* Wristband strip: 25 mm tall, like a hospital ID band. */
+    .band { display: flex; align-items: center; height: 25mm; width: 190mm; max-width: 100%; border: 0.4mm solid #1b2733; border-radius: 12mm; padding: 1.5mm 8mm; margin-bottom: 3mm; overflow: hidden; }
+    .band.allergy { border-color: var(--danger); box-shadow: inset 0 0 0 1.2mm #f6c9c5; }
+    .band .who { flex: 1; font-size: 8pt; line-height: 1.25; min-width: 0; }
+    .band .nm { font-size: 11pt; font-weight: 800; }
     .band .al { color: var(--danger); font-weight: 800; }
-    .labels { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
-    .label { border: 1px dashed #7d8b99; border-radius: 4px; padding: 6px 8px; text-align: center; page-break-inside: avoid; background: #fff; }
-    .label .mn { font-weight: 800; }
-    .label .pt { font-size: 11px; color: #5a6b7c; }
-    .label.ha { border: 2px solid var(--danger); }
-    .label.unit { border-style: solid; border-color: #9fb3c8; }
-    h3.sub { font-size: 13px; margin: 14px 0 6px; color: var(--nav); }
-    .code { font-family: monospace; font-size: 12px; letter-spacing: .05em; }
-    svg.bc { display: block; margin: 2px auto; max-width: none; }
-    .note { color: #5a6b7c; font-size: 12px; }
-    @media print { body { background: #fff; padding: 0; } .controls { display: none; } .patient { border: none; padding: 0 0 12px; } }
+    .band .codes { display: flex; align-items: center; }
+    .band .codes > * { margin-left: 4mm; }
+    .band .lin { height: 11mm; }
+    .band .dm { width: 15mm; height: 15mm; }
+    .band .mrn { font: 7pt monospace; text-align: center; }
+
+    /* Medication labels: small, like a unit-dose blister or vial label. */
+    .sheet { display: flex; flex-wrap: wrap; }
+    .lbl { display: flex; align-items: center; width: 40mm; height: 19mm; margin: 0 1.5mm 1.5mm 0; padding: 1mm 1.2mm; border: 0.2mm dashed #8a96a3; background: #fff; overflow: hidden; page-break-inside: avoid; }
+    .lbl.unit { width: 35mm; height: 16mm; border-style: dotted; }
+    .lbl.ha { border: 0.5mm solid var(--danger); }
+    .lbl .dm { flex: none; width: 13mm; height: 13mm; margin-right: 1.2mm; }
+    .lbl.unit .dm { width: 13mm; height: 13mm; }
+    .lbl .t { min-width: 0; font-size: 6pt; line-height: 1.2; }
+    .lbl .mn { font-size: 7pt; font-weight: 800; line-height: 1.1; max-height: 2.3em; overflow: hidden; }
+    .lbl .ds { font-weight: 600; max-height: 2.4em; overflow: hidden; }
+    .lbl .t { overflow: hidden; max-height: 100%; }
+    .lbl .hat { color: #fff; background: var(--danger); font: 800 6pt sans-serif; padding: 0 0.6mm; border-radius: 0.5mm; }
+    .lbl .pt, .lbl .cd { color: #47535f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lbl .cd { font-family: monospace; }
+    /* 1D option: linear Code 128 above the text. */
+    .lin-mode .lbl { flex-direction: column; justify-content: flex-start; width: 44mm; padding-top: 1.6mm; }
+    .lin-mode .lbl .t { flex: 1 1 auto; min-height: 0; }
+    .lin-mode .lbl .mn, .lin-mode .lbl .ds { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-height: 1.25em; }
+    .lin-mode .lbl.unit { width: 40mm; height: 16mm; }
+    .lin-mode .lbl .t { text-align: center; width: 100%; }
+    .lbl .lin { flex: none; height: 8mm; margin-bottom: 0.6mm; }
+    svg.lin { display: block; }
+
+    @page { margin: 8mm; }
+    @media print { body { background: #fff; padding: 0; } .controls { display: none; } .patient { border: none; padding: 0 0 4mm; } }
   </style>
 </head>
 <body>
   <div class="controls">
-    <h1>Wristbands & Medication Labels</h1>
-    <label>Patient: <select id="pick"><option value="">All patients</option></select></label>
-    <button class="primary" onclick="window.print()">Print</button>
-    <span class="note">Barcodes are Code 128 with short 8-digit codes so tablet cameras read them easily; the text code under each barcode can also be typed. A USB barcode scanner types into the MAR scan box like a keyboard. On the MAR, scan the wristband first, then medication labels. Labels include meds from scenario events.</span>
+    <div class="row">
+      <h1>Wristbands & Medication Labels</h1>
+      <label>Patient: <select id="pick"><option value="">All patients</option></select></label>
+      <label>Barcodes: <select id="style">
+        <option value="qr">Small squares (QR) — iPad camera + hand scanners (recommended)</option>
+        <option value="dm">Small squares (Data Matrix, like real blister packs) — 2D hand scanners only</option>
+        <option value="1d">Linear (1D) — for hand scanners that only read lines</option>
+      </select></label>
+      <button class="primary" onclick="window.print()">Print</button>
+    </div>
+    <p class="note"><strong>Print at 100% / "Actual size"</strong> (not "Fit to page") so the labels come out at their real size: medication labels 40 × 19 mm (about 1.6 × 0.75 in), unit-dose labels 35 × 16 mm, wristbands 25 mm tall.
+      <strong>QR squares</strong> (recommended) scan with the iPad/tablet camera (hold 3–6 inches away) and with any 2D hand scanner (USB or Bluetooth).
+      <strong>Data Matrix</strong> is the square code printed on real unit-dose blister packs and vials; it scans with 2D hand scanners, but the iPad camera often misses it next to label text, so use it only with hand scanners.
+      Choose <strong>Linear (1D)</strong> only if your hand scanner reads lines but not squares. Wristbands always carry a linear code and a square code. The number on each label can also be typed into the scan box. Labels include medications from scenario events and orders entered during the sim.</p>
   </div>
   <div id="out"></div>
-
-  <script src="js/config.js?v=2026.10.19-4"></script>
-  <script src="js/data/patients.js?v=2026.10.19-4"></script>
-  <script src="js/data/patients-imported.js?v=2026.10.19-4"></script>
-  <script src="js/util.js?v=2026.10.19-4"></script>
-  <script src="js/scan.js?v=2026.10.19-4"></script>
-  <script src="js/store.js?v=2026.10.19-4"></script>
-  <script src="js/model.js?v=2026.10.19-4"></script>
+  <script src="js/config.js?v=2026.10.21-1"></script>
+  <script src="js/data/patients.js?v=2026.10.21-1"></script>
+  <script src="js/data/patients-imported.js?v=2026.10.21-1"></script>
+  <script src="js/util.js?v=2026.10.21-1"></script>
+  <script src="js/scan.js?v=2026.10.21-1"></script>
+  <script src="js/store.js?v=2026.10.21-1"></script>
+  <script src="js/model.js?v=2026.10.21-1"></script>
+  <script src="js/datamatrix.js?v=2026.10.21-1"></script>
+  <script src="js/vendor/qrcode-generator-1.4.4.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
   <script>
     (function () {
@@ -58,14 +96,57 @@
       const pts = Model.allPatients().filter(p => Store.instructorUnlocked() || (sess.experience && (p.experiences || []).includes(sess.experience)));
       if (!pts.length) document.body.insertAdjacentHTML('beforeend', '<p class="note">Sign in to the EHR, or unlock Instructor Tools, to print labels.</p>');
       const pick = document.getElementById('pick');
+      const style = document.getElementById('style');
+      try { const v = localStorage.getItem('atuLabelStyle'); if (v === '1d' || v === 'dm') style.value = v; } catch (e) { /* ignore */ }
       pts.forEach(p => { const o = document.createElement('option'); o.value = p.id; o.textContent = `${p.name.last}, ${p.name.first}`; pick.appendChild(o); });
 
+      // Linear Code 128 drawn by JsBarcode, then sized in millimeters (0.33 mm bars).
+      const lin = (code, cls) => `<svg class="lin ${cls || ''}" data-lin="${esc(code)}"></svg>`;
+      // Square 2D code: QR (reads with the iPad camera and hand scanners) or Data Matrix (hand scanners).
+      let square = 'qr';
+      const qr = code => {
+        // Level L with the standard 4-module white margin reads most reliably with the iPad camera library (tested).
+        const q = qrcode(0, 'L'); q.addData(String(code)); q.make();
+        const n = q.getModuleCount(), m = 4, s = n + 2 * m;
+        let path = '';
+        for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) path += `M${c + m} ${r + m}h1v1h-1z`;
+        return `<svg class="dm" viewBox="0 0 ${s} ${s}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="QR ${esc(code)}"><rect width="${s}" height="${s}" fill="#fff"/><path d="${path}" fill="#000"/></svg>`;
+      };
+      const dm = code => square === 'dm' ? DataMatrix.svg(code, 'dm') : qr(code);
+      const short = code => Scan.shortCode(code);
+
+      function medLabel(p, m, linear) {
+        const code = short(Model.barcodeFor(m));
+        return `<div class="lbl ${m.highAlert ? 'ha' : ''}">
+          ${linear ? lin(code) : dm(code)}
+          <div class="t"><div class="mn">${esc(m.name)}</div>
+            <div class="ds">${esc([m.dose, m.route].filter(x => x && x !== '—').join(' · '))}</div>
+            <div class="pt">${esc(p.name.last)}, ${esc(p.name.first)} · ${esc(p.mrn)}</div>
+            <div class="cd">${m.highAlert ? '<span class="hat" title="High-alert medication">HA</span> ' : ''}<span class="num">${esc(code)}</span></div></div>
+        </div>`;
+      }
+      function unitLabel(m, d, linear) {
+        const code = short(Scan.productCode(m, d));
+        return `<div class="lbl unit">
+          ${linear ? lin(code) : dm(code)}
+          <div class="t"><div class="mn">${esc(m.name.split(/\s+\(|\s+—/)[0])}</div>
+            <div class="ds">${esc(Scan.fmt(d))} · 1 unit</div>
+            <div class="cd"><span class="num">${esc(code)}</span></div></div>
+        </div>`;
+      }
+
       function draw() {
+        const linear = style.value === '1d';
+        square = style.value === 'dm' ? 'dm' : 'qr';
+        try { localStorage.setItem('atuLabelStyle', style.value); } catch (e) { /* ignore */ }
+        document.body.classList.toggle('lin-mode', linear);
         const list = pick.value ? pts.filter(p => p.id === pick.value) : pts;
         document.getElementById('out').innerHTML = list.map(p => {
           // Includes medications ordered during the sim (faculty orders and approved student orders).
           const meds = [...(p.meds || []), ...(p.events || []).flatMap(e => e.meds || []), ...Model.enteredMeds(p.id)].filter(m => m.status !== 'Do Not Administer');
           const allergy = p.nkda || !(p.allergies || []).length ? '' : p.allergies.map(a => a.agent).join(', ');
+          const units = meds.filter(m => m.type !== 'continuous').flatMap(m => Scan.products(m).map(d => ({ m, d })))
+            .filter((x, i, arr) => arr.findIndex(y => Scan.productCode(y.m, y.d) === Scan.productCode(x.m, x.d)) === i);
           return `<section class="patient">
             <h2>${esc(p.name.last)}, ${esc(p.name.first)}</h2>
             <div class="band ${allergy ? 'allergy' : ''}">
@@ -74,32 +155,29 @@
                 <div>${esc(p.attending)} · ${esc(window.EHR_CONFIG.hospitalName)}</div>
                 ${allergy ? `<div class="al">ALLERGY: ${esc(allergy)}</div>` : '<div>NKDA</div>'}
                 ${p.codeStatus === 'DNR' ? '<div class="al">DNR</div>' : ''}</div>
-              <div><svg class="bc" data-code="${esc(p.mrn)}"></svg><div class="code">${esc(p.mrn)}</div></div>
+              <div class="codes"><div>${lin(p.mrn)}<div class="mrn">${esc(p.mrn)}</div></div>${dm(p.mrn)}</div>
             </div>
-            <div class="labels">${meds.map(m => `<div class="label ${m.highAlert ? 'ha' : ''}">
-                <div class="mn">${esc(m.name)}</div><div>${esc([m.dose, m.route].filter(x => x && x !== '—').join(' · '))}</div>
-                ${m.highAlert ? '<div class="al" style="color:#b3261e;font-weight:800;font-size:11px">HIGH ALERT</div>' : ''}
-                <svg class="bc" data-code="${esc(Scan.shortCode(Model.barcodeFor(m)))}"></svg>
-                <div class="code">${esc(Scan.shortCode(Model.barcodeFor(m)))} · ${esc(Model.barcodeFor(m))}</div>
-                <div class="pt">For: ${esc(p.name.last)}, ${esc(p.name.first)} · ${esc(p.mrn)}</div>
-              </div>`).join('')}</div>
-            <h3 class="sub">Unit-dose product labels <span class="note">— scan one or more per dose; the MAR adds them up (e.g., 2 × 325 mg = 650 mg). Other strengths are included for practice catching wrong doses.</span></h3>
-            <div class="labels">${meds.filter(m => m.type !== 'continuous').flatMap(m => Scan.products(m).map((d, i) => ({ m, d, ordered: i === 0 }))).filter((x, i, arr) => arr.findIndex(y => Scan.productCode(y.m, y.d) === Scan.productCode(x.m, x.d)) === i).map(({ m, d }) => `<div class="label unit">
-                <div class="mn">${esc(m.name.split(/\s+\(|\s+—/)[0])}</div><div>${esc(Scan.fmt(d))} · 1 unit</div>
-                <svg class="bc" data-code="${esc(Scan.shortCode(Scan.productCode(m, d)))}"></svg>
-                <div class="code">${esc(Scan.shortCode(Scan.productCode(m, d)))} · ${esc(Scan.productCode(m, d))}</div>
-              </div>`).join('')}</div>
+            <h3 class="sub">Patient medication labels</h3>
+            <div class="sheet">${meds.map(m => medLabel(p, m, linear)).join('')}</div>
+            ${units.length ? `<h3 class="sub">Unit-dose product labels <span class="note">— one per tablet/vial; the MAR adds them up (2 × 325 mg = 650 mg). Other strengths are included for practice catching wrong doses.</span></h3>
+            <div class="sheet">${units.map(x => unitLabel(x.m, x.d, linear)).join('')}</div>` : ''}
           </section>`;
         }).join('');
-        if (window.JsBarcode) {
-          document.querySelectorAll('svg.bc').forEach(svg => {
-            try { JsBarcode(svg, svg.dataset.code, { format: 'CODE128', displayValue: false, height: 50, margin: 12, width: 2.5 }); } catch (e) { svg.remove(); }
-          });
-        } else {
-          document.querySelectorAll('svg.bc').forEach(svg => svg.remove());
-        }
+        document.querySelectorAll('svg[data-lin]').forEach(svg => {
+          if (!window.JsBarcode) { svg.outerHTML = '<span class="note">(linear barcode needs internet)</span>'; return; }
+          try {
+            JsBarcode(svg, svg.dataset.lin, { format: 'CODE128', displayValue: false, height: 40, margin: 8, width: 1 });
+            const w = parseFloat(svg.getAttribute('width')), h = parseFloat(svg.getAttribute('height'));
+            svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+            svg.setAttribute('preserveAspectRatio', 'none');
+            svg.removeAttribute('width'); svg.removeAttribute('height');
+            svg.style.width = (w * (svg.closest('.band') ? 0.4 : 0.33)).toFixed(1) + 'mm';     // mm per bar module (wristbands a little bigger), quiet zones included
+            if (!svg.closest('.band')) svg.style.height = '8mm';
+          } catch (e) { svg.remove(); }
+        });
       }
       pick.addEventListener('change', draw);
+      style.addEventListener('change', draw);
       draw();
     })();
   </script>

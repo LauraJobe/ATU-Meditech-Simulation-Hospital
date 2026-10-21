@@ -71,7 +71,7 @@
 
   // A medication scanned on the MAR screen: find its order, pick the dose, and open the administration.
   function scanOnMar(p, doc, code) {
-    const c = String(code || '').trim().toUpperCase();
+    const c = Scan.clean(code);
     if (!c) return;
     if (c === String(p.mrn).toUpperCase()) { verified[p.id] = p.clock.now(); UI.toast(`Patient verified: ${p.name.last}, ${p.name.first}.`); App.render(); return; }
     const otherPt = Model.allPatients().find(x => String(x.mrn).toUpperCase() === c);
@@ -705,7 +705,7 @@
         const q = s => el.querySelector(s);
         const setMsg = (which, ok, text) => { const m = q(`[data-msg="${which}"]`); m.textContent = text; m.className = 'scan-msg ' + (ok ? 'ok' : 'bad'); };
         const checkPt = () => {
-          const v = q('[name="scanPt"]').value.trim().toUpperCase();
+          const v = Scan.clean(q('[name="scanPt"]').value);
           if (!v) { setMsg('pt', false, ''); return; }
           if (v === String(p.mrn).toUpperCase()) { setMsg('pt', true, `✔ Patient verified: ${p.name.last}, ${p.name.first}`); return; }
           const other = Model.allPatients().find(x => String(x.mrn).toUpperCase() === v && Screens.canSee(x));
@@ -753,7 +753,7 @@
           const el = api.el;
           const v = U.formValues(el);
           const r = buildEntry(el, p, med, dt, mode, conflicts, {
-            scanPt: v.scanPt, ptOK: !!v.scanPt && v.scanPt.toUpperCase() === String(p.mrn).toUpperCase(),
+            scanPt: v.scanPt, ptOK: !!v.scanPt && Scan.clean(v.scanPt) === String(p.mrn).toUpperCase(),
             scans: api.scans || [], scannedTotal: api.scannedTotal, noScan: v.noScan, noScanReason: v.noScanReason
           });
           if (r.error) { UI.formError(el.querySelector('.modal-body'), r.error); return false; }

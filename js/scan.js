@@ -57,8 +57,14 @@
     return c;
   }
 
+  // What a scanner sends, cleaned up: hand scanners may add an AIM symbology prefix (]C0 Code 128,
+  // ]d1 Data Matrix, ]Q1 QR, ]A0 Code 39), a group separator, or a trailing Enter/Tab.
+  function clean(code) {
+    return String(code || '').replace(/[\x00-\x1f\x7f]/g, '').trim().replace(/^\][A-Za-z][0-9A-Za-z]/, '').trim().toUpperCase();
+  }
+
   function parseCode(code) {
-    const c = expand(String(code || '').trim().toUpperCase());
+    const c = expand(clean(code));
     let m = /^NDC-([A-Z]+)-(\d+(?:\.\d+)?)(MG|UNITS|ML|MEQ)$/.exec(c);
     if (m) return { kind: 'product', key: m[1], dose: { value: Number(m[2]), unit: m[3] === 'ML' ? 'mL' : m[3] === 'MEQ' ? 'mEq' : m[3].toLowerCase() }, code: c };
     m = /^RX-(.+)$/.exec(c);
@@ -82,5 +88,5 @@
     return list.filter(x => { const k = x.value + x.unit; if (seen.has(k)) return false; seen.add(k); return true; });
   }
 
-  window.Scan = { parseDose, fmt, drugKey, productCode, parseCode, products, shortCode, textCodes };
+  window.Scan = { parseDose, fmt, drugKey, productCode, parseCode, products, shortCode, textCodes, clean };
 })();

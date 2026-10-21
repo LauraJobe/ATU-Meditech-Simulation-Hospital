@@ -63,8 +63,23 @@
     return String(code || '').replace(/[\x00-\x1f\x7f]/g, '').trim().replace(/^\][A-Za-z][0-9A-Za-z]/, '').trim().toUpperCase();
   }
 
+  // ATU package barcodes (js/data/atu-barcodes.js): MED-#### identifies the drug package.
+  const ATU = () => window.ATU_BARCODES || { wristbands: {}, packages: {} };
+  const pkgMatches = (code, med) => { const k = ATU().packages[code]; return !!(k && med && k.match.some(r => new RegExp(r, 'i').test(med.name))); };
+  // The ATU package code for an order (null if none).
+  const pkgFor = med => Object.keys(ATU().packages).find(c => pkgMatches(c, med)) || null;
+  // Patient for a scanned wristband: the MRN, or the ATU 4-digit wristband code.
+  function patientOf(code) {
+    const c = clean(code);
+    const pts = window.Model ? window.Model.allPatients() : (window.SIM_PATIENTS || []);
+    const viaWrist = ATU().wristbands[c];
+    return pts.find(p => String(p.mrn).toUpperCase() === c) || (viaWrist && pts.find(p => p.id === viaWrist)) || null;
+  }
+  const wristbandFor = p => Object.keys(ATU().wristbands).find(k => ATU().wristbands[k] === p.id) || null;
+
   function parseCode(code) {
     const c = expand(clean(code));
+    if (ATU().packages[c]) return { kind: 'pkg', code: c, pkg: ATU().packages[c] };
     let m = /^NDC-([A-Z]+)-(\d+(?:\.\d+)?)(MG|UNITS|ML|MEQ)$/.exec(c);
     if (m) return { kind: 'product', key: m[1], dose: { value: Number(m[2]), unit: m[3] === 'ML' ? 'mL' : m[3] === 'MEQ' ? 'mEq' : m[3].toLowerCase() }, code: c };
     m = /^RX-(.+)$/.exec(c);
@@ -88,5 +103,5 @@
     return list.filter(x => { const k = x.value + x.unit; if (seen.has(k)) return false; seen.add(k); return true; });
   }
 
-  window.Scan = { parseDose, fmt, drugKey, productCode, parseCode, products, shortCode, textCodes, clean };
+  window.Scan = { parseDose, fmt, drugKey, productCode, parseCode, products, shortCode, textCodes, clean, pkgMatches, pkgFor, patientOf, wristbandFor };
 })();

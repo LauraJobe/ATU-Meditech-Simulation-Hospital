@@ -54,6 +54,13 @@
     .lin-mode .lbl.unit { width: 40mm; height: 16mm; }
     .lin-mode .lbl .t { text-align: center; width: 100%; }
     .lbl .lin { flex: none; height: 8mm; margin-bottom: 0.6mm; }
+    /* ATU package label: Code 128 MED-#### above the text */
+    .lbl.col { flex-direction: column; justify-content: center; width: 52mm; height: 25mm; padding: 1mm 1.2mm; }
+    .lbl.col > .mn { width: 100%; text-align: center; flex: none; margin-bottom: 0.6mm; }
+    .lbl.col .lin { height: 12mm; }
+    .lbl.col .t { text-align: center; width: 100%; flex: none; }
+    .lbl.col .mn { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-height: 1.25em; }
+    .lbl.col .pt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     svg.lin { display: block; }
 
     @page { margin: 8mm; }
@@ -66,26 +73,29 @@
       <h1>Wristbands & Medication Labels</h1>
       <label>Patient: <select id="pick"><option value="">All patients</option></select></label>
       <label>Barcodes: <select id="style">
-        <option value="qr">Small squares (QR) — iPad camera + hand scanners (recommended)</option>
+        <option value="atu">ATU barcodes — the installed, accepted set (wristband 1000–1012, MED-#### packages)</option>
+        <option value="qr">Small squares (QR) — iPad camera + hand scanners</option>
         <option value="dm">Small squares (Data Matrix, like real blister packs) — 2D hand scanners only</option>
         <option value="1d">Linear (1D) — for hand scanners that only read lines</option>
       </select></label>
       <button class="primary" onclick="window.print()">Print</button>
     </div>
     <p class="note"><strong>Print at 100% / "Actual size"</strong> (not "Fit to page") so the labels come out at their real size: medication labels 40 × 19 mm (about 1.6 × 0.75 in), unit-dose labels 35 × 16 mm, wristbands 25 mm tall.
-      <strong>QR squares</strong> (recommended) scan with the iPad/tablet camera (hold 3–6 inches away) and with any 2D hand scanner (USB or Bluetooth).
+      <strong>ATU barcodes</strong> (default) reprint the accepted, already-installed labels: Code 39 wristband codes 1000–1012 and Code 128 <code>MED-####</code> package labels.
+      <strong>QR squares</strong> scan with the iPad/tablet camera (hold 3–6 inches away) and with any 2D hand scanner (USB or Bluetooth).
       <strong>Data Matrix</strong> is the square code printed on real unit-dose blister packs and vials; it scans with 2D hand scanners, but the iPad camera often misses it next to label text, so use it only with hand scanners.
       Choose <strong>Linear (1D)</strong> only if your hand scanner reads lines but not squares. Wristbands always carry a linear code and a square code. The number on each label can also be typed into the scan box. Labels include medications from scenario events and orders entered during the sim.</p>
   </div>
   <div id="out"></div>
-  <script src="js/config.js?v=2026.10.21-1"></script>
-  <script src="js/data/patients.js?v=2026.10.21-1"></script>
-  <script src="js/data/patients-imported.js?v=2026.10.21-1"></script>
-  <script src="js/util.js?v=2026.10.21-1"></script>
-  <script src="js/scan.js?v=2026.10.21-1"></script>
-  <script src="js/store.js?v=2026.10.21-1"></script>
-  <script src="js/model.js?v=2026.10.21-1"></script>
-  <script src="js/datamatrix.js?v=2026.10.21-1"></script>
+  <script src="js/config.js?v=2026.10.21-2"></script>
+  <script src="js/data/patients.js?v=2026.10.21-2"></script>
+  <script src="js/data/patients-imported.js?v=2026.10.21-2"></script>
+  <script src="js/data/atu-barcodes.js?v=2026.10.21-2"></script>
+  <script src="js/util.js?v=2026.10.21-2"></script>
+  <script src="js/scan.js?v=2026.10.21-2"></script>
+  <script src="js/store.js?v=2026.10.21-2"></script>
+  <script src="js/model.js?v=2026.10.21-2"></script>
+  <script src="js/datamatrix.js?v=2026.10.21-2"></script>
   <script src="js/vendor/qrcode-generator-1.4.4.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
   <script>
@@ -97,11 +107,11 @@
       if (!pts.length) document.body.insertAdjacentHTML('beforeend', '<p class="note">Sign in to the EHR, or unlock Instructor Tools, to print labels.</p>');
       const pick = document.getElementById('pick');
       const style = document.getElementById('style');
-      try { const v = localStorage.getItem('atuLabelStyle'); if (v === '1d' || v === 'dm') style.value = v; } catch (e) { /* ignore */ }
+      try { const v = localStorage.getItem('atuLabelStyle'); if (v === '1d' || v === 'dm' || v === 'qr') style.value = v; } catch (e) { /* ignore */ }
       pts.forEach(p => { const o = document.createElement('option'); o.value = p.id; o.textContent = `${p.name.last}, ${p.name.first}`; pick.appendChild(o); });
 
       // Linear Code 128 drawn by JsBarcode, then sized in millimeters (0.33 mm bars).
-      const lin = (code, cls) => `<svg class="lin ${cls || ''}" data-lin="${esc(code)}"></svg>`;
+      const lin = (code, cls, fmt) => `<svg class="lin ${cls || ''}" data-lin="${esc(code)}" ${fmt ? `data-fmt="${fmt}"` : ''}></svg>`;
       // Square 2D code: QR (reads with the iPad camera and hand scanners) or Data Matrix (hand scanners).
       let square = 'qr';
       const qr = code => {
@@ -135,6 +145,7 @@
       }
 
       function draw() {
+        const atu = style.value === 'atu';
         const linear = style.value === '1d';
         square = style.value === 'dm' ? 'dm' : 'qr';
         try { localStorage.setItem('atuLabelStyle', style.value); } catch (e) { /* ignore */ }
@@ -142,18 +153,32 @@
         const list = pick.value ? pts.filter(p => p.id === pick.value) : pts;
         document.getElementById('out').innerHTML = list.map(p => {
           // Includes medications from scenario events and orders entered during the sim (same list as Barcode Check).
-          const set = Model.labelSet(p), meds = set.meds, units = set.units;
+          const set = Model.labelSet(p), meds = set.meds, units = set.units, A = set.atu;
           const allergy = p.nkda || !(p.allergies || []).length ? '' : p.allergies.map(a => a.agent).join(', ');
-          return `<section class="patient">
-            <h2>${esc(p.name.last)}, ${esc(p.name.first)}</h2>
-            <div class="band ${allergy ? 'allergy' : ''}">
+          const band = `<div class="band ${allergy ? 'allergy' : ''}">
               <div class="who"><div class="nm">${esc(p.name.last.toUpperCase())}, ${esc(p.name.first)}</div>
                 <div>DOB ${esc(U.fmtDOB(p.dob))} · ${esc(p.age)} ${esc(p.sex)} · MRN ${esc(p.mrn)}</div>
                 <div>${esc(p.attending)} · ${esc(window.EHR_CONFIG.hospitalName)}</div>
                 ${allergy ? `<div class="al">ALLERGY: ${esc(allergy)}</div>` : '<div>NKDA</div>'}
                 ${p.codeStatus === 'DNR' ? '<div class="al">DNR</div>' : ''}</div>
-              <div class="codes"><div>${lin(p.mrn)}<div class="mrn">${esc(p.mrn)}</div></div>${dm(p.mrn)}</div>
-            </div>
+              ${atu && A.wrist ? `<div class="codes"><div>${lin(A.wrist, '', 'CODE39')}<div class="mrn">${esc(A.wrist)}</div></div></div>`
+                : `<div class="codes"><div>${lin(p.mrn)}<div class="mrn">${esc(p.mrn)}</div></div>${dm(p.mrn)}</div>`}
+            </div>`;
+          if (atu) {
+            // The accepted ATU set: Code 39 wristband code, Code 128 MED-#### package labels, and hospital labels
+            // for any order with no ATU package (e.g., heparin).
+            return `<section class="patient"><h2>${esc(p.name.last)}, ${esc(p.name.first)}</h2>${band}
+              <h3 class="sub">ATU package labels <span class="note">— identify the drug package; the MAR finds the matching order and the nurse confirms the dose</span></h3>
+              <div class="sheet">${A.packages.map(x => `<div class="lbl col"><div class="mn">${esc(x.pkg.name)}</div>${lin(x.code)}
+                <div class="t">
+                  <div class="pt">${x.meds.length ? 'For: ' + esc(x.meds.map(m => [m.name, m.dose].filter(Boolean).join(' ')).join('; ')) : '<span class="hat">No order in this chart</span>'}</div>
+                  <div class="cd"><span class="num">${esc(x.code)}</span></div></div></div>`).join('')}</div>
+              ${A.unpackaged.length ? `<h3 class="sub">Orders with no ATU package code <span class="note">— hospital labels</span></h3>
+              <div class="sheet">${A.unpackaged.map(x => medLabel(p, x, false)).join('')}</div>` : ''}
+            </section>`;
+          }
+          return `<section class="patient">
+            <h2>${esc(p.name.last)}, ${esc(p.name.first)}</h2>${band}
             <h3 class="sub">Patient medication labels</h3>
             <div class="sheet">${meds.map(x => medLabel(p, x, linear)).join('')}</div>
             ${units.length ? `<h3 class="sub">Unit-dose product labels <span class="note">— one per tablet/vial; the MAR adds them up (2 × 325 mg = 650 mg). Other strengths are included for practice catching wrong doses.</span></h3>
@@ -163,13 +188,14 @@
         document.querySelectorAll('svg[data-lin]').forEach(svg => {
           if (!window.JsBarcode) { svg.outerHTML = '<span class="note">(linear barcode needs internet)</span>'; return; }
           try {
-            JsBarcode(svg, svg.dataset.lin, { format: 'CODE128', displayValue: false, height: 40, margin: 8, width: 1 });
+            JsBarcode(svg, svg.dataset.lin, { format: svg.dataset.fmt || 'CODE128', displayValue: false, height: 40, margin: 8, width: 1 });
             const w = parseFloat(svg.getAttribute('width')), h = parseFloat(svg.getAttribute('height'));
             svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
             svg.setAttribute('preserveAspectRatio', 'none');
+            svg.setAttribute('shape-rendering', 'crispEdges');
             svg.removeAttribute('width'); svg.removeAttribute('height');
             svg.style.width = (w * (svg.closest('.band') ? 0.4 : 0.33)).toFixed(1) + 'mm';     // mm per bar module (wristbands a little bigger), quiet zones included
-            if (!svg.closest('.band')) svg.style.height = '8mm';
+            if (!svg.closest('.band')) svg.style.height = svg.closest('.col') ? '12mm' : '8mm';
           } catch (e) { svg.remove(); }
         });
       }

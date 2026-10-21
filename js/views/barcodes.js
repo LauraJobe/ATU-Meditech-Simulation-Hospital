@@ -34,12 +34,34 @@
     const c = Scan.clean(raw);
     const pts = Model.allPatients();
     if (!c) return null;
-    const ptHit = pts.find(p => String(p.mrn).toUpperCase() === c);
+    const ptHit = Scan.patientOf(c);
     if (ptHit) {
       const al = ptHit.nkda || !(ptHit.allergies || []).length ? 'NKDA' : 'Allergies: ' + ptHit.allergies.map(a => a.agent).join(', ');
-      return { ok: true, code: c, kind: 'Wristband', title: `${name(ptHit)} — MRN ${ptHit.mrn}`, lines: [`DOB ${U.fmtDOB(ptHit.dob)} · ${ptHit.age} ${ptHit.sex} · ${ptHit.unit || ''}`, al], pid: ptHit.id };
+      const wrist = Scan.wristbandFor(ptHit);
+      return { ok: true, code: c, marks: [c, String(ptHit.mrn).toUpperCase(), wrist].filter(Boolean), kind: c === wrist ? `Wristband — ATU code ${wrist}` : 'Wristband (MRN)',
+        title: `${name(ptHit)} — MRN ${ptHit.mrn}`, lines: [`DOB ${U.fmtDOB(ptHit.dob)} · ${ptHit.age} ${ptHit.sex} · ${ptHit.unit || ''}`, al], pid: ptHit.id };
     }
     const parsed = Scan.parseCode(c);
+    if (parsed && parsed.kind === 'pkg' && parsed.pkg.blood) {
+      // Blood bag: matched to blood-product orders (documented on the TAR), including ones waiting for release.
+      const BLOOD = /PRBC|packed red|red blood cell|transfus/i, uses = [];
+      pts.forEach(p => {
+        (p.orders || []).filter(o => BLOOD.test(o.text || '')).forEach(o => uses.push(`${name(p)}: ${o.text} — active order (TAR)`));
+        (p.events || []).forEach(e => (e.orders || []).filter(o => BLOOD.test(o.text || '')).forEach(o => uses.push(`${name(p)}: ${o.text} — scenario event "${e.title}" (TAR when released)`)));
+      });
+      return { ok: uses.length > 0, warn: true, code: parsed.code, kind: `ATU package label ${parsed.code} — blood product`, title: parsed.pkg.name,
+        lines: uses.concat(['Blood products are documented on the TAR, not the MAR.']) };
+    }
+    if (parsed && parsed.kind === 'pkg') {
+      // ATU package: the drug, and the matching orders on every patient.
+      const uses = [];
+      pts.forEach(p => Model.labelSet(p).meds.forEach(x => { if (Scan.pkgMatches(parsed.code, x.m)) uses.push({ p, m: x.m, st: medStatus(p, x.m) }); }));
+      const listedNoOrder = (parsed.pkg.patients || []).filter(id => !uses.some(u => u.p.id === id)).map(id => pts.find(p => p.id === id)).filter(Boolean);
+      return { ok: uses.length > 0, warn: listedNoOrder.length > 0, code: parsed.code, kind: `ATU package label ${parsed.code}`, title: parsed.pkg.name,
+        lines: uses.map(u => `${name(u.p)}: ${u.m.name} ${sig(u.m)} — ${u.st.text}`)
+          .concat(listedNoOrder.map(p => `${name(p)}: listed by ATU, but this chart has no order for it yet`))
+          .concat(uses.length ? [] : ['No patient has an order this package matches.']), pid: uses.length === 1 ? uses[0].p.id : null };
+    }
     if (parsed && parsed.kind === 'rx') {
       for (const p of pts) {
         const hit = Model.labelSet(p).meds.find(x => x.m.id === parsed.medId);
@@ -67,7 +89,7 @@
     if (!r) return;
     r.raw = String(raw);
     r.at = Date.now();
-    if (r.ok) mark(r.code);
+    if (r.ok) (r.marks || [r.code]).forEach(mark);
     last = r;
     if (r.pid && !pick) pick = r.pid;
     App.render();
@@ -77,9 +99,13 @@
   function checklist(p) {
     const done = checked();
     const set = Model.labelSet(p);
-    const rows = [{ kind: 'Wristband', code: String(p.mrn).toUpperCase(), what: `${name(p)} — MRN ${p.mrn}` }]
-      .concat(set.meds.map(x => ({ kind: 'Medication', code: x.code, what: `${x.m.name} — ${sig(x.m)}`, note: medStatus(p, x.m) })))
-      .concat(set.units.map(x => ({ kind: 'Unit-dose', code: x.code, what: `${x.m.name.split(/\s+\(|\s+—/)[0]} ${Scan.fmt(x.d)} — 1 unit` })));
+    // The accepted (installed) ATU labels: wristband code, one label per MED package, plus orders with no ATU package.
+    const A = set.atu;
+    const rows = [{ kind: 'Wristband (ATU)', code: A.wrist || String(p.mrn).toUpperCase(), what: `${name(p)} — MRN ${p.mrn}` }]
+      .concat(A.packages.map(x => ({ kind: 'ATU package', code: x.code, what: `${x.pkg.name} — for ${x.meds.length ? x.meds.map(m => `${m.name} ${sig(m)}`).join('; ') : x.pkg.blood ? 'the transfusion order (TAR)' : '(no order in this chart yet)'}`,
+        note: x.meds.length ? null : x.pkg.blood ? { ok: true, warn: true, text: 'Blood product — documented on the TAR' } : { ok: false, text: 'Listed by ATU; this chart has no order for it' } })))
+      .concat(A.unpackaged.map(x => ({ kind: x.product ? 'Hospital product label (no ATU package)' : 'Hospital label (no ATU package)', code: x.code,
+        what: x.product ? `${x.m.name} ${Scan.fmt(x.d)} — unit dose` : `${x.m.name} — ${sig(x.m)}`, note: medStatus(p, x.m) })));
     const n = rows.filter(r => done[r.code]).length;
     return `<div class="bc-progress"><strong>${n} of ${rows.length}</strong> labels for ${esc(name(p))} scanned
         <span class="bc-bar"><span style="width:${Math.round(100 * n / rows.length)}%"></span></span></div>

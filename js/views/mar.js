@@ -48,6 +48,8 @@
     if (!parsed) return null;
     if (parsed.code === med.barcode.toUpperCase()) return { code: parsed.code, dose: Scan.parseDose(med.dose), label: `${med.name} ${med.dose}` };
     if (parsed.kind === 'product' && parsed.key === Scan.drugKey(med)) return { code: parsed.code, dose: parsed.dose, label: `${med.name} ${Scan.fmt(parsed.dose)}` };
+    // ATU package (MED-####): verifies the drug; the package carries no strength, so the dose is confirmed on the review screen.
+    if (parsed.kind === 'pkg' && Scan.pkgMatches(parsed.code, med)) return { code: parsed.code, dose: null, label: `${med.name} (package ${parsed.code})` };
     return null;
   }
   // Scanned units added up, compared with the ordered dose.
@@ -73,8 +75,9 @@
   function scanOnMar(p, doc, code) {
     const c = Scan.clean(code);
     if (!c) return;
-    if (c === String(p.mrn).toUpperCase()) { verified[p.id] = p.clock.now(); UI.toast(`Patient verified: ${p.name.last}, ${p.name.first}.`); App.render(); return; }
-    const otherPt = Model.allPatients().find(x => String(x.mrn).toUpperCase() === c);
+    const scannedPt = Scan.patientOf(c);
+    if (scannedPt && scannedPt.id === p.id) { verified[p.id] = p.clock.now(); UI.toast(`Patient verified: ${p.name.last}, ${p.name.first}.`); App.render(); return; }
+    const otherPt = scannedPt;
     if (otherPt) {
       delete verified[p.id]; delete queue[p.id];
       UI.modal({ title: 'WRONG PATIENT', body: `<div class="hard-stop"><strong>⛔ This wristband does not belong to ${esc(p.name.last)}, ${esc(p.name.first)}.</strong> Stop. Verify two patient identifiers before giving any medication.</div>`, buttons: [{ label: 'OK' }] });
@@ -95,11 +98,17 @@
       App.render();
       return;
     }
-    const matches = parsed.kind === 'rx' ? p.meds.filter(m => m.id === parsed.medId) : p.meds.filter(m => Scan.drugKey(m) === parsed.key);
+    if (parsed.kind === 'pkg' && parsed.pkg.blood) {
+      UI.modal({ title: 'Blood Product', body: `<div class="hard-stop"><strong>${esc(parsed.pkg.name)} (${esc(parsed.code)}).</strong> Blood products are documented on the <strong>TAR</strong> (Document ▾ → Transfusion Administration Record), with the two-RN bedside check — not on the MAR.</div>`, buttons: [{ label: 'OK' }] });
+      return;
+    }
+    const matches = parsed.kind === 'rx' ? p.meds.filter(m => m.id === parsed.medId)
+      : parsed.kind === 'pkg' ? p.meds.filter(m => Scan.pkgMatches(parsed.code, m))
+      : p.meds.filter(m => Scan.drugKey(m) === parsed.key);
     const active = matches.filter(m => m.status === 'Active');
     if (!active.length) {
       const dc = matches.find(m => m.status !== 'Active');
-      const name = parsed.kind === 'product' ? `${parsed.key.toLowerCase()} ${Scan.fmt(parsed.dose)}` : 'this medication';
+      const name = parsed.kind === 'product' ? `${parsed.key.toLowerCase()} ${Scan.fmt(parsed.dose)}` : parsed.kind === 'pkg' ? `${parsed.pkg.name} (${parsed.code})` : 'this medication';
       UI.modal({ title: 'No Active Order', body: `<div class="hard-stop"><strong>⛔ ${dc ? `The order for ${esc(dc.name)} is ${esc(dc.status)}.` : `There is no order for ${esc(name)} on this patient's MAR.`}</strong> Do not administer. Check the order and the medication label.</div>`, buttons: [{ label: 'OK' }] });
       return;
     }
@@ -707,8 +716,9 @@
         const checkPt = () => {
           const v = Scan.clean(q('[name="scanPt"]').value);
           if (!v) { setMsg('pt', false, ''); return; }
-          if (v === String(p.mrn).toUpperCase()) { setMsg('pt', true, `✔ Patient verified: ${p.name.last}, ${p.name.first}`); return; }
-          const other = Model.allPatients().find(x => String(x.mrn).toUpperCase() === v && Screens.canSee(x));
+          const hit = Scan.patientOf(v);
+          if (hit && hit.id === p.id) { setMsg('pt', true, `✔ Patient verified: ${p.name.last}, ${p.name.first}`); return; }
+          const other = hit && Screens.canSee(hit) ? hit : null;
           setMsg('pt', false, other ? `✖ WRONG PATIENT — this wristband belongs to ${other.name.last}, ${other.name.first}` : '✖ Wristband does not match this patient');
         };
         // Each medication scan is one unit; units add up toward the ordered dose.
@@ -727,7 +737,7 @@
           const parsed = Scan.parseCode(code);
           const unit = unitFor(med, parsed);
           if (!unit) {
-            const other = parsed && parsed.kind === 'rx' ? p.meds.find(m => m.id === parsed.medId) : parsed && parsed.kind === 'product' ? { name: parsed.key.toLowerCase(), dose: Scan.fmt(parsed.dose) } : null;
+            const other = parsed && parsed.kind === 'rx' ? p.meds.find(m => m.id === parsed.medId) : parsed && parsed.kind === 'product' ? { name: parsed.key.toLowerCase(), dose: Scan.fmt(parsed.dose) } : parsed && parsed.kind === 'pkg' ? { name: parsed.pkg.name, dose: `(package ${parsed.code})` } : null;
             setMsg('med', false, other ? `✖ WRONG MEDICATION — scanned ${other.name} ${other.dose}. Not added.` : '✖ Barcode does not match this order. Not added.');
             return;
           }
@@ -753,7 +763,7 @@
           const el = api.el;
           const v = U.formValues(el);
           const r = buildEntry(el, p, med, dt, mode, conflicts, {
-            scanPt: v.scanPt, ptOK: !!v.scanPt && Scan.clean(v.scanPt) === String(p.mrn).toUpperCase(),
+            scanPt: v.scanPt, ptOK: !!v.scanPt && !!Scan.patientOf(v.scanPt) && Scan.patientOf(v.scanPt).id === p.id,
             scans: api.scans || [], scannedTotal: api.scannedTotal, noScan: v.noScan, noScanReason: v.noScanReason
           });
           if (r.error) { UI.formError(el.querySelector('.modal-body'), r.error); return false; }

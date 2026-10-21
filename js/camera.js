@@ -34,7 +34,7 @@
       title: opts.title || 'Scan with Camera',
       body: `<div class="cam-wrap"><video class="cam-video" playsinline muted hidden></video><div id="cam-reader" class="cam-reader"></div>
           <div class="cam-guide" aria-hidden="true"></div></div>
-        <p class="muted small cam-msg">Hold the label flat inside the box, about 3–6 inches from the camera (small square codes work best close up). Allow camera access if asked.</p>`,
+        <p class="muted small cam-msg">Hold the label flat inside the box, about 3–4 inches from the camera (move closer if it does not read; line barcodes on medication packages need about 3 inches). Allow camera access if asked.</p>`,
       onClose: () => { done = true; stop(); },
       buttons: [{ label: 'Cancel' }],
       async onOpen(api) {

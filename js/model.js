@@ -238,9 +238,25 @@
       .filter(m => m.status !== 'Do Not Administer');
     const units = meds.filter(m => m.type !== 'continuous').flatMap(m => Scan.products(m).map(d => ({ m, d })))
       .filter((x, i, arr) => arr.findIndex(y => Scan.productCode(y.m, y.d) === Scan.productCode(x.m, x.d)) === i);
+    // ATU accepted barcodes (js/data/atu-barcodes.js): the 4-digit wristband code, one label per MED-#### package
+    // used by this patient's orders (or listed for this patient by ATU), and any order with no ATU package.
+    const A = window.ATU_BARCODES || { packages: {} };
+    const pkgOf = new Map(meds.map(m => [m, Scan.pkgFor(m, p.id)]));
+    const pkgCodes = Object.keys(A.packages).filter(c => [...pkgOf.values()].includes(c) ||
+      ((A.packages[c].patients || []).includes(p.id) && !meds.some(m => Scan.pkgMatches(c, m))));
     return {
       meds: meds.map(m => ({ kind: 'med', m, text: M.barcodeFor(m), code: Scan.shortCode(M.barcodeFor(m)) })),
-      units: units.map(x => ({ kind: 'unit', m: x.m, d: x.d, text: Scan.productCode(x.m, x.d), code: Scan.shortCode(Scan.productCode(x.m, x.d)) }))
+      units: units.map(x => ({ kind: 'unit', m: x.m, d: x.d, text: Scan.productCode(x.m, x.d), code: Scan.shortCode(Scan.productCode(x.m, x.d)) })),
+      atu: {
+        wrist: Scan.wristbandFor(p),
+        packages: pkgCodes.map(c => ({ code: c, pkg: A.packages[c], meds: meds.filter(m => pkgOf.get(m) === c) })),
+        // No ATU package (e.g., a new drug a faculty member orders): a drug-level unit-dose label when the dose
+        // has a strength — the same label for every patient — otherwise the order's own label.
+        unpackaged: meds.filter(m => !pkgOf.get(m)).map(m => {
+          const d = m.type !== 'continuous' ? Scan.parseDose(m.dose) : null;
+          return d ? { m, d, product: true, text: Scan.productCode(m, d), code: Scan.shortCode(Scan.productCode(m, d)) } : { m, code: Scan.shortCode(M.barcodeFor(m)) };
+        })
+      }
     };
   };
 

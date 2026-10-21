@@ -17,7 +17,7 @@
 
   async function nativeSupported() {
     if (!('BarcodeDetector' in window)) return false;
-    try { return (await window.BarcodeDetector.getSupportedFormats()).includes('code_128'); } catch (e) { return false; }
+    try { const f = await window.BarcodeDetector.getSupportedFormats(); return f.includes('code_128') && f.includes('data_matrix'); } catch (e) { return false; }
   }
 
   // Open the camera; onCode(text) is called once with the first barcode read, then the camera closes.
@@ -34,7 +34,7 @@
       title: opts.title || 'Scan with Camera',
       body: `<div class="cam-wrap"><video class="cam-video" playsinline muted hidden></video><div id="cam-reader" class="cam-reader"></div>
           <div class="cam-guide" aria-hidden="true"></div></div>
-        <p class="muted small cam-msg">Hold the barcode flat inside the box, 4–8 inches from the camera. Allow camera access if asked.</p>`,
+        <p class="muted small cam-msg">Hold the label flat inside the box, about 3–6 inches from the camera (small square codes work best close up). Allow camera access if asked.</p>`,
       onClose: () => { done = true; stop(); },
       buttons: [{ label: 'Cancel' }],
       async onOpen(api) {
@@ -46,7 +46,7 @@
             stop = () => stream.getTracks().forEach(t => t.stop());
             if (done) return stop();
             video.srcObject = stream; video.hidden = false; await video.play();
-            const det = new window.BarcodeDetector({ formats: ['code_128', 'qr_code', 'code_39'] });
+            const det = new window.BarcodeDetector({ formats: ['data_matrix', 'code_128', 'qr_code', 'code_39'] });
             const tick = async () => {
               if (done) return;
               try { const found = await det.detect(video); if (found.length) return finish(api, found[0].rawValue); } catch (e) { /* keep trying */ }
@@ -57,10 +57,10 @@
             await loadLib();
             if (done) return;
             const F = window.Html5QrcodeSupportedFormats;
-            const reader = new window.Html5Qrcode('cam-reader', { formatsToSupport: [F.CODE_128, F.CODE_39, F.QR_CODE], verbose: false, experimentalFeatures: { useBarCodeDetectorIfSupported: true } });
+            const reader = new window.Html5Qrcode('cam-reader', { formatsToSupport: [F.DATA_MATRIX, F.CODE_128, F.CODE_39, F.QR_CODE], verbose: false, experimentalFeatures: { useBarCodeDetectorIfSupported: true } });
             let running = false;
             stop = () => { if (running) { running = false; reader.stop().then(() => reader.clear()).catch(() => {}); } };
-            await reader.start({ facingMode: 'environment' }, { fps: 8, videoConstraints: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }, qrbox: (w, h) => ({ width: Math.max(200, Math.floor(w * 0.92)), height: Math.max(80, Math.floor(Math.min(h * 0.5, w * 0.4))) }) }, text => finish(api, text), () => {});
+            await reader.start({ facingMode: 'environment' }, { fps: 8, videoConstraints: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }, qrbox: (w, h) => ({ width: Math.max(200, Math.floor(w * 0.92)), height: Math.max(120, Math.floor(Math.min(h * 0.7, w * 0.55))) }) }, text => finish(api, text), () => {});
             running = true;
             if (done) stop();
           }

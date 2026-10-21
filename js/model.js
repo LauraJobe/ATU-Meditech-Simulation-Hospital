@@ -231,6 +231,19 @@
     }
     return m;
   };
+  // Every printed label for a patient, as on labels.html: medications (base, scenario events, and
+  // orders entered during the sim) and unit-dose products. code = the 8-digit number in the barcode.
+  M.labelSet = function (p) {
+    const meds = [...(p.meds || []), ...(p.events || []).flatMap(e => (e.meds || []).map(m => Object.assign({ eventTitle: e.title, eventId: e.id }, m))), ...M.enteredMeds(p.id)]
+      .filter(m => m.status !== 'Do Not Administer');
+    const units = meds.filter(m => m.type !== 'continuous').flatMap(m => Scan.products(m).map(d => ({ m, d })))
+      .filter((x, i, arr) => arr.findIndex(y => Scan.productCode(y.m, y.d) === Scan.productCode(x.m, x.d)) === i);
+    return {
+      meds: meds.map(m => ({ kind: 'med', m, text: M.barcodeFor(m), code: Scan.shortCode(M.barcodeFor(m)) })),
+      units: units.map(x => ({ kind: 'unit', m: x.m, d: x.d, text: Scan.productCode(x.m, x.d), code: Scan.shortCode(Scan.productCode(x.m, x.d)) }))
+    };
+  };
+
   // Medications from entered orders (for labels and barcode lookups).
   M.enteredMeds = pid => M.enteredOrders(pid).filter(o => o.state === 'active' && o.med).map(M.enteredMed);
 

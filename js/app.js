@@ -205,6 +205,16 @@
         app.innerHTML = toolbar(null) + `<main class="content solo">${Screens.instructor.render()}</main>`;
         Screens.instructor.bind(app);
         document.title = `Instructor Tools · ${C.systemName}`;
+      } else if (r.page === 'barcodes') {
+        // Barcode Check (faculty): scan labels to confirm what they are, without opening a chart.
+        if (!Store.instructorUnlocked()) {
+          location.hash = '#/census';
+          Screens.unlock(() => { location.hash = '#/barcodes'; });
+          return;
+        }
+        app.innerHTML = toolbar(null) + `<main class="content solo">${Screens.barcodes.render()}</main>`;
+        Screens.barcodes.bind(app);
+        document.title = `Barcode Check · ${C.systemName}`;
       } else {
         app.innerHTML = toolbar(null) + `<main class="content solo board">${Screens.census.render()}</main>`;
         Screens.census.bind(app);

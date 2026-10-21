@@ -10,6 +10,11 @@
  *               order matches (e.g., aspirin 81 mg and 325 mg), the nurse picks the order.
  *               "patients" = patients whose ATU MAR lists this package (for the label checklist).
  *
+ * Every medication product has ONE code, the same for every patient (e.g., MED-0020 sodium chloride 0.9%,
+ * MED-0024 D5 1/2 NS, MED-0036 D5 1/2 NS with KCl, MED-0002 LR). Two products of one drug keep separate
+ * codes (MED-0060 acetaminophen, MED-ACET325 acetaminophen 325 mg tablet); each patient's labels use the
+ * package ATU listed for that patient. MED-PRBC is a blood bag: blood is documented on the TAR.
+ *
  * Do not renumber. New codes for new medications must use unused MED numbers (next: MED-0066).
  */
 window.ATU_BARCODES = {
@@ -92,6 +97,10 @@ window.ATU_BARCODES = {
     'MED-0062': { name: "Ephedrine Injection", match: ["^ephedrine"], patients: ["ameliasung"] },
     'MED-0063': { name: "Bupivacaine / fentanyl epidural infusion 0.1% / 2 mcg/mL Epidural solution", match: ["^bupivacaine"], patients: ["ameliasung"] },
     'MED-0064': { name: "Hepatitis B vaccine Injection", match: ["^hepatitis b"], patients: ["babyboysung"] },
-    'MED-0065': { name: "Fentanyl Injection", match: ["^fentanyl"], patients: ["fatimasanogo"] }
+    'MED-0065': { name: "Fentanyl Injection", match: ["^fentanyl"], patients: ["fatimasanogo"] },
+    'MED-ACET325': { name: "Acetaminophen 325 mg tablet", match: ["^acetaminophen"], patients: ["carter","livingston","watkins"] },
+    'MED-HEP10K': { name: "Heparin 10,000 units/10 mL vial", match: ["^heparin bolus"], patients: ["watkins"] },
+    'MED-HEPINF': { name: "Heparin 25,000 units/500 mL infusion bag", match: ["^heparin infusion"], patients: ["watkins"] },
+    'MED-PRBC': { name: "Packed red blood cells blood bag", match: ["^packed red", "prbc"], patients: ["stephaniesmith"], blood: true }
   }
 };

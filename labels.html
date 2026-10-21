@@ -87,15 +87,16 @@
       Choose <strong>Linear (1D)</strong> only if your hand scanner reads lines but not squares. Wristbands always carry a linear code and a square code. The number on each label can also be typed into the scan box. Labels include medications from scenario events and orders entered during the sim.</p>
   </div>
   <div id="out"></div>
-  <script src="js/config.js?v=2026.10.21-3"></script>
-  <script src="js/data/patients.js?v=2026.10.21-3"></script>
-  <script src="js/data/patients-imported.js?v=2026.10.21-3"></script>
-  <script src="js/data/atu-barcodes.js?v=2026.10.21-3"></script>
-  <script src="js/util.js?v=2026.10.21-3"></script>
-  <script src="js/scan.js?v=2026.10.21-3"></script>
-  <script src="js/store.js?v=2026.10.21-3"></script>
-  <script src="js/model.js?v=2026.10.21-3"></script>
-  <script src="js/datamatrix.js?v=2026.10.21-3"></script>
+  <script src="js/config.js?v=2026.10.21-4"></script>
+  <script src="js/data/patients.js?v=2026.10.21-4"></script>
+  <script src="js/data/patients-imported.js?v=2026.10.21-4"></script>
+  <script src="js/data/atu-order-updates.js?v=2026.10.21-4"></script>
+  <script src="js/data/atu-barcodes.js?v=2026.10.21-4"></script>
+  <script src="js/util.js?v=2026.10.21-4"></script>
+  <script src="js/scan.js?v=2026.10.21-4"></script>
+  <script src="js/store.js?v=2026.10.21-4"></script>
+  <script src="js/model.js?v=2026.10.21-4"></script>
+  <script src="js/datamatrix.js?v=2026.10.21-4"></script>
   <script src="js/vendor/qrcode-generator-1.4.4.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
   <script>
@@ -173,8 +174,8 @@
                 <div class="t">
                   <div class="pt">${x.meds.length ? 'For: ' + esc(x.meds.map(m => [m.name, m.dose].filter(Boolean).join(' ')).join('; ')) : '<span class="hat">No order in this chart</span>'}</div>
                   <div class="cd"><span class="num">${esc(x.code)}</span></div></div></div>`).join('')}</div>
-              ${A.unpackaged.length ? `<h3 class="sub">Orders with no ATU package code <span class="note">— hospital labels</span></h3>
-              <div class="sheet">${A.unpackaged.map(x => medLabel(p, x, false)).join('')}</div>` : ''}
+              ${A.unpackaged.length ? `<h3 class="sub">Medications with no ATU package code <span class="note">— hospital product labels (same label for every patient)</span></h3>
+              <div class="sheet">${A.unpackaged.map(x => x.product ? unitLabel(x, false) : medLabel(p, x, false)).join('')}</div>` : ''}
             </section>`;
           }
           return `<section class="patient">

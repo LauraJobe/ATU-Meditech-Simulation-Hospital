@@ -66,8 +66,12 @@
   // ATU package barcodes (js/data/atu-barcodes.js): MED-#### identifies the drug package.
   const ATU = () => window.ATU_BARCODES || { wristbands: {}, packages: {} };
   const pkgMatches = (code, med) => { const k = ATU().packages[code]; return !!(k && med && k.match.some(r => new RegExp(r, 'i').test(med.name))); };
-  // The ATU package code for an order (null if none).
-  const pkgFor = med => Object.keys(ATU().packages).find(c => pkgMatches(c, med)) || null;
+  // The ATU package code for an order (null if none). A drug with two products (e.g., acetaminophen
+  // MED-0060 and MED-ACET325) uses the package ATU listed for that patient.
+  const pkgFor = (med, pid) => {
+    const all = Object.keys(ATU().packages).filter(c => pkgMatches(c, med));
+    return all.find(c => pid && (ATU().packages[c].patients || []).includes(pid)) || all[0] || null;
+  };
   // Patient for a scanned wristband: the MRN, or the ATU 4-digit wristband code.
   function patientOf(code) {
     const c = clean(code);

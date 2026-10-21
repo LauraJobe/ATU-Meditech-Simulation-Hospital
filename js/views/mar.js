@@ -98,6 +98,10 @@
       App.render();
       return;
     }
+    if (parsed.kind === 'pkg' && parsed.pkg.blood) {
+      UI.modal({ title: 'Blood Product', body: `<div class="hard-stop"><strong>${esc(parsed.pkg.name)} (${esc(parsed.code)}).</strong> Blood products are documented on the <strong>TAR</strong> (Document ▾ → Transfusion Administration Record), with the two-RN bedside check — not on the MAR.</div>`, buttons: [{ label: 'OK' }] });
+      return;
+    }
     const matches = parsed.kind === 'rx' ? p.meds.filter(m => m.id === parsed.medId)
       : parsed.kind === 'pkg' ? p.meds.filter(m => Scan.pkgMatches(parsed.code, m))
       : p.meds.filter(m => Scan.drugKey(m) === parsed.key);

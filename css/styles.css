@@ -832,3 +832,8 @@ tr.row-pending { background: #fff8e1; }
 .bc-bar { display: inline-block; vertical-align: middle; width: 180px; height: 10px; margin-left: 10px; background: #e3e8ee; border-radius: 5px; overflow: hidden; }
 .bc-bar span { display: block; height: 100%; background: #2e8b47; }
 .bc-table tr.bc-done { background: #eaf6ed; }
+
+/* Instructor Tools: one patient at a time */
+.ins-pick { position: sticky; top: 52px; z-index: 5; background: var(--bg, #f3f5f8); padding: 6px 0 8px; margin-bottom: 8px; }
+.ins-pick .field { max-width: 640px; margin: 0; }
+.ins-pick select { font-size: 16px; padding: 8px 10px; }

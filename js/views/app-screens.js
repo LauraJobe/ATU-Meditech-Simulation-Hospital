@@ -246,9 +246,21 @@
     });
   };
 
+  // Instructor Tools shows one patient at a time, chosen from a drop-down (remembered for this tab).
+  const PICK_KEY = C.storagePrefix + '.instructorPatient';
+  const pickedPatient = () => { try { return sessionStorage.getItem(PICK_KEY) || ''; } catch (e) { return ''; } };
+  const pickPatient = id => { try { sessionStorage.setItem(PICK_KEY, id); } catch (e) { /* ignore */ } };
+
   Screens.instructor = {
     render() {
-      const pts = Model.allPatients();
+      const all = Model.allPatients();
+      const picked = pickedPatient();
+      const sel = picked === 'all' ? 'all' : (all.find(p => p.id === picked) || all[0] || {}).id;
+      const pts = sel === 'all' ? all : all.filter(p => p.id === sel);
+      const released = p => { const r = Store.released(p.id); return (p.events || []).filter(e => r[e.id]).length; };
+      const picker = `<div class="ins-pick"><label class="field"><span>Patient</span>
+          <select data-action="ins-pick">${all.map(p => `<option value="${esc(p.id)}" ${p.id === sel ? 'selected' : ''}>Level ${esc(p.level || 3)} · ${esc(p.name.last)}, ${esc(p.name.first)} — ${esc(p.unit || '')}${(p.events || []).length ? ` (${released(p)} of ${p.events.length} released)` : ''}</option>`).join('')}
+            <option value="all" ${sel === 'all' ? 'selected' : ''}>— All patients (long list) —</option></select></label></div>`;
       const cards = pts.map(base => {
         const p = Model.get(base.id);
         const doc = Store.doc(p.id);
@@ -287,11 +299,16 @@
           <label class="btn">Add Patient (JSON)<input type="file" accept=".json,application/json" data-action="addpt" hidden></label>
           <button class="btn" data-action="lock">Lock</button>
         </div></div>
-        <div class="alert alert-info">Documentation is saved in <strong>this browser only</strong>. Release events and export charting on the same workstation the student used. "Reset Patient" erases that patient's documentation and restarts the scenario.</div>
+        <div class="alert alert-info">${window.Shared && Shared.on()
+          ? 'This computer is connected to the shared chart: releases and resets reach every connected device. "Reset Patient" erases that patient\'s documentation and restarts the scenario.'
+          : 'Documentation is saved in <strong>this browser only</strong>. Release events and export charting on the same workstation the student used. "Reset Patient" erases that patient\'s documentation and restarts the scenario.'}</div>
+        ${picker}
         ${cards}
       </div>`;
     },
     bind(root) {
+      const pick = root.querySelector('[data-action="ins-pick"]');
+      if (pick) pick.addEventListener('change', () => { pickPatient(pick.value); App.render(); });
       const pts = () => Model.allPatients().map(p => p.id);
       root.querySelectorAll('[data-release]').forEach(b => b.addEventListener('click', () => { const [pid, ev] = b.dataset.release.split('|'); Store.release(pid, ev); UI.toast('Event released to the chart.'); App.render(); }));
       root.querySelectorAll('[data-unrelease]').forEach(b => b.addEventListener('click', () => { const [pid, ev] = b.dataset.unrelease.split('|'); Store.unrelease(pid, ev); App.render(); }));

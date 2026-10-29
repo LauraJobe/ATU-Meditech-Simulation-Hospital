@@ -152,6 +152,18 @@ To refresh after that repository changes: `node tools/import-atu-sim-hospital.cj
 
 On connected computers, orders, approvals, and discontinues are shared like other charting. Students get a "new order — acknowledge it in the Orders tab" notice.
 
+## Individual faculty releases and newborn documentation (October 29, 2026)
+
+Scenario content follows Laura Blasdel's ATU Simulation Hospital (commit `e986b04`), with Laura Jobe's confirmed decisions taking priority (`js/data/atu-scenario-updates.js`).
+
+- **One Release button per clinical item:** each medication order, nonmedication order, result panel, and document is released on its own. A medication release shows the order **and** its MAR entry together. Instructor Tools lists exactly what each button reveals.
+  - Molly Thomas: racepinephrine, dexamethasone, ampicillin-sulbactam (barcode MED-0023), and D5 ½ NS (each order + MAR); oxygen-saturation instruction; chest X-ray order; chest X-ray result with image.
+  - Stephanie Smith: chest X-ray order; chest X-ray result; PRBC transfusion order (1 unit); ceftriaxone 500 mg/100 mL IV every 6 hours; acetaminophen 650 mg; CBC in AM.
+  - Fatima Sanogo (Dr. Nelson): critical CBC; type and crossmatch 2 units PRBC; second IV; transfuse 1 unit O-negative crossmatched PRBCs (TAR); H&H after transfusion; Methergine, Hemabate, Cytotec, and TXA (each order + MAR, with precautions); uterine tamponade balloon; CBC in 6 hours; Foley catheter; fundus checks every 15 minutes; blood bank documentation.
+- **Faculty-only:** teaching guides and expected student actions stay in the instructor-only guide (Fatima's Shift 2 guide, including surgical escalation, the fundus progression, and the A-negative wrong-blood bag; Amelia's Shift 2 delivery packet).
+- **Stephanie's CBC:** one panel with RBC 4.2, and reference ranges shown beside each result.
+- **Newborn documentation (Sung):** Nurse/Allied Health → **Newborn** on both Amelia Sung's and Baby Boy Sung's charts. It opens after faculty release **Delivery completed** (Instructor Tools → Amelia Sung). It holds the **Newborn Head-to-Toe Assessment** (structured after Stanford Medicine's Newborn Exam; nothing pre-marked normal) and the **Newborn Transitional Record** laid out like the hospital paper form (maternal history with circled choices, infant, measurements, MAR medication lines, abnormal findings and feeding, and the vital-signs grid with one column per entry). Everything saves to Baby Boy Sung, appears in Assessment History with author and time, and shows on both charts. Amelia's maternal assessments stay separate.
+
 ## Shared charting across devices (Supabase)
 
 When a device is connected, everything charted on it (vitals, assessments, MAR, notes, I&O, acknowledgments, entered-in-error marks) and every faculty release, clock restart, and reset is saved to the class's shared chart and appears on every other connected device within a few seconds. The EMR Orientation is never shared; practice charting stays on each device.

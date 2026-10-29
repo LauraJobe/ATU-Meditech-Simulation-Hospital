@@ -18,14 +18,16 @@
   // one or more screens (shown as sub-tabs). null = empty tab slot.
   const GROUPS = [
     [{ label: 'Diagnostics', views: ['results'] }, { label: 'Provider Notes', views: ['provnotes'] },
-     { label: 'Nurse/Allied Health', views: ['assess', 'notes'] }, { label: 'Medications', views: ['meds'] }],
+     { label: 'Nurse/Allied Health', views: ['assess', 'notes', 'newborn'] }, { label: 'Medications', views: ['meds'] }],
     [{ label: 'History & Problems', views: ['history'] }, { label: 'Administrative', views: ['admin'] },
      { label: 'Other Clinical', views: ['documents', 'report'] }, null],
     [{ label: 'Summary', views: ['summary'] }, { label: 'Activity', views: ['activity'] },
      { label: 'Flowsheets', views: ['vitals', 'io', 'heparin'] }, { label: 'Health Mgmt', views: ['careplan'] }]
   ];
   const TABS = GROUPS.flat().filter(Boolean).flatMap(g => g.views).concat(['worklist', 'orders', 'tar', 'mar']); // worklist, orders, TAR, and MAR are their own screens
-  const viewsOf = (g, p) => g.views.filter(v => v !== 'heparin' || p.heparinFlowsheet);
+  // Some screens exist only for some patients: the heparin flowsheet, and the Sung newborn documentation.
+  const hasView = (v, p) => (v !== 'heparin' || p.heparinFlowsheet) && (v !== 'newborn' || p.newborn);
+  const viewsOf = (g, p) => g.views.filter(v => hasView(v, p));
   const groupOf = tab => GROUPS.flat().find(g => g && g.views.includes(tab));
 
   const ICON = {
@@ -176,7 +178,7 @@
           return;
         }
         const p = Model.get(r.pid);
-        const tab = TABS.includes(r.tab) && (r.tab !== 'heparin' || p.heparinFlowsheet) ? r.tab : 'summary';
+        const tab = TABS.includes(r.tab) && hasView(r.tab, p) ? r.tab : 'summary';
         const doc = Store.doc(p.id);
         const view = Views[tab];
         App.current = p;
@@ -262,7 +264,7 @@
 
   // Observer mode: block every charting or acknowledging action before its handler runs.
   const BLOCK = ['[data-ack]', '[data-action="ackall"]', '[data-action="verbal"]', '[data-action="new"]', '[data-dose]', '[data-prn]', '[data-infusion]', '[data-titrate]',
-    '[data-effect]', '[data-err]', '[data-tar]', '[data-review]', '[data-wl="document"]', '.wl-row', '[data-docmenu="note"]', '[data-add]', '[data-eval]'].join(',');
+    '[data-effect]', '[data-err]', '[data-tar]', '[data-review]', '[data-nb]', '[data-wl="document"]', '.wl-row', '[data-docmenu="note"]', '[data-add]', '[data-eval]'].join(',');
   const observing = () => Screens.mode() === 'observer';
   document.addEventListener('click', e => {
     if (!observing() || !e.target.closest) return;

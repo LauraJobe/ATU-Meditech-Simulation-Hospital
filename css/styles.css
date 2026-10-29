@@ -837,3 +837,37 @@ tr.row-pending { background: #fff8e1; }
 .ins-pick { position: sticky; top: 52px; z-index: 5; background: var(--bg, #f3f5f8); padding: 6px 0 8px; margin-bottom: 8px; }
 .ins-pick .field { max-width: 640px; margin: 0; }
 .ins-pick select { font-size: 16px; padding: 8px 10px; }
+.ev-items { margin: 4px 0 0; padding-left: 18px; font-size: 12px; color: #4a5260; }
+.ev-items li { margin: 1px 0; }
+.ev-kind { display: inline-block; font-weight: 700; color: #1c4568; margin-right: 4px; }
+
+/* Newborn documentation (Sung) — Transitional Record in a paper hospital-record layout */
+.nb-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; margin: 0 0 10px; }
+.nb-actions .btn { margin: 4px 0 4px 6px; }
+.tr-form { background: #fff; border: 2px solid #1b2733; padding: 10px; font-size: 13px; }
+.tr-title { text-align: center; border-bottom: 2px solid #1b2733; padding-bottom: 6px; margin-bottom: 8px; }
+.tr-title strong { display: block; font-size: 16px; letter-spacing: .06em; }
+.tr-id { font-size: 12px; margin-top: 2px; }
+.tr-sec { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+.tr-sec th { background: #dfe5ec; border: 1px solid #1b2733; text-align: left; padding: 3px 6px; font-size: 12px; letter-spacing: .03em; text-transform: uppercase; }
+.tr-sec td { border: 1px solid #8a96a3; padding: 3px 6px; vertical-align: top; }
+.tr-sec td.tr-l { width: 18%; background: #f6f8fa; font-weight: 600; font-size: 12px; }
+.tr-sec td.tr-v { width: 32%; }
+.tr-conf { color: #4a5260; }
+.tr-by { color: #6b7684; font-size: 11px; }
+.tr-vs th { text-transform: none; font-size: 11px; }
+.tr-vs td { font-size: 12px; }
+/* Transitional Record rows like the paper form: "Label: ____" lines and circled choices */
+.tr-box { border: 1px solid #1b2733; margin-bottom: 8px; padding: 4px 8px 6px; }
+.tr-h { text-align: center; font-weight: 800; letter-spacing: .04em; border-bottom: 1px solid #1b2733; margin: 0 -8px 4px; padding-bottom: 2px; }
+.tr-cols { display: grid; grid-template-columns: 1.15fr 1fr; }
+.tr-cols > div + div { border-left: 1px solid #1b2733; padding-left: 8px; }
+.tr-row { display: flex; flex-wrap: wrap; border-bottom: 1px solid #c3cad3; padding: 3px 0; }
+.tr-row:last-child { border-bottom: 0; }
+.tr-f { margin-right: 14px; }
+.tr-lab { font-weight: 600; }
+.tr-line { display: inline-block; min-width: 70px; border-bottom: 1px solid #6b7684; padding: 0 3px; }
+.tr-line.tr-area { display: block; min-height: 2.2em; min-width: 0; }
+.tr-opt { padding: 0 4px; }
+.tr-opt.tr-on { border: 2px solid #1b2733; border-radius: 50%; font-weight: 700; }
+@media (max-width: 760px) { .tr-cols { grid-template-columns: 1fr; } .tr-cols > div + div { border-left: 0; padding-left: 0; } }

@@ -147,6 +147,8 @@
           delete values._time;
           const body = el.querySelector('.modal-body');
           const wdlSecs = form.sections.filter(s => s.wdl);
+          const required = form.sections.flatMap(s => (s.fields || []).filter(f => f.required && U.isEmpty(values[`${s.id}.${f.id}`])).map(f => f.label));
+          if (required.length) { UI.formError(body, 'Complete: ' + required.join(', ')); return false; }
           if (wdlSecs.length) {
             const missing = wdlSecs.filter(s => !values[`${s.id}.wdl`]);
             if (missing.length) { UI.formError(body, 'Choose WDL, WDL Except, or Not assessed for: ' + missing.map(s => s.title).join(', ')); return false; }

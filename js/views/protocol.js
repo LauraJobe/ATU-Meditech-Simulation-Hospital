@@ -4,7 +4,7 @@
  * heparin.js; it uses the same protocol display.
  *
  * Patient data: p.protocols = { key: { title, items: [[label, text], ...],
- *   table: { head: [...], rows: [[...], ...] }, tableTitle, signedBy } }
+ *   table: { head: [...], rows: [[...], ...] }, tableTitle, tables: [{ title, head, rows }], signedBy } }
  * and an order or med carries protocol: 'key'.
  */
 (function () {
@@ -18,7 +18,9 @@
     if (!pr) return UI.empty('Protocol not on file.');
     return `<dl class="kv">${(pr.items || []).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}${pr.signedBy ? `<dt>Signed</dt><dd>${esc(pr.signedBy)}</dd>` : ''}</dl>
       ${pr.table ? `<h4>${esc(pr.tableTitle || '')}</h4><div class="scroll-x"><table class="grid"><thead><tr>${pr.table.head.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead>
-        <tbody>${pr.table.rows.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>` : ''}`;
+        <tbody>${pr.table.rows.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>` : ''}
+      ${(pr.tables || []).map(t => `<h4>${esc(t.title || '')}</h4><div class="scroll-x"><table class="grid"><thead><tr>${t.head.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead>
+        <tbody>${t.rows.map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`).join('')}`;
   }
 
   // The "P" button shown at the end of an order or medication line.

@@ -131,6 +131,9 @@
     // Anything not confirmed stays blank for the student to complete.
     const confirmed = {
       gbs: 'Pos', abx: 'Clindamycin 900 mg IVPB', abxTimes: 'One dose before delivery', diab: 'Yes', diabCtl: 'Diet',
+      // Marked on the faculty's Transitional Record photo (October 29, 2026): keep as documented.
+      rubella: 'Immune', chlam: 'No', herpes: 'No', gon: 'No', smoker: 'No', drugs: 'No',
+      band: '31539', dob: 'Today', tob: '1235', present: 'Ceph', mec: 'No',
       gravida: '2', para: '1 (before this delivery)', bloodType: 'O positive', anes: 'Epidural', feedPref: 'Breast',
       mOther: 'Clindamycin is not adequate GBS prophylaxis — observe for early-onset GBS per unit protocol. Shoulder dystocia (left shoulder) — McRoberts and suprapubic pressure; nuchal cord; PPV for 30 seconds.',
       obMd: 'Dr. Darnell', ped: 'Dr. Craig', sex: 'Male', delivery: 'Vaginal', useOf: 'Vac', apgar1: '6', apgar5: '8',

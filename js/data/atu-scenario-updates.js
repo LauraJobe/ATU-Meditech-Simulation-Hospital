@@ -24,14 +24,18 @@
     const race = Object.assign(medOf(p, 'moll-racepinephrine-101'), { orderedBy: by,
       instructions: '0.5 mL mixed with 3 mL of sodium chloride 0.9% (Normal Saline), to be given by respiratory therapy. Call respiratory when needed.' });
     const dexa = Object.assign(medOf(p, 'moll-dexamethasone-102'), { orderedBy: by, instructions: 'Dexamethasone (Decadron) 0.6 mg/kg IV now.' });
-    const amp = Object.assign(medOf(p, 'moll-ampicillin-103'), { orderedBy: by });
+    // Confirmed: ampicillin-sulbactam (dose, route, and frequency as in the source). Barcode stays MED-0023.
+    const amp = Object.assign(medOf(p, 'moll-ampicillin-103'), { name: 'Ampicillin-sulbactam', orderedBy: by });
     const d5 = Object.assign(medOf(p, 'moll-dextrose-5-in-0-45-sodiu-104'), { orderedBy: by,
       instructions: 'IV at daily maintenance rate after void during bolus.' });
     const cxr = evOf(p, 'mollythomas-ev1');
+    // An older chart page listed the Shift 2 orders in a table visible from the start; the source chart no
+    // longer has it, and it would show orders before faculty release them.
+    p.documents = (p.documents || []).filter(d => d.id !== 'mollythomas-d13');
     p.events = [
       { id: 'mollythomas-ev4', title: 'Racepinephrine (Asthmanefrin) 2.25% inhalation — order + MAR', meds: [race] },
       { id: 'mollythomas-ev5', title: 'Dexamethasone (Decadron) 0.6 mg/kg IV now — order + MAR', meds: [dexa] },
-      { id: 'mollythomas-ev6', title: 'Ampicillin (Principen) 50 mg/kg IV every 6 hours — order + MAR', meds: [amp] },
+      { id: 'mollythomas-ev6', title: 'Ampicillin-sulbactam 50 mg/kg IV every 6 hours — order + MAR', meds: [amp] },
       { id: 'mollythomas-ev7', title: 'D5 1/2 NS IV at daily maintenance rate after void during bolus — order + MAR', meds: [d5] },
       { id: 'moll-o2', title: 'Maintain oxygen saturation at 92% or greater — order', orders: [order('moll-o2-o', 'Respiratory', 'Maintain oxygen saturation at 92% or greater.', by)] },
       { id: 'moll-cxr-order', title: 'Chest X-ray — order', orders: [order('moll-cxr-o', 'Imaging', 'Chest X-ray.', by)] },

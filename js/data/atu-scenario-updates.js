@@ -130,14 +130,11 @@
     // Confirmed scenario facts shown on the Newborn Transitional Record (from the source charts and orders).
     // Anything not confirmed stays blank for the student to complete.
     const confirmed = {
-      mName: 'Amelia Sung', mAge: '36', mGP: 'G2 P1 (before this delivery)', mEga: '39 weeks 1 day', mBlood: 'O positive', mGbs: 'Positive',
-      mAbx: 'Clindamycin 900 mg IVPB — one dose before delivery (not adequate GBS prophylaxis)', mCond: 'Diet-controlled gestational diabetes',
-      mAllergy: 'Shellfish, penicillin', mAnes: 'Epidural — bupivacaine 0.1% with fentanyl 2 mcg/mL',
-      dType: 'Vaginal, vacuum-assisted', dProvider: 'Dr. Darnell', dRom: 'AROM; clear fluid',
-      dComp: 'Shoulder dystocia (left shoulder) — McRoberts and suprapubic pressure; nuchal cord',
-      dResus: 'Dried, stimulated, wet towels removed; PPV for 30 seconds', dApgar1: '6', dApgar5: '8',
-      iName: 'Baby Boy Sung', iSex: 'Male', iMrn: '201042', iEga: '39 weeks 1 day',
-      wt: '4,080 g (9 lb 0 oz)', fPlan: 'Breastfeeding', fFirst: 'Breastfed for 20 minutes'
+      gbs: 'Pos', abx: 'Clindamycin 900 mg IVPB', abxTimes: 'One dose before delivery', diab: 'Yes', diabCtl: 'Diet',
+      gravida: '2', para: '1 (before this delivery)', bloodType: 'O positive', anes: 'Epidural', feedPref: 'Breast',
+      mOther: 'Clindamycin is not adequate GBS prophylaxis — observe for early-onset GBS per unit protocol. Shoulder dystocia (left shoulder) — McRoberts and suprapubic pressure; nuchal cord; PPV for 30 seconds.',
+      obMd: 'Dr. Darnell', ped: 'Dr. Craig', sex: 'Male', delivery: 'Vaginal', useOf: 'Vac', apgar1: '6', apgar5: '8',
+      gestDates: '39 weeks 1 day', wtG: '4,080', wtLb: '9', wtOz: '0'
     };
     const newborn = { chart: 'babyboysung', deliveryPid: 'ameliasung', deliveryEvent: 'sung-delivery', confirmed };
     a.newborn = newborn; b.newborn = newborn;

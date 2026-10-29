@@ -109,20 +109,49 @@
     ]
   };
 
-  // Transitional Record fields; "confirmed" values come from p.newborn.confirmed (shown, not editable).
+  // Newborn Transitional Record — follows the hospital paper form (sections, field order, circle choices, and the
+  // vital-signs grid). Field: [id, label, choices?] — choices are circled on paper (one per field).
+  // "confirmed" values come from p.newborn.confirmed (scenario facts; shown, not editable). Handwritten examples on
+  // the paper form are NOT used; blanks stay blank for the student.
+  const YN = ['Yes', 'No'], PM = ['+', '−'], TX = ['Y', 'N'];
   const TR = [
-    { id: 'maternal', title: 'Maternal History', fields: [['mName', "Mother's name"], ['mAge', 'Age'], ['mGP', 'Gravida / para'], ['mEga', 'Gestational age'], ['mBlood', 'Blood type / Rh'],
-      ['mGbs', 'GBS'], ['mAbx', 'Antibiotics in labor'], ['mCond', 'Maternal conditions'], ['mAllergy', 'Maternal allergies'], ['mAnes', 'Anesthesia / analgesia'],
-      ['mRubella', 'Rubella'], ['mHbsag', 'HBsAg'], ['mHiv', 'HIV'], ['mRpr', 'RPR / syphilis']] },
-    { id: 'delivery', title: 'Delivery Information', fields: [['dDate', 'Date of birth'], ['dTime', 'Time of birth'], ['dType', 'Type of delivery'], ['dProvider', 'Delivering provider'],
-      ['dRom', 'Membranes / amniotic fluid'], ['dComp', 'Complications'], ['dResus', 'Resuscitation'], ['dApgar1', 'Apgar 1 minute'], ['dApgar5', 'Apgar 5 minutes'], ['dApgar10', 'Apgar 10 minutes'], ['dCord', 'Cord vessels / cord blood']] },
-    { id: 'infant', title: 'Infant Information', fields: [['iName', 'Infant'], ['iSex', 'Sex'], ['iMrn', 'MRN'], ['iBand', 'ID band number'], ['iEga', 'Gestational age'], ['iPeds', 'Pediatric provider'], ['iTo', 'Transferred to / time']] },
-    { id: 'measure', title: 'Measurements', fields: [['wt', 'Weight'], ['len', 'Length (cm)'], ['hc', 'Head circumference (cm)'], ['cc', 'Chest circumference (cm)'], ['ac', 'Abdominal circumference (cm)']] },
-    { id: 'feeding', title: 'Feeding', fields: [['fPlan', 'Feeding plan'], ['fFirst', 'First feeding'], ['fTime', 'Time of first feeding'], ['fLatch', 'Latch / suck'], ['fTol', 'Tolerance'], ['fGlu', 'Blood glucose (mg/dL) / time']] },
-    { id: 'abnormal', title: 'Abnormal Findings', fields: [['abn', 'Abnormal findings', true], ['abnInt', 'Interventions', true], ['abnProv', 'Provider notified / time / response']] }
+    { id: 'maternal', title: 'Maternal History', cols: [
+      [[['gbs', 'GBS', ['Pos', 'Neg']], ['abx', 'Antibiotic'], ['abxTimes', 'Times']],
+        [['rubella', 'Rubella', ['Immune', 'NonImmune', 'Equivocal']]],
+        [['chlam', 'Chlamydia history', YN], ['chlamTx', 'Treated', TX]],
+        [['herpes', 'Herpes history', YN], ['herpesTx', 'Treated', TX]],
+        [['gon', 'Gonorrhea history', YN], ['gonTx', 'Treated', TX]],
+        [['diab', 'Diabetes history', YN], ['diabCtl', 'Controlled', ['Diet', 'Insulin']]],
+        [['pih', 'PIH history', YN], ['mag', 'Magnesium', TX]],
+        [['smoker', 'Smoker', YN], ['cigs', 'Cigs / day']],
+        [['drugs', 'Illegal drug use', YN], ['substance', 'Substance']],
+        [['urine', 'If yes, urine collected'], ['cordCol', 'Cord collected']]],
+      [[['hepb', 'Hep B', PM]], [['vdrl', 'VDRL', PM]], [['hiv', 'HIV', PM]],
+        [['gravida', 'Gravida'], ['para', 'Para']], [['edc', 'EDC']], [['bloodType', 'Blood type']],
+        [['romDate', 'Rupture of membranes: date'], ['romTime', 'Time']],
+        [['anes', 'Anesthesia', ['Epidural', 'Spinal', 'General']]],
+        [['feedPref', 'Feeding preference', ['Breast', 'Bottle', 'Both']]],
+        [['mOther', 'Other', null, true]]]] },
+    { id: 'infant', title: 'Infant', rows: [
+      [['band', 'Band #'], ['obMd', 'Physician: OB'], ['ped', 'Ped']],
+      [['dob', 'Date of birth'], ['tob', 'Time'], ['sex', 'Sex', ['Male', 'Female']], ['present', 'Presentation', ['Ceph', 'Breech']], ['apgar1', 'Apgar 1 min'], ['apgar5', '5 min'], ['apgar10', '10 min']],
+      [['delivery', 'Delivery', ['Vaginal', 'C-Section']], ['csReason', 'C/S reason'], ['mec', 'Meconium del', YN], ['useOf', 'Use of', ['Forceps', 'Vac', 'N/A']], ['output', 'Output', ['Void', 'Stool', 'Both', 'None']], ['delee', 'DeLee (mL)']],
+      [['cordSent', 'Cord blood: sent'], ['cordTime', 'Time'], ['cordOrd', 'Ordered'], ['labTime', 'Lab: time'], ['hct', 'Hct'], ['hgb', 'Hgb'], ['gluc', 'Gluc']],
+      [['gestDates', 'Gest age by: dates'], ['gestExam', 'Exam'], ['size', 'Size', ['AGA', 'LGA', 'SGA']], ['bath', 'Bath']],
+      [['wtG', 'Weight (gms)'], ['wtLb', 'lb'], ['wtOz', 'oz'], ['lenCm', 'Length (cm)'], ['lenIn', 'in'], ['hcCm', 'Head circ (cm)'], ['hcIn', 'in'],
+        ['ccCm', 'Chest circ (cm)'], ['ccIn', 'in'], ['acCm', 'Abd circ (cm)'], ['acIn', 'in'], ['secTag', 'Security tag']]] },
+    { id: 'meds', title: 'Medications (from the approved orders; time and site come from the MAR)', rows: [
+      [['eryDecl', 'Erythromycin declined', YN], ['vitkDecl', 'Vitamin K declined', YN], ['hepbConsent', 'Hep B consent signed', YN], ['hepbLot', 'Hep B lot #'], ['hepbDecl', 'Hep B declined', YN]]] },
+    { id: 'findings', title: 'Abnormal Findings and Feeding', rows: [
+      [['abn', 'Abnormal findings', null, true]],
+      [['breastR', 'Feeding: breast R (min)'], ['breastL', 'L (min)'], ['bottle', 'Bottle (mL)']]] }
   ];
-  const TR_FORM = { title: 'Newborn Transitional Record', newborn: true, sections: TR.map(s => ({ id: s.id, title: s.title, fields: s.fields.map(([id, label, area]) => ({ id, label, type: area ? 'textarea' : 'text' })) })) };
-  const VS_COLS = [['temp', 'Axillary temp (°F)'], ['hr', 'Heart rate'], ['rr', 'Resp. rate'], ['spo2', 'SpO₂ (%)'], ['bpArm', 'BP right arm'], ['bpLeg', 'BP right leg'], ['distress', 'Signs of distress'], ['other', 'Other observations'], ['initials', 'Initials']];
+  const SEC_OF = {};   // field id -> section id (saved values are "section.field", like other forms)
+  TR.forEach(s => (s.cols ? s.cols.flat() : s.rows).forEach(r => r.forEach(f => { SEC_OF[f[0]] = s.id; })));
+  const TR_FORM = { title: 'Newborn Transitional Record', newborn: true, sections: TR.map(s => ({ id: s.id, title: s.title,
+    fields: (s.cols ? s.cols.flat() : s.rows).flat().map(([id, label, , area]) => ({ id, label, type: area ? 'textarea' : 'text' })) })) };
+  // Vital signs grid: one column per saved entry, rows as on the paper form.
+  const VS_COLS = [['temp', 'Axillary Temp'], ['hr', 'Heart Rate'], ['rr', 'Resp Rate'], ['spo2', 'O2 Sats'], ['bpArm', 'BP R Arm'], ['bpLeg', 'BP R Leg'], ['distress', 'S/S Distress'], ['other', 'Other'], ['initials', 'Initials']];
   const VS_FORM = { title: 'Transitional Record — Vital Signs', newborn: true, sections: [{ id: 'vs', title: 'Vital signs', fields: VS_COLS.map(([id, label]) => ({ id, label, type: 'text' })) }],
     summary: d => VS_COLS.slice(0, 6).map(([k, l]) => d.values['vs.' + k] ? `${l.replace(/ \(.*\)/, '')} ${d.values['vs.' + k]}` : '').filter(Boolean).join(' · ') || 'Vital signs row' };
   window.ASSESSMENT_FORMS = Object.assign(window.ASSESSMENT_FORMS || {}, { 'newborn-h2t': H2T, 'newborn-transition': TR_FORM, 'newborn-tr-vs': VS_FORM });
@@ -140,34 +169,43 @@
   }
   const initialsOf = name => String(name || '').split(/\s+/).filter(Boolean).map(w => w[0].toUpperCase()).join('').slice(0, 3);
 
-  // Medication documentation references: straight from the baby's MAR (documented there, not here).
+  // Medication lines of the paper form, from the CURRENT APPROVED ORDERS on the baby's MAR (documented on the MAR).
   function medRefs(b, doc) {
     return b.meds.map(m => {
       const given = doc.mar.filter(e => e.status === 'active' && e.data.medId === m.id && e.data.action === 'Given').sort((x, y) => y.time - x.time)[0];
-      return `<tr><td>${esc(Model.medLabel(m))}</td><td>${given ? `Given ${esc(U.fmtDT(given.time))} · ${esc(initialsOf(given.user.name))}` : '<span class="muted">Not documented on the MAR</span>'}</td></tr>`;
-    }).join('');
+      const site = given && (given.data.site || given.data.siteDesc);
+      return `<tr><td>${esc(Model.medLabel(m))}</td><td>${given ? `Time: ${esc(U.fmtDT(given.time))}${site ? ` · Site: ${esc(site)}` : ''} · ${esc(initialsOf(given.user.name))}` : '<span class="muted">Not documented on the MAR</span>'}</td></tr>`;
+    }).join('') + '<tr><td>HBIG 0.5 mL IM</td><td class="muted">No order — N/A</td></tr>';
   }
 
   function recordHtml(p, b, doc) {
     const conf = cfg(p).confirmed || {};
     const vals = trValues(doc);
-    const cell = ([id, label]) => {
+    const val = ([id, label, choices, area]) => {
       const c = conf[id], s = vals[id];
-      const v = c != null ? `<span class="tr-conf">${esc(c)}</span>` : s ? `${esc(Array.isArray(s.v) ? s.v.join(', ') : s.v)} <span class="tr-by">${esc(initialsOf(s.e.user.name))} ${esc(U.fmtTime(s.e.time))}</span>` : '';
-      return `<td class="tr-l">${esc(label)}</td><td class="tr-v">${v}</td>`;
+      const v = c != null ? c : s ? (Array.isArray(s.v) ? s.v.join(', ') : s.v) : '';
+      const by = c == null && s ? ` <span class="tr-by">${esc(initialsOf(s.e.user.name))} ${esc(U.fmtTime(s.e.time))}</span>` : '';
+      const body = choices ? choices.map(o => `<span class="tr-opt ${o === v ? 'tr-on' : ''}">${esc(o)}</span>`).join(' / ')
+        : `<span class="tr-line ${area ? 'tr-area' : ''}">${v ? `<span class="${c != null ? 'tr-conf' : ''}">${esc(v)}</span>` : ''}</span>`;
+      return `<span class="tr-f"><span class="tr-lab">${esc(label)}:</span> ${body}${by}</span>`;
     };
-    const rows = fields => { let h = ''; for (let i = 0; i < fields.length; i += 2) h += `<tr>${cell(fields[i])}${fields[i + 1] ? cell(fields[i + 1]) : '<td></td><td></td>'}</tr>`; return h; };
+    const row = r => `<div class="tr-row">${r.map(val).join('')}</div>`;
+    const sec = s => `<div class="tr-box"><div class="tr-h">${esc(s.title.toUpperCase())}</div>
+      ${s.cols ? `<div class="tr-cols">${s.cols.map(col => `<div>${col.map(row).join('')}</div>`).join('')}</div>` : s.rows.map(row).join('')}
+      ${s.id === 'meds' ? `<table class="tr-sec"><tbody>${medRefs(b, doc)}</tbody></table>` : ''}</div>`;
     const vs = live(doc, 'newborn-tr-vs');
+    const cols = Math.max(vs.length, 5);
+    const vsGrid = `<table class="tr-sec tr-vs"><thead><tr><th colspan="${cols + 1}">VITAL SIGNS</th></tr></thead><tbody>
+      <tr><td class="tr-l">Time</td>${Array.from({ length: cols }, (_, i) => `<td class="nowrap">${vs[i] ? esc(U.fmtDT(vs[i].time)) : ''}</td>`).join('')}</tr>
+      ${VS_COLS.map(([k, l]) => `<tr><td class="tr-l">${esc(l)}</td>${Array.from({ length: cols }, (_, i) => `<td>${vs[i] ? esc(vs[i].data.values['vs.' + k] || '') : ''}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+    const nurses = [...new Set(live(doc, 'newborn-transition').concat(vs).map(e => Model.signature(e)))];
     return `<div class="tr-form">
       <div class="tr-title"><div>${esc(window.EHR_CONFIG.hospitalName)}</div><strong>NEWBORN TRANSITIONAL RECORD</strong>
         <div class="tr-id">${esc(b.name.last.toUpperCase())}, ${esc(b.name.first)} · MRN ${esc(b.mrn)} · ${esc(b.unit)}</div></div>
-      ${TR.map(sec => `<table class="tr-sec"><thead><tr><th colspan="4">${esc(sec.title)}</th></tr></thead><tbody>${rows(sec.fields)}</tbody></table>`).join('')}
-      <table class="tr-sec"><thead><tr><th colspan="2">Medications — documented on the MAR (current approved orders)</th></tr></thead><tbody>${medRefs(b, doc)}</tbody></table>
-      <table class="tr-sec tr-vs"><thead><tr><th colspan="${VS_COLS.length + 1}">Vital Signs</th></tr>
-        <tr><th>Date / time</th>${VS_COLS.map(([, l]) => `<th>${esc(l)}</th>`).join('')}</tr></thead>
-        <tbody>${vs.length ? vs.map(e => `<tr><td class="nowrap">${esc(U.fmtDT(e.time))}</td>${VS_COLS.map(([k]) => `<td>${esc(e.data.values['vs.' + k] || '')}</td>`).join('')}</tr>`).join('')
-          : `<tr><td colspan="${VS_COLS.length + 1}" class="muted">No vital signs recorded yet.</td></tr>`}</tbody></table>
-      <p class="muted small">Gray values are confirmed scenario information. Other entries show the documenting nurse's initials and time; full author and date/time are in Assessment History.</p>
+      ${TR.map(sec).join('')}
+      ${vsGrid}
+      <div class="tr-row"><span class="tr-f"><span class="tr-lab">Nurse signature:</span> <span class="tr-line">${esc(nurses.join('; '))}</span></span></div>
+      <p class="muted small">Gray values are confirmed scenario information; circled choices are what was documented. Initials and time follow each entry; full author and date/time are in Assessment History.</p>
     </div>`;
   }
 
@@ -176,25 +214,28 @@
 
   function openRecord(p) {
     const b = babyOf(p), doc = Store.doc(b.id), conf = cfg(p).confirmed || {}, vals = trValues(doc);
-    const input = ([id, label, area]) => conf[id] != null
-      ? `<label class="field"><span>${esc(label)}</span><input value="${esc(conf[id])}" disabled title="Confirmed scenario information"></label>`
-      : area ? `<label class="field wide"><span>${esc(label)}</span><textarea name="${sectionOf(id)}.${id}" rows="2"></textarea></label>`
-        : `<label class="field"><span>${esc(label)}</span><input name="${sectionOf(id)}.${id}" placeholder="${vals[id] ? esc('Current: ' + vals[id].v) : ''}"></label>`;
+    const input = ([id, label, choices, area]) => {
+      if (conf[id] != null) return `<label class="field"><span>${esc(label)}</span><input value="${esc(conf[id])}" disabled title="Confirmed scenario information"></label>`;
+      const cur = vals[id] ? vals[id].v : '';
+      if (choices) return `<fieldset class="field checks"><legend>${esc(label)}</legend>${choices.map(o => `<label class="check"><input type="radio" name="${SEC_OF[id]}.${id}" value="${esc(o)}" ${o === cur ? 'checked' : ''}> ${esc(o)}</label>`).join('')}</fieldset>`;
+      if (area) return `<label class="field wide"><span>${esc(label)}</span><textarea name="${SEC_OF[id]}.${id}" rows="2" placeholder="${cur ? esc('Current: ' + cur) : ''}"></textarea></label>`;
+      return `<label class="field"><span>${esc(label)}</span><input name="${SEC_OF[id]}.${id}" placeholder="${cur ? esc('Current: ' + cur) : ''}"></label>`;
+    };
     UI.modal({
       title: 'Newborn Transitional Record', wide: true,
-      body: `<p class="muted">Saves to Baby Boy Sung's record. Confirmed scenario information is filled in and locked; complete the blanks you assess. Leave unknown items blank. Medications are documented on the MAR; vital signs use "Add Vital Signs".</p>
+      body: `<p class="muted">Saves to Baby Boy Sung's record. Confirmed scenario information is filled in and locked; complete what you assess and leave unknown items blank. Medications are documented on the MAR; vital signs use "Add Vital Signs".</p>
         <form class="assess-form"><div class="form-grid">${UI.timeField(b, 'Date/time documented')}</div>
-        ${TR.map(sec => `<fieldset class="form-sec"><legend>${esc(sec.title)}</legend><div class="form-grid">${sec.fields.map(input).join('')}</div></fieldset>`).join('')}</form>`,
+        ${TR.map(s => `<fieldset class="form-sec"><legend>${esc(s.title)}</legend><div class="form-grid">${(s.cols ? s.cols.flat() : s.rows).flat().map(input).join('')}</div></fieldset>`).join('')}</form>`,
       buttons: [{ label: 'Cancel' }, { label: 'Sign & Save', cls: 'btn-primary', onClick: api => {
         const values = U.formValues(api.el.querySelector('.assess-form')); const time = UI.readTime(b, api.el); delete values._time;
-        Object.keys(values).forEach(k => { if (U.isEmpty(values[k])) delete values[k]; });
-        if (!Object.keys(values).length) { UI.formError(api.el.querySelector('.modal-body'), 'Nothing has been documented.'); return false; }
+        // Only what changed: a choice that is still the current value is not saved again.
+        Object.keys(values).forEach(k => { const id = k.split('.').pop(); if (U.isEmpty(values[k]) || (vals[id] && vals[id].v === values[k])) delete values[k]; });
+        if (!Object.keys(values).length) { UI.formError(api.el.querySelector('.modal-body'), 'Nothing new has been documented.'); return false; }
         if (!Store.add(b.id, 'assess', { formId: 'newborn-transition', values }, time, b.clock.now())) return false;
         UI.toast('Transitional Record saved to Baby Boy Sung.'); App.render();
       } }]
     });
   }
-  function sectionOf(id) { const s = TR.find(x => x.fields.some(f => f[0] === id)); return s ? s.id : 'tr'; }
 
   function openVitals(p) {
     const b = babyOf(p), s = Store.session() || {};

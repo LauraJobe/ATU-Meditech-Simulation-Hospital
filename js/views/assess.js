@@ -52,6 +52,7 @@
   }
 
   function summary(form, d) {
+    if (form.summary) return form.summary(d);
     if (form.scored) return `Total ${d.total} — ${d.interp}`;
     if (form.sections.some(s => s.wdl)) {
       const exc = form.sections.filter(s => d.values[`${s.id}.wdl`] === 'WDL Except').map(s => s.title);
@@ -97,8 +98,16 @@
       const prior = (p.priorAssessments || []).map(a => `<details class="prior"><summary>${esc(a.title)} — ${esc(U.fmtDT(a.time))} · ${esc(a.author)}</summary>
           ${a.sections.map(([t, x]) => `<div class="detail-row"><strong>${esc(t)}:</strong> ${esc(x)}</div>`).join('')}</details>`).join('');
 
+      // Amelia Sung: newborn documentation is saved to Baby Boy Sung; list it separately from her own assessments.
+      let newborn = '';
+      if (p.newborn && p.newborn.chart !== p.id) {
+        const nb = Store.doc(p.newborn.chart).assess.filter(e => FORMS()[e.data.formId] && FORMS()[e.data.formId].newborn).sort((a, b) => b.time - a.time);
+        newborn = UI.panel('Newborn Documentation — saved to Baby Boy Sung', nb.length ? `<table class="grid"><thead><tr><th>Date/time</th><th>Form</th><th>Summary</th><th>Documented by</th></tr></thead><tbody>
+          ${nb.map(e => `<tr class="${e.status === 'error' ? 'error-row' : ''}"><td class="nowrap">${esc(U.fmtDT(e.time))}</td><td>${esc(FORMS()[e.data.formId].title)}</td><td>${esc(summary(FORMS()[e.data.formId], e.data))}</td><td>${esc(Model.signature(e))}</td></tr>`).join('')}</tbody></table>
+          <p class="muted small">Open the <a href="#/patient/${esc(p.id)}/newborn">Newborn</a> tab to document or view details.</p>` : UI.empty('No newborn documentation yet.'));
+      }
       return `${how}
-        ${UI.panel('Assessment History', hist)}
+        ${UI.panel('Assessment History', hist)}${newborn}
         ${prior ? UI.panel('Prior Assessments (previous shift)', prior) : ''}`;
     },
     bind(root, p, doc) {

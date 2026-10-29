@@ -251,6 +251,21 @@
   const pickedPatient = () => { try { return sessionStorage.getItem(PICK_KEY) || ''; } catch (e) { return ''; } };
   const pickPatient = id => { try { sessionStorage.setItem(PICK_KEY, id); } catch (e) { /* ignore */ } };
 
+  // Exactly what one Release button reveals to students.
+  function releaseItems(ev, base) {
+    const out = [];
+    (ev.meds || []).forEach(m => out.push(['Medication order + MAR', Model.medLabel(m)]));
+    (ev.orders || []).forEach(o => out.push([o.cat === 'Blood Products' ? 'Transfusion order (TAR)' : 'Order', o.text]));
+    (ev.labs || []).forEach(l => out.push(['Result', l.panel]));
+    (ev.imaging || []).forEach(i => out.push(['Result', `${i.study}${(i.images || []).length ? ' (with image)' : ''}`]));
+    (ev.documents || []).forEach(d => out.push(['Document', d.title]));
+    (ev.notes || []).forEach(n => out.push(['Note', n.title || n.type || 'Note']));
+    (ev.vitals || []).forEach(() => out.push(['Vital signs', 'Vital-sign row']));
+    (ev.discontinue || []).forEach(id => { const m = ((base && base.meds) || []).find(x => x.id === id); out.push(['Discontinues', m ? Model.medLabel(m) : id]); });
+    if (ev.delivery) out.push(['Delivery', 'Opens the newborn documentation on both Sung charts']);
+    return out;
+  }
+
   Screens.instructor = {
     render() {
       const all = Model.allPatients();
@@ -281,7 +296,7 @@
             ${p.labsPending ? `<p class="warn-box">${esc(p.labsPending)}</p>` : ''}
             ${(base.events || []).length ? `<h3>Scenario events</h3>${base.events.map(ev => `<div class="event ${rel[ev.id] ? 'event-on' : ''}">
                 <div><strong>${esc(ev.title)}</strong>
-                  <div class="muted small">${[(ev.orders || []).length && (ev.orders.length + ' order(s)'), (ev.meds || []).length && (ev.meds.length + ' med(s)'), (ev.labs || []).length && (ev.labs.length + ' result panel(s)')].filter(Boolean).join(' · ')}</div>
+                  <ul class="ev-items">${releaseItems(ev, base).map(([k, t]) => `<li><span class="ev-kind">${esc(k)}</span> ${esc(t)}</li>`).join('')}</ul>
                   ${ev.instructorNotes ? `<details><summary>Instructor notes</summary><p>${esc(ev.instructorNotes)}</p></details>` : ''}</div>
                 <div>${rel[ev.id] ? `<span class="badge badge-ok">Released ${U.fmtTime(p.clock.toSim(rel[ev.id]))}</span> <button class="btn btn-sm" data-unrelease="${esc(p.id)}|${esc(ev.id)}">Undo</button>`
                   : `<button class="btn btn-sm btn-primary" data-release="${esc(p.id)}|${esc(ev.id)}">Release Now</button>`}</div>

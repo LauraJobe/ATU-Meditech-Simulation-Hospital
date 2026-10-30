@@ -60,11 +60,8 @@
     (ev.orders || []).forEach(o => { if (/PRBC/i.test(o.text)) o.text = 'Infuse 1 unit of packed red blood cells (PRBCs). Complete blood-product verification and transfusion monitoring per protocol.'; });
   })();
 
-  // Carl Shapiro (pages 12, 33–34): ED medication orders, listed as due.
-  addMeds('shapiro', [
-    { id: 'sha-ed-asa', name: 'Aspirin (chewed)', dose: '325 mg', route: 'PO', freq: 'Once in ED', type: 'once', doses: [{ time: '14:00' }], orderedBy: 'Dr. C. Revis' },
-    { id: 'sha-ed-bolus', name: 'Normal saline bolus', dose: '500 mL', route: 'IV bolus', freq: 'Once in ED — after the second nitroglycerin dose', type: 'once', doses: [{ time: '14:00' }], orderedBy: 'Dr. C. Revis' }
-  ]);
+  // Carl Shapiro (pages 12, 33–34): the ED aspirin 325 mg, ticagrelor 180 mg, and NS 500 mL bolus are on his MAR in
+  // js/data/patients.js as given in the ER before the simulation starts (same as Karl Sharp).
 
   // Vernon Watkins (pages 19, 41): infusing at report (prior nurse LB).
   addMeds('watkins', [

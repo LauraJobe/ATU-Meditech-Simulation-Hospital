@@ -5,7 +5,7 @@
   const C = window.EHR_CONFIG;
   window.Views = window.Views || {};
 
-  const STATUS_TEXT = { given: 'Given', notgiven: 'Not given', due: 'Due', overdue: 'Overdue', future: 'Scheduled', notdue: 'Not due today', dc: 'DC\'d', hold: 'Held' };
+  const STATUS_TEXT = { given: 'Given', notgiven: 'Not given', due: 'Due', overdue: 'Overdue', future: 'Scheduled', notdue: 'Not due today', notyet: 'Starts tomorrow — not available yet', dc: 'DC\'d', hold: 'Held' };
   const INFUSION_ACTIONS = ['Started / hung', 'Rate verified', 'Rate change', 'Paused', 'Resumed', 'Bolus completed', 'Stopped / discontinued'];
   const NOT_GIVEN = ['Held — hold parameters met', 'Held — provider notified', 'Patient refused', 'Patient NPO', 'Patient off unit', 'Medication unavailable', 'Clarification needed with provider', 'Allergy — not given', 'Other (see comment)'];
   const SITES = ['', 'Right arm', 'Left arm', 'Right hand', 'Left hand', 'Abdomen — RUQ', 'Abdomen — LUQ', 'Abdomen — RLQ', 'Abdomen — LLQ', 'Right thigh', 'Left thigh', 'Right deltoid', 'Left deltoid', 'Right ventrogluteal', 'Left ventrogluteal', 'PIV — right', 'PIV — left', 'Central line', 'Other'];
@@ -144,6 +144,7 @@
     if (t === 'continuous') return addToQueue(p, med, null, 'infusion', unit);
     if (t === 'prn') return addToQueue(p, med, null, 'prn', unit);
     const list = pending(med);
+    if (!list.length && med.startsOn && p.clock.now() < med.startsOn) { UI.modal({ title: 'Not Available Yet', body: `<div class="hard-stop"><strong>⛔ ${esc(Model.medLabel(med))} starts ${esc(U.fmtDT(med.startsOn))}.</strong> No dose is available today. Do not administer.</div>`, buttons: [{ label: 'OK' }] }); return; }
     if (!list.length) { UI.modal({ title: 'No Dose Due', body: `<p>All scheduled doses of ${esc(med.name)} in view are documented. Do not give an extra dose without an order.</p>`, buttons: [{ label: 'OK' }] }); return; }
     const dt = list[0];
     const s = Model.doseStatus(p, doc, med, dt).code;
@@ -195,9 +196,10 @@
     else if (s.code === 'due') txt = Math.abs(now - dt.time) < 60000 ? 'Due' : `Due ${rel(now - dt.time)}`;
     else if (s.code === 'overdue') txt = rel(now - dt.time);
     else if (s.code === 'notdue') txt = 'Not today';
+    else if (s.code === 'notyet') txt = 'Starts tmrw';
     else if (s.code === 'dc') txt = 'DC';
     else if (s.code === 'hold') txt = 'Held';
-    return `<td class="mg-cell mg-${s.code}"><button class="mg-btn" data-dose="${esc(dt.key)}" title="${esc(STATUS_TEXT[s.code])} — scheduled ${U.fmtDT(dt.time)}">${txt || '&nbsp;'}</button></td>`;
+    return `<td class="mg-cell mg-${s.code}"><button class="mg-btn" data-dose="${esc(dt.key)}" ${s.code === 'notyet' ? 'disabled aria-disabled="true"' : ''} title="${esc(STATUS_TEXT[s.code])} — scheduled ${U.fmtDT(dt.time)}">${txt || '&nbsp;'}</button></td>`;
   }
 
   // Current dose of an infusion: the latest documented rate, else the ordered rate.
@@ -380,6 +382,7 @@
         const dt = med.doseTimes.find(d => d.key === key);
         const s = Model.doseStatus(p, doc, med, dt);
         if (s.code === 'given' && s.prior) { UI.toast(`Documented by ${dt.priorBy} at ${U.fmtTime(dt.time)} (prior shift).`, 'info'); return; }
+        if (s.code === 'notyet') { UI.toast(`${med.name} starts ${U.fmtDT(med.startsOn)} — not available yet.`, 'warn'); return; }
         if (s.code === 'given' || s.code === 'notgiven') { UI.toast('Already documented. Click the medication for Medication Detail → History to correct an entry.', 'info'); return; }
         administer(p, doc, med, dt, 'dose', { ptVerified: !!verified[p.id] });
       }));

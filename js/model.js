@@ -83,6 +83,8 @@
       // (tomorrow on if the order says so), plus documented off-schedule doses (e.g., given in the ER).
       const H = 3600000, day0 = ctx.today;
       const startAfter = /start (tomorrow|in (the )?am|in the morning)/i.test(med.freq) ? day0 + 24 * H : med.orderTime;
+      // "Start tomorrow": the doses show on the MAR but are not available (grayed) until that day.
+      if (startAfter > med.orderTime && startAfter === day0 + 24 * H) med.startsOn = startAfter;
       // A med released during the scenario may carry an explicit first dose ("at"); later doses align to the schedule.
       const firstAt = extra && explicit.length && explicit[0].at != null ? explicit[0].t : null;
       const from = Math.max(startAfter, ctx.auto ? ctx.start - 24 * H : day0) - 60000;
@@ -284,6 +286,7 @@
     if (dt.priorBy) return { code: 'given', prior: true };
     if (dt.priorNotGiven) return { code: 'notgiven', prior: true };
     if (dt.notToday) return { code: 'notdue' };
+    if (med.startsOn && p.clock.now() < med.startsOn) return { code: 'notyet' };
     if (med.status === 'Discontinued' && dt.time >= (med.dcTime || 0)) return { code: 'dc' };
     if (med.status !== 'Active') return { code: 'hold' };
     const w = C.medWindowMinutes * MIN;

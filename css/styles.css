@@ -571,7 +571,8 @@ a.wl-btn { display: inline-flex; align-items: center; text-decoration: none; }
 .mg-given { background: #d6efdb; } .mg-given .mg-btn { color: #1e6b33; }
 .mg-notgiven { background: #fde0c2; } .mg-notgiven .mg-btn { color: #7a4100; }
 .mg-future .mg-btn:hover, .mg-none:hover { background: #eef5ff; }
-.mg-dc, .mg-hold, .mg-notdue { background: #eceff2; } .mg-dc .mg-btn, .mg-hold .mg-btn, .mg-notdue .mg-btn { color: #7b8894; }
+.mg-dc, .mg-hold, .mg-notdue, .mg-notyet { background: #eceff2; } .mg-dc .mg-btn, .mg-hold .mg-btn, .mg-notdue .mg-btn, .mg-notyet .mg-btn { color: #7b8894; }
+.mg-notyet .mg-btn { cursor: not-allowed; font-style: italic; }
 .mar-grid td.mg-span { padding: 6px 8px; }
 .mg-sep td { border: none; height: 6px; background: transparent; }
 

@@ -41,13 +41,14 @@
       now: () => Date.now(),
       toSim: real => real,
       // Resolve {time, day} or {at} to a chart timestamp. ref = base for "at".
+      // {time, static: true} is NOT moved with the scenario: it shows at that clock time today.
       at(item, ref) {
         if (item && item.time) {
           const [hh, mm] = parseHM(item.time);
           const t = new Date(dayStart.getTime());
           t.setDate(t.getDate() + (Number(item.day) || 0));
           t.setHours(hh, mm, 0, 0);
-          return t.getTime() + shift;
+          return t.getTime() + (item.static ? 0 : shift);   // static: stays at its written clock time
         }
         return (ref == null ? simStart : ref) + (Number(item && item.at) || 0) * MIN;
       }

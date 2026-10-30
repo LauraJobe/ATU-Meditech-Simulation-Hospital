@@ -371,10 +371,13 @@ window.SIM_PATIENTS = [
     meds: [
       { id: 'sha-ns', name: 'Normal saline', dose: '25 mL/hr', route: 'IV', freq: 'Continuous', type: 'continuous', rate: '25 mL/hr', started: { time: '12:30', by: 'LJ' } },
       { id: 'sha-asa', name: 'Aspirin', dose: '81 mg', route: 'PO', freq: 'Daily — start tomorrow', type: 'scheduled', doses: [{ time: '09:00', day: 1 }] },
-      { id: 'sha-tica-load', name: 'Ticagrelor (loading dose)', dose: '180 mg', route: 'PO', freq: 'Once today', type: 'once', highAlert: true, instructions: 'Loading dose x1 today, then 90 mg twice daily.', doses: [{ at: 0 }] },
       { id: 'sha-tica', name: 'Ticagrelor', dose: '90 mg', route: 'PO', freq: 'BID — start tomorrow AM', type: 'scheduled', doses: [{ time: '09:00', day: 1 }, { time: '21:00', day: 1 }] },
       { id: 'sha-enox', name: 'Enoxaparin', dose: '110 mg', route: 'Subcut', freq: 'Every 12 hours', type: 'scheduled', highAlert: true, preAssess: ['lab:Platelets'], doses: [{ time: '12:30', given: 'CR (ER)', extra: true }, { time: '21:00' }] },
-      { id: 'sha-ntg', name: 'Nitroglycerin', dose: '0.4 mg', route: 'Sublingual', freq: 'Every 5 minutes PRN x 3 doses', type: 'prn', indication: 'Chest pain', preAssess: ['Pain', 'SBP', 'HR'], instructions: 'For chest pain, obtain 12-lead ECG and notify provider immediately to evaluate for IV nitroglycerin.' }
+      { id: 'sha-ntg', name: 'Nitroglycerin', dose: '0.4 mg', route: 'Sublingual', freq: 'Every 5 minutes PRN x 3 doses', type: 'prn', indication: 'Chest pain', preAssess: ['Pain', 'SBP', 'HR'], instructions: 'For chest pain, obtain 12-lead ECG and notify provider immediately to evaluate for IV nitroglycerin.', lastGiven: { time: '11:40', by: 'ER RN' } },
+      // Given in the ER the morning before the simulation starts (Laura Jobe, October 30, 2026).
+      { id: 'sha-tica-load', name: 'Ticagrelor (loading dose)', dose: '180 mg', route: 'PO', freq: 'Once in ED', type: 'once', highAlert: true, instructions: 'Loading dose x1, then 90 mg twice daily starting tomorrow AM.', doses: [{ time: '11:45', given: 'Given in ER' }], orderedBy: 'Dr. C. Revis' },
+      { id: 'sha-ed-asa', name: 'Aspirin (chewed)', dose: '325 mg', route: 'PO', freq: 'Once in ED', type: 'once', doses: [{ time: '11:35', given: 'Given in ER' }], orderedBy: 'Dr. C. Revis' },
+      { id: 'sha-ed-bolus', name: 'Normal saline bolus', dose: '500 mL', route: 'IV bolus', freq: 'Once in ED — after the second nitroglycerin dose', type: 'once', doses: [{ time: '11:50', given: 'Given in ER' }], orderedBy: 'Dr. C. Revis' }
     ],
     vitals: [
       { time: '11:30', temp: 98.4, tempRoute: 'Oral', hr: 120, rr: 24, sbp: 158, dbp: 92, spo2: 89, o2: 'Room air', pain: 7, note: 'ER arrival', by: 'ER RN' },
@@ -491,13 +494,14 @@ window.SIM_PATIENTS = [
     ],
     meds: [
       { id: 'shp-ns', name: 'Normal saline', dose: '25 mL/hr', route: 'IV', freq: 'Continuous', type: 'continuous', rate: '25 mL/hr', started: { time: '12:30', by: 'LJ' } },
-      { id: 'shp-asa', name: 'Aspirin', dose: '81 mg', route: 'PO', freq: 'Daily — start in AM', type: 'scheduled', doses: [{ time: '09:00', day: 1 }] },
-      { id: 'shp-tica', name: 'Ticagrelor', dose: '90 mg', route: 'PO', freq: 'BID — start in AM', type: 'scheduled', doses: [{ time: '09:00', day: 1 }, { time: '21:00', day: 1 }] },
+      { id: 'shp-asa', name: 'Aspirin', dose: '81 mg', route: 'PO', freq: 'Daily — start tomorrow', type: 'scheduled', doses: [{ time: '09:00', day: 1 }] },
+      { id: 'shp-tica', name: 'Ticagrelor', dose: '90 mg', route: 'PO', freq: 'BID — start tomorrow AM', type: 'scheduled', doses: [{ time: '09:00', day: 1 }, { time: '21:00', day: 1 }] },
       { id: 'shp-enox', name: 'Enoxaparin', dose: '110 mg', route: 'Subcut', freq: 'Every 12 hours', type: 'scheduled', highAlert: true, preAssess: ['lab:Platelets'], doses: [{ time: '12:30', given: 'CR (ER)', extra: true }, { time: '21:00' }] },
       { id: 'shp-ntg', name: 'Nitroglycerin', dose: '0.4 mg', route: 'Sublingual', freq: 'Every 5 minutes PRN x 3 doses', type: 'prn', indication: 'Chest pain', preAssess: ['Pain', 'SBP', 'HR'], instructions: 'For chest pain, obtain 12-lead ECG and notify provider immediately to evaluate for IV nitroglycerin.', lastGiven: { time: '11:40', by: 'ER RN' } },
-      { id: 'shp-er-tica', name: 'Ticagrelor (loading dose)', dose: '180 mg', route: 'PO', freq: 'Once', type: 'once', doses: [{ time: '11:45', given: 'Given in ER' }] },
-      { id: 'shp-er-asa', name: 'Aspirin (chewed)', dose: '325 mg', route: 'PO', freq: 'Once', type: 'once', doses: [{ time: '11:35', given: 'Given in ER' }] },
-      { id: 'shp-er-bolus', name: 'Normal saline bolus', dose: '500 mL', route: 'IV', freq: 'Once', type: 'once', doses: [{ time: '11:50', given: 'Given in ER' }] }
+      // Given in the ER the morning before the simulation starts (Laura Jobe, October 30, 2026).
+      { id: 'shp-er-tica', name: 'Ticagrelor (loading dose)', dose: '180 mg', route: 'PO', freq: 'Once in ED', type: 'once', highAlert: true, instructions: 'Loading dose x1, then 90 mg twice daily starting tomorrow AM.', doses: [{ time: '11:45', given: 'Given in ER' }], orderedBy: 'Dr. C. Revis' },
+      { id: 'shp-er-asa', name: 'Aspirin (chewed)', dose: '325 mg', route: 'PO', freq: 'Once in ED', type: 'once', doses: [{ time: '11:35', given: 'Given in ER' }], orderedBy: 'Dr. C. Revis' },
+      { id: 'shp-er-bolus', name: 'Normal saline bolus', dose: '500 mL', route: 'IV bolus', freq: 'Once in ED — after the second nitroglycerin dose', type: 'once', doses: [{ time: '11:50', given: 'Given in ER' }], orderedBy: 'Dr. C. Revis' }
     ],
     vitals: [
       { time: '11:30', temp: 98.4, tempRoute: 'Oral', hr: 120, rr: 24, sbp: 158, dbp: 92, spo2: 89, o2: 'Room air', pain: 7, note: 'ER arrival', by: 'ER RN' },

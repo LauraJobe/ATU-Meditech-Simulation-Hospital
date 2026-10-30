@@ -280,12 +280,35 @@ window.SIM_PATIENTS = [
           { id: 'liv-tx-o2', cat: 'Blood Products', text: 'Transfuse 2 units PRBC', by: 'Dr. Marcus' }
         ]
       },
+      // ICU orders that can be released on their own before the ICU transfer (or come with "Transfer to ICU").
+      {
+        id: 'liv-icu-bolus',
+        title: 'ICU order — Normal saline bolus 500 mL STAT',
+        instructorNotes: 'Part of the ICU orders. Release on its own as needed, or it is released with "Transfer to ICU" if not released yet.',
+        orders: [{ id: 'liv-icu-o7', cat: 'IV Fluids', text: 'Normal saline bolus 500 mL over 30 minutes STAT', priority: 'STAT', by: 'Dr. Marcus' }],
+        meds: [{ id: 'liv-nsbolus', name: '0.9% Sodium chloride bolus', dose: '500 mL', route: 'IV', freq: 'Once — over 30 minutes STAT', type: 'continuous', rate: '1,000 mL/hr x 30 min', instructions: 'Infuse 500 mL over 30 minutes STAT. Start NS @ 125 mL/hr after the bolus is completed.' }]
+      },
+      {
+        id: 'liv-icu-statlabs',
+        title: 'ICU order — STAT BMP, CBC, lactate (before IV antibiotics)',
+        instructorNotes: 'Part of the ICU orders. Results are a separate release ("ICU repeat labs resulted").',
+        orders: [{ id: 'liv-icu-o11', cat: 'Lab', text: 'BMP, CBC, lactate level prior to starting IV antibiotics', priority: 'STAT', by: 'Dr. Marcus' }]
+      },
+      {
+        id: 'liv-icu-vanco',
+        title: 'ICU order — Vancomycin 500 mg IVPB every 8 hours',
+        instructorNotes: 'Part of the ICU orders. First dose is due 15 minutes after release; labs are to be drawn before the first dose.',
+        orders: [{ id: 'liv-icu-o15', cat: 'Medication', text: 'Vancomycin 500 mg/250 mL IVPB every 8 hours (over 2 hours)', by: 'Dr. Marcus' }],
+        meds: [{ id: 'liv-vanco', name: 'Vancomycin', dose: '500 mg/250 mL', route: 'IVPB', freq: 'Every 8 hours — over 2 hours', type: 'scheduled', instructions: 'Infuse over 2 hours. Draw BMP, CBC, and lactate BEFORE the first dose.', doses: [{ at: 15 }, { at: 495 }] }]
+      },
       {
         id: 'liv-icu',
         title: 'Change in condition — Transfer to ICU (ICU Orders)',
         instructorNotes: 'From the Notion "ICU Orders" page. BMP, CBC, and lactate are to be drawn BEFORE IV antibiotics are started. Norepinephrine is conditional: start only if MAP < 65 or SBP < 100 AFTER the fluid bolus.',
         patch: { unit: 'Intensive Care Unit', room: '—' },
         discontinue: ['liv-lr', 'liv-piptazo'],
+        // Also releases these ICU orders if they were not released on their own (never twice).
+        includes: ['liv-icu-bolus', 'liv-icu-statlabs', 'liv-icu-vanco'],
         notes: [{ id: 'liv-icu-note', type: 'Transfer Note — Change in Condition', author: 'Dr. Marcus', md: true, text: '**Reason for transfer:** Acute change in condition on POD 5 after ORIF right hip.\n\n**Summary:** New acute confusion and fever overnight; the indwelling catheter was dislodged at 0600. Now tachycardic and hypotensive with increasing oxygen needs. 0600 labs: WBC 15.7 (11.4 yesterday), lactate 5.0, BUN 24, creatinine 1.5, HCO₃ 29. Blood culture pending.\n\n**Assessment:** Suspected sepsis, likely urinary source; acute kidney injury; acute metabolic encephalopathy.\n\n**Plan:** Transfer to ICU. Continuous ECG and pulse oximetry. BMP, CBC, and lactate before IV antibiotics. NS 500 mL bolus over 30 minutes, then NS at 125 mL/hr; norepinephrine per protocol if MAP < 65 or SBP < 100 after the bolus. Discontinue piperacillin-tazobactam and LR; start vancomycin. Foley catheter; strict I&O. Vital signs every 15 minutes. Family (daughter) updated.' }],
         orders: [
           { id: 'liv-icu-o1', cat: 'Admission', text: 'Transfer to ICU', by: 'Dr. Marcus' },
@@ -294,21 +317,16 @@ window.SIM_PATIENTS = [
           { id: 'liv-icu-o4', cat: 'Consult', text: 'Physical Therapy: evaluate for passive ROM; advance when able', by: 'Dr. Marcus' },
           { id: 'liv-icu-o5', cat: 'Respiratory', text: 'Administer supplemental O2 to keep SpO2 > 93%', by: 'Dr. Marcus' },
           { id: 'liv-icu-o6', cat: 'Nursing', text: 'Vital signs every 15 minutes and PRN; I&O every 4 hours', by: 'Dr. Marcus' },
-          { id: 'liv-icu-o7', cat: 'IV Fluids', text: 'Normal saline bolus 500 mL over 30 minutes STAT', priority: 'STAT', by: 'Dr. Marcus' },
           { id: 'liv-icu-o8', protocol: 'norepi', cat: 'Medication', text: 'After fluid bolus, if MAP < 65 or SBP < 100 start: Norepinephrine (Levophed) @ 2 mcg/min continuous IV; titrate by 2 mcg every 5 minutes to maintain MAP > 65 or SBP > 100. Maximum dose 30 mcg/min.', by: 'Dr. Marcus' },
           { id: 'liv-icu-o9', cat: 'Nursing', text: 'Place Foley catheter', by: 'Dr. Marcus' },
           { id: 'liv-icu-o10', cat: 'Nursing', text: 'Sterile dressing change to right hip every 12 hours', by: 'Dr. Marcus' },
-          { id: 'liv-icu-o11', cat: 'Lab', text: 'BMP, CBC, lactate level prior to starting IV antibiotics', priority: 'STAT', by: 'Dr. Marcus' },
           { id: 'liv-icu-o12', cat: 'IV Fluids', text: 'DC Lactated Ringer\'s IV @ 75 mL/hr', by: 'Dr. Marcus' },
           { id: 'liv-icu-o13', cat: 'Medication', text: 'DC piperacillin-tazobactam 450 mg IV every 8 hours', by: 'Dr. Marcus' },
-          { id: 'liv-icu-o14', cat: 'IV Fluids', text: 'NS @ 125 mL/hr after bolus completed', by: 'Dr. Marcus' },
-          { id: 'liv-icu-o15', cat: 'Medication', text: 'Vancomycin 500 mg/250 mL IVPB every 8 hours (over 2 hours)', by: 'Dr. Marcus' }
+          { id: 'liv-icu-o14', cat: 'IV Fluids', text: 'NS @ 125 mL/hr after bolus completed', by: 'Dr. Marcus' }
         ],
         meds: [
-          { id: 'liv-nsbolus', name: '0.9% Sodium chloride bolus', dose: '500 mL', route: 'IV', freq: 'Once — over 30 minutes STAT', type: 'continuous', rate: '1,000 mL/hr x 30 min', instructions: 'Infuse 500 mL over 30 minutes STAT. Start NS @ 125 mL/hr after the bolus is completed.' },
           { id: 'liv-ns125', name: '0.9% Sodium chloride', dose: '125 mL/hr', route: 'IV', freq: 'Continuous — after bolus completed', type: 'continuous', rate: '125 mL/hr' },
           { id: 'liv-levo', protocol: 'norepi', name: 'Norepinephrine (Levophed)', dose: '2 mcg/min — titrate', route: 'IV', freq: 'Continuous — conditional', type: 'continuous', highAlert: true, rate: '2 mcg/min', preAssess: ['SBP', 'DBP', 'HR'], instructions: 'Start ONLY if MAP < 65 or SBP < 100 after the fluid bolus. Titrate by 2 mcg every 5 minutes to maintain MAP > 65 or SBP > 100. Maximum dose 30 mcg/min.' },
-          { id: 'liv-vanco', name: 'Vancomycin', dose: '500 mg/250 mL', route: 'IVPB', freq: 'Every 8 hours — over 2 hours', type: 'scheduled', instructions: 'Infuse over 2 hours. Draw BMP, CBC, and lactate BEFORE the first dose.', doses: [{ at: 15 }, { at: 495 }] }
         ]
       }
     ]

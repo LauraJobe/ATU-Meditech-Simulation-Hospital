@@ -107,8 +107,10 @@
     render(p, doc) {
       const all = allOrders(p, doc);
       const groups = {};
-      all.forEach(o => { const band = BAND[o.cat] || o.cat || 'Other'; (groups[band] = groups[band] || []).push(o); });
-      const order = [...BAND_ORDER, ...Object.keys(groups).filter(c => !BAND_ORDER.includes(c))];
+      // Orders from an order set (o.set) are grouped under the set's name, ahead of the category bands.
+      all.forEach(o => { const band = o.set ? 'Order Set: ' + o.set : BAND[o.cat] || o.cat || 'Other'; (groups[band] = groups[band] || []).push(o); });
+      const sets = Object.keys(groups).filter(c => /^Order Set: /.test(c));
+      const order = [...sets, ...BAND_ORDER, ...Object.keys(groups).filter(c => !BAND_ORDER.includes(c) && !sets.includes(c))];
       const pending = Model.unackedOrders(p, doc);
       const waiting = Model.enteredOrders(p.id, doc).filter(o => o.state === 'pending');
       const body = order.filter(c => groups[c]).map(band => `<tr class="ord-band"><th colspan="6">${esc(band)}</th></tr>

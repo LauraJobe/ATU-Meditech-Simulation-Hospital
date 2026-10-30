@@ -112,7 +112,7 @@ Documentation follows legal-record rules. Entries are never deleted; they are **
 
 ## Level 1 and Level 2 patients (imported)
 
-Imported from [laurablasdel/ATU-Simulation-Hospital](https://laurablasdel.github.io/ATU-Simulation-Hospital/), which was built from the Notion Level 1 and Level 2 charts, using `tools/import-atu-sim-hospital.cjs`. Images (echo, ECG, CT, consents) are copied into `assets/imported/`. Faculty guides from that repo appear only in **Instructor Tools**. Consents, prenatal records, APGAR, the newborn glucose policy, PEWS and head-to-toe forms, and I&O records are on **Other Clinical → Documents**.
+Imported from [laurablasdel/ATU-Simulation-Hospital](https://laurablasdel.github.io/ATU-Simulation-Hospital/), which was built from the Notion Level 1 and Level 2 charts, using `tools/import-atu-sim-hospital.cjs`. Images (echo, ECG, CT, consents) are copied into `assets/imported/`. Faculty guides from that repo appear only in **Instructor Tools**. Consents, prenatal records, PEWS and head-to-toe forms, and I&O records are on **Other Clinical → Documents** (Baby Boy Sung's APGAR, delivery/Ballard form, glucose sheet, and glucose policy became Worklist assessments and an order set — see below).
 
 | Patient | Level / experience | Scenario | Instructor events |
 |---|---|---|---|
@@ -163,6 +163,12 @@ Scenario content follows Laura Blasdel's ATU Simulation Hospital (commit `e986b0
 - **Faculty-only:** teaching guides and expected student actions stay in the instructor-only guide (Fatima's Shift 2 guide, including surgical escalation, the fundus progression, and the A-negative wrong-blood bag; Amelia's Shift 2 delivery packet).
 - **Stephanie's CBC:** one panel with RBC 4.2, and reference ranges shown beside each result.
 - **Newborn documentation (Sung):** Nurse/Allied Health → **Newborn** on both Amelia Sung's and Baby Boy Sung's charts. It opens after faculty release **Delivery completed** (Instructor Tools → Amelia Sung). It holds the **Newborn Head-to-Toe Assessment** (structured after Stanford Medicine's Newborn Exam; nothing pre-marked normal) and the **Newborn Transitional Record** laid out like the hospital paper form (maternal history with circled choices, infant, measurements, MAR medication lines, abnormal findings and feeding, and the vital-signs grid with one column per entry). Everything saves to Baby Boy Sung, appears in Assessment History with author and time, and shows on both charts. Amelia's maternal assessments stay separate.
+
+### Baby Boy Sung — newborn documentation on the Worklist
+
+- **Worklist (Baby Boy Sung):** APGAR Score (one entry per scoring time; complete after 1 and 5 minutes, continuing every 5 minutes to 20 if the score is below 7), Newborn Delivery Assessment (ATU delivery form: delivery details, resuscitation, suction, birth injury/clavicle), New Ballard Score (total and estimated gestational age calculate automatically: weeks = (2 × total + 120) ÷ 5), Newborn Head-to-Toe Assessment, Newborn Transitional Record, Transitional Record vital signs (Q30 min × 4), and Newborn Glucose Monitoring. Before delivery the rows show **After delivery** and do not open; releasing **Delivery completed** on either Sung card opens them. Nothing is pre-marked.
+- **Orders → Order Set: Newborn Glucose Management:** the glucose policy as orders (screening, symptomatic checks, the BG pathway, serum glucose, NPO, IV dextrose only by separate order, documentation) plus the glucose gel PRN order (buccal, weight-based). **P** on any of these orders opens the full policy with the clinical pathway and gel-dose tables.
+- **Other Clinical → Documents** keeps only the prenatal record for Baby Boy Sung.
 
 ## Shared charting across devices (Supabase)
 

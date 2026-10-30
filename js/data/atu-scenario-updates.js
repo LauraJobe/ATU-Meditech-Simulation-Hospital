@@ -131,6 +131,9 @@
     // Anything not confirmed stays blank for the student to complete.
     const confirmed = {
       gbs: 'Pos', abx: 'Clindamycin 900 mg IVPB', abxTimes: 'One dose before delivery', diab: 'Yes', diabCtl: 'Diet',
+      // Marked on the faculty's Transitional Record photo (October 29, 2026): keep as documented.
+      rubella: 'Immune', chlam: 'No', herpes: 'No', gon: 'No', smoker: 'No', drugs: 'No',
+      band: '31539', dob: 'Today', tob: '1235', present: 'Ceph', mec: 'No',
       gravida: '2', para: '1 (before this delivery)', bloodType: 'O positive', anes: 'Epidural', feedPref: 'Breast',
       mOther: 'Clindamycin is not adequate GBS prophylaxis — observe for early-onset GBS per unit protocol. Shoulder dystocia (left shoulder) — McRoberts and suprapubic pressure; nuchal cord; PPV for 30 seconds.',
       obMd: 'Dr. Darnell', ped: 'Dr. Craig', sex: 'Male', delivery: 'Vaginal', useOf: 'Vac', apgar1: '6', apgar5: '8',
@@ -145,5 +148,64 @@
       'Delivered after 3 hours of pushing with vacuum assistance, shoulder dystocia involving the left shoulder (McRoberts and suprapubic pressure), and nuchal cord. ' +
       'Apgar 6 at 1 minute and 8 at 5 minutes; PPV for 30 seconds. Breastfed for 20 minutes. Mother has diet-controlled gestational diabetes and is GBS positive; received one dose of clindamycin. ' +
       'Newborn medications have not yet been given.\n\nMother received one dose of clindamycin before delivery. Clindamycin does not count as adequate GBS prophylaxis, so the infant is observed for signs of early-onset GBS infection per unit protocol.';
+
+    // Baby Boy Sung's clinical documents become charting and orders (Laura Jobe, October 29, 2026):
+    //   APGAR, the printable delivery/Ballard PDF, and the glucose monitoring sheet → Worklist assessments (js/views/newborn.js);
+    //   the Newborn Glucose Management Policy (and its PDF) → an order set, with the full policy on the orders' P (protocol).
+    // The prenatal record stays as a reference document.
+    b.documents = (b.documents || []).filter(d => !['babyboysung-d2', 'babyboysung-d4', 'babyboysung-d5', 'babyboysung-d6', 'babyboysung-d7'].includes(d.id));
+    b.assessmentForms = ['apgar', 'newborn-delivery', 'ballard', 'newborn-h2t', 'newborn-transition', 'newborn-glucose', 'pain'];
+    // The same "Delivery completed" release on Baby Boy Sung's card (either one opens the newborn documentation).
+    b.events = (b.events || []).concat([{ id: 'sung-delivery', title: 'Delivery completed — opens newborn documentation on the Worklist (APGAR, Delivery Assessment, Ballard, Head-to-Toe, Transitional Record, Glucose Monitoring)', delivery: true,
+      instructorNotes: 'Same release as "Delivery completed" on Amelia Sung\'s card — releasing either one opens the newborn documentation on both Sung charts.' }]);
+
+    // Newborn Glucose Management order set (source: Newborn Glucose Management Policy; Conway Regional glucose management protocol).
+    const SET = 'Newborn Glucose Management';
+    const gl = (id, cat, text) => ({ id: 'baby-glu-' + id, cat, text, by: 'Dr. Craig', at: -240, set: SET, protocol: 'glucose' });
+    b.orders = (b.orders || []).concat([
+      gl('screen', 'Nursing', 'Glucose screening for newborns with risk factors (SGA, LGA, IUGR/FGR, late preterm 34–36 weeks, infant of a diabetic parent): heel-stick blood glucose within 30 minutes after feeding.'),
+      gl('symptom', 'Nursing', 'Check blood glucose immediately for any sign or symptom of hypoglycemia (jitteriness, irritability, high-pitched cry, apnea, cyanosis, irregular or rapid respirations, hypotonia, seizures, temperature instability, poor suck or feeding).'),
+      gl('over40', 'Nursing', 'Asymptomatic with risk factors, BG greater than 40 mg/dL: continue feeding plan. Check BG before feeds every 2–3 hours for 2 more consecutive feeds. Stop checks when BG remains greater than 40 mg/dL before 24 hours of age, or greater than 50 mg/dL from 24–48 hours of age.'),
+      gl('25to40', 'Nursing', 'Asymptomatic with risk factors, BG 25–40 mg/dL: give glucose gel (MAR) and refeed. Recheck BG 1 hour after gel. Maximum 3 gel doses in the first 48 hours. Notify provider to initiate IV dextrose when indicated.'),
+      gl('under25', 'Nursing', 'Asymptomatic with risk factors, BG less than 25 mg/dL: give glucose gel (MAR), refeed, and notify provider. Recheck BG 1 hour after gel; follow the provider management plan.'),
+      gl('sympbg', 'Nursing', 'Symptomatic newborn: BG greater than 45 mg/dL — notify provider of symptoms. BG 45 mg/dL or less — notify provider immediately and obtain a management plan.'),
+      gl('serum', 'Lab', 'Heel-stick glucose below 40 mg/dL: obtain serum glucose by venipuncture.'),
+      gl('npo', 'Nursing', 'If NPO: continue glucose monitoring every 6 hours after values have stabilized.'),
+      gl('iv', 'Nursing', 'IV dextrose only with a separate provider order (see protocol for D10W dosing and monitoring).'),
+      gl('doc', 'Nursing', 'Document each check (Worklist → Newborn Glucose Monitoring): risk factor or symptom, feeding, glucose result, collection method, gel or IV treatment and dose, recheck time, provider notification and orders, newborn response.')
+    ]);
+    const gel = (b.meds || []).find(m => m.id === 'baby-glucose-gel-2');
+    if (gel) Object.assign(gel, { dose: 'Weight-based per protocol (see P)', route: 'Buccal', freq: 'PRN BG 25–40 mg/dL (maximum 3 doses in 48 hours)',
+      indication: 'Asymptomatic hypoglycemia per the Newborn Glucose Management order set', orderSet: SET, protocol: 'glucose', orderedBy: 'Dr. Craig',
+      instructions: 'Gloved finger to the buccal mucosa of each cheek in 0.5 mL increments; massage gently into gums and cheek, alternating sides. Refeed after gel. Recheck BG 1 hour after gel.' });
+    b.protocols = Object.assign({}, b.protocols, { glucose: {
+      title: 'Newborn Glucose Management Policy',
+      items: [
+        ['Purpose', 'Prevention, screening, treatment, monitoring, and documentation of neonatal hypoglycemia. Follow the provider\'s orders and notify the provider of any concerning result or change in condition.'],
+        ['Hypoglycemia', 'Less than 45 mg/dL in a symptomatic newborn or less than 40 mg/dL in an asymptomatic newborn.'],
+        ['LGA / AGA / SGA', 'LGA: 4,000 g or at/above the 90th percentile. AGA: 2,500–4,000 g. SGA: below 2,500 g or at/below the 10th percentile. Macrosomia: birth weight greater than 4,500 g. IUGR/FGR: intrauterine or fetal growth restriction.'],
+        ['Prevention', 'Skin-to-skin care after delivery, covering the parent-newborn dyad; monitor temperature and support thermoregulation; offer an early feed during transition (first breastfeeding within 30–60 minutes after birth); frequent feeds for at-risk newborns.'],
+        ['Who requires screening', 'SGA, LGA, IUGR/FGR, late preterm (34–36 weeks), or infant of a diabetic parent: screen within 30 minutes after feeding. Any sign or symptom of hypoglycemia: check immediately.'],
+        ['Symptoms', 'Jitteriness, irritability, or high-pitched cry; apnea, cyanosis, irregular or rapid respirations; hypotonia or seizures; temperature instability or hypothermia; poor suck, poor feeding, or refusal to eat.'],
+        ['Glucose gel', 'Infants greater than 35 weeks who meet criteria, by weight (table below). Pharmacy supplies 2 mL prefilled syringes. Gloved finger to the buccal mucosa of each cheek in 0.5 mL increments, massaging into gums and cheek, alternating sides. Maximum 3 doses in 48 hours. If BG remains below 40 mg/dL after the second dose and a third is needed, notify the pediatrician and initiate IV glucose per provider order. For asymptomatic hypoglycemia only.'],
+        ['NPO newborns', 'Continue glucose monitoring every 6 hours after values have stabilized.'],
+        ['Heel-stick collection', 'Explain to parent(s); hand hygiene and gloves; position infant securely; select heel site, cleanse with alcohol and air dry; approved lancet; wipe away the first drop; process immediately on the approved monitor and verify patient information; pressure with gauze/bandage; document. Result below 40 mg/dL: serum glucose by venipuncture.'],
+        ['IV glucose therapy', 'Only with a provider order. D10W 2 mL/kg IV push, then continuous D10W 3.3 mL/kg/hr (80 mL/kg/day). Recheck BG 15–30 minutes after the bolus; plasma glucose 30–45 minutes after IV therapy begins and 30–45 minutes after any rate change. Keep BG above 45 mg/dL in the first 48 hours, generally not over 90–100 mg/dL. Notify pediatrician for glucose infusion above 12 mg/kg/min or fluids above 160 mL/kg/day (D12.5 order if indicated). Monitor fluid balance. Wean after 6–9 hours in range: decrease by 2 mL/hr and recheck in 3 hours when ordered; do not titrate when BG is 45 mg/dL or lower.'],
+        ['Required documentation', 'Risk factor or symptom; feeding and glucose result; collection method; gel or IV treatment and dose; time of recheck; provider notification and orders received; newborn response.'],
+        ['References', 'American Academy of Pediatrics, Committee on Fetus and Newborn: neonatal hypoglycemia guidance. Conway Regional Health System, Women\'s and Infants\' Services, Glucose Management Protocol: Newborn (reviewed April 2024).']
+      ],
+      tables: [
+        { title: 'Clinical pathway for glucose management', head: ['Newborn status / result', 'Nursing action', 'Recheck / next step'], rows: [
+          ['Asymptomatic, no risk factors', 'No additional glucose action required.', 'Continue routine newborn care.'],
+          ['Asymptomatic, risk factors; BG greater than 40 mg/dL', 'Continue feeding plan.', 'Check BG before feeds every 2–3 hours for 2 more consecutive feeds. Stop when BG remains greater than 40 mg/dL before 24 hours of age or greater than 50 mg/dL from 24–48 hours.'],
+          ['Asymptomatic, risk factors; BG 25–40 mg/dL', 'Apply glucose gel and refeed.', 'Recheck BG 1 hour after gel. Up to 3 gel doses in the first 48 hours. Notify provider to initiate IV dextrose when indicated.'],
+          ['Asymptomatic, risk factors; BG less than 25 mg/dL', 'Apply glucose gel and refeed; notify provider.', 'Recheck BG 1 hour after gel. Follow provider management plan; consider IV dextrose.'],
+          ['Symptomatic; BG greater than 45 mg/dL', 'Notify provider of symptoms.', 'Continue provider-directed management.'],
+          ['Symptomatic; BG 45 mg/dL or less', 'Notify provider immediately.', 'Obtain management plan; consider IV dextrose.']] },
+        { title: 'Glucose gel dose by weight', head: ['Weight', 'Dose'], rows: [
+          ['2 kg', '1 mL'], ['2.5 kg', '1.25 mL'], ['3 kg', '1.5 mL'], ['3.5 kg', '1.75 mL'], ['4 kg', '2 mL'], ['4.5 kg', '2.25 mL'], ['5 kg', '2.5 mL']] }
+      ],
+      signedBy: 'Dr. Craig'
+    } });
   })();
 })();

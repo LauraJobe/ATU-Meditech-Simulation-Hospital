@@ -19,10 +19,10 @@
 
   // Frequency of vital signs from the most recent active order that mentions them.
   function vitalsInterval(p) {
-    const orders = p.orders.filter(o => o.status === 'Active' && /vital signs/i.test(o.text)).sort((a, b) => b.time - a.time);
+    const orders = p.orders.filter(o => o.status === 'Active' && /vital signs|\bvitals\b/i.test(o.text)).sort((a, b) => b.time - a.time);
     for (const o of orders) {
       // exec loop instead of matchAll so older iPads (iOS 12) work
-      const re = /\b(?:every|q)\s*(\d+)?\s*(minutes?|min|hours?|hrs?|hr)\b/gi;
+      const re = /\b(?:every|q)\s*(\d+)?\s*(minutes?|mins?|hours?|hrs?|hr)\b/gi;
       const matches = [];
       for (let mm = re.exec(o.text); mm; mm = re.exec(o.text)) matches.push(mm);
       if (!matches.length) continue;
@@ -52,6 +52,8 @@
     // A running transfusion adds its monitoring vitals (charted on the TAR).
     const tx = doc && Views.tar ? Views.tar.running(p, doc)[0] : null;
     if (tx) list.push({ key: 'tar', name: `Transfusion Monitoring — unit ${tx.start.data.unitNo}`, freq: 'Q15MIN, THEN Q1H', ms: H, fixedDue: Views.tar.nextCheck(tx), tab: 'tar', kind: 'tab' });
+    // Newborn documentation (Baby Boy Sung): APGAR, delivery assessment, Ballard, head-to-toe, Transitional Record, glucose.
+    if (Views.newborn && Views.newborn.worklistItems) list.push(...Views.newborn.worklistItems(p));
     list.push({ key: 'note:edu', name: 'Teaching: Patient/Family Education', freq: 'EOS', eos: true, ms: 12 * H, tab: 'notes', kind: 'note', noteType: 'Patient Education' });
     list.push({ key: 'careplan', name: 'Plan of Care Review', freq: 'DAILY', ms: 24 * H, tab: 'careplan', kind: 'tab' });
     list.push({ key: 'note:handoff', name: 'Handoff Communication', freq: 'EOS', eos: true, ms: 12 * H, tab: 'notes', kind: 'note', noteType: 'Handoff Report (I-PASS)' });
@@ -90,7 +92,9 @@
     return e.getTime();
   }
 
-  function dueTime(p, it, last) {
+  // null = nothing due: not open yet (newborn items before delivery) or a one-time item that is complete.
+  function dueTime(p, it, last, doc) {
+    if (it.locked || (it.complete && it.complete(doc))) return null;
     if (it.fixedDue) return it.fixedDue;
     if (it.eos) return shiftEnd(last != null && last >= p.clock.simStart ? last + MIN : p.clock.now());
     return last == null ? p.clock.simStart : last + it.ms;
@@ -106,9 +110,9 @@
   function due(p, doc) {
     const now = p.clock.now();
     return items(p, doc).map(it => {
-      const time = dueTime(p, it, lastDone(p, doc, it));
+      const time = dueTime(p, it, lastDone(p, doc, it), doc);
       return { name: it.name, time, overdue: time <= now };
-    }).sort((a, b) => a.time - b.time);
+    }).filter(x => x.time != null).sort((a, b) => a.time - b.time);
   }
 
   function patientBand(p, extra) {
@@ -136,12 +140,14 @@
       const checked = sel(p);
       const list = items(p, doc).map(it => {
         const last = lastDone(p, doc, it);
-        return Object.assign({ last, due: dueTime(p, it, last) }, it);
-      }).sort((a, b) => a.due - b.due);
+        return Object.assign({ last, due: dueTime(p, it, last, doc) }, it);
+      }).sort((a, b) => (a.due == null ? Infinity : a.due) - (b.due == null ? Infinity : b.due));
 
       // Time columns: every due occurrence from one hour ago through the look-ahead window.
       const from = now - H, to = now + hours * H;
       const occ = it => {
+        if (it.due == null) return [];
+        if (it.once) return it.due <= to ? [Math.max(it.due, now)] : [];
         const out = [];
         for (let t = it.due; t <= to && out.length < 50; t += it.ms) if (t >= from) out.push(t);
         return out;
@@ -150,7 +156,7 @@
       const day = t => new Date(t).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
       const rows = list.map(it => {
-        const diff = it.due - now;
+        const diff = it.due == null ? null : it.due - now;
         const times = new Set(occ(it).map(t => Math.floor(t / MIN) * MIN));
         const on = rowChecked(p, it.key);
         // Clicking the name/status cells checks the first due box in view (or the earliest column).
@@ -160,7 +166,7 @@
           <td class="wl-a">A</td>
           <td class="wl-item"><span>${esc(it.name)}</span><span class="wl-freq">${esc(it.freq)}</span></td>
           <td class="nowrap wl-last">${it.last == null ? '' : span(now - it.last).replace('-', '')}</td>
-          <td class="nowrap wl-status ${diff <= 0 ? 'wl-late' : ''}">${span(diff)}</td>
+          <td class="nowrap wl-status ${diff != null && diff <= 0 ? 'wl-late' : ''}">${diff == null ? `<span class="muted">${it.locked ? 'After delivery' : 'Done'}</span>` : span(diff)}</td>
           ${colTimes.map(t => `<td class="wl-cell ${t <= now ? 'wl-past' : ''} ${checked.has(it.key + '|' + t) ? 'wl-cell-on' : ''}" data-t="${t}">${checked.has(it.key + '|' + t) ? `<span class="wl-check" role="img" aria-label="Checked to document ${U.fmtTime(t)}">✔</span>` : times.has(t) ? `<svg class="wl-clock" viewBox="0 0 20 20" role="img" aria-label="Due ${U.fmtTime(t)}"><circle cx="10" cy="10" r="7.5"/><path d="M10 5.5V10h3.5"/></svg>` : ''}</td>`).join('')}
         </tr>`;
       }).join('');
@@ -179,6 +185,7 @@
         <div class="wl-filter"><strong>Page 1 of 1</strong>
           <div><span class="wl-filterbtn">Filter ▾</span> Include: Interventions; Look Ahead: ${hours} Hours</div>
           <div class="muted small">Click a clock or any box to check it, then click <strong>Document</strong>. ${any ? `<strong>${checked.size}</strong> box(es) checked.` : ''}</div>
+          ${list.some(it => it.locked) ? `<div class="alert alert-info small">${esc(list.find(it => it.locked).lockedMsg)}</div>` : ''}
         </div>
         <div class="scroll-x"><table class="grid worklist">
           <thead><tr><th></th><th class="wl-item-h">Care Item</th><th>Last<br>Done</th><th>Status/<br>Due ▾</th>
@@ -207,7 +214,8 @@
         const doc = Store.doc(p.id);
         UI.modal({ title: 'Care Item Detail', body: [...new Set([...sel(p)].map(keyOf))].map(byKey).filter(Boolean).map(it => {
           const last = lastDone(p, doc, it);
-          return `<div class="detail-row"><strong>${esc(it.name)}</strong> — ${esc(it.freq)}<br>Last done: ${last ? esc(U.fmtDT(last)) : 'not yet this scenario'} · Next due: ${esc(U.fmtDT(dueTime(p, it, last)))}</div>`;
+          const nd = dueTime(p, it, last, doc);
+          return `<div class="detail-row"><strong>${esc(it.name)}</strong> — ${esc(it.freq)}<br>Last done: ${last ? esc(U.fmtDT(last)) : 'not yet this scenario'} · Next due: ${it.locked ? 'opens after delivery (faculty release)' : nd == null ? 'complete' : esc(U.fmtDT(nd))}</div>`;
         }).join('') });
       });
       // Chart in time order: each checked box is one documentation.
@@ -223,7 +231,9 @@
     const rest = boxes.slice(1);
     const next = () => { sel(p).delete(box); App.render(); run(p, rest, byKey); };
     if (!it) { sel(p).delete(box); run(p, rest, byKey); return; }
-    if (it.kind === 'form' && Views.assess.open) Views.assess.open(p, it.formId, next);
+    if (it.locked) { UI.toast(it.lockedMsg || 'This documentation is not open yet.', 'warn'); sel(p).delete(box); App.render(); run(p, rest, byKey); return; }
+    if (it.open) it.open(p, next);
+    else if (it.kind === 'form' && Views.assess.open) Views.assess.open(p, it.formId, next);
     else if (it.kind === 'vitals' && Views.vitals.modal) Views.vitals.modal(p, next);
     else if (it.kind === 'note' && Views.notes.write) Views.notes.write(p, it.noteType, next);
     else if (it.kind === 'heparin') Views.heparin.titrate(p, next);

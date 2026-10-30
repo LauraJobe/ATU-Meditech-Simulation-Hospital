@@ -186,6 +186,12 @@
           status: o.dcTime ? 'Discontinued' : 'Active', dcTime: o.dcTime, isNew: true, entered: o });
       }
     });
+
+    // Faculty discontinued a chart or released order / medication (doc.orders kind 'dc' with ref = its id).
+    (Store.doc(pid).orders || []).filter(e => e.status === 'active' && e.data.kind === 'dc').forEach(e => {
+      [...p.meds.filter(m => !m.entered), ...p.orders.filter(o => !o.entered)].filter(x => x.id === e.data.ref && x.status !== 'Discontinued')
+        .forEach(x => { x.status = 'Discontinued'; x.dcTime = e.time; x.dcEntry = e; });
+    });
     return p;
   };
 
@@ -320,7 +326,7 @@
 
   M.medOrders = p => p.meds.map(m => ({
     id: m.id, cat: 'Medication', text: M.medLabel(m), detail: [m.indication ? 'Indication: ' + m.indication : '', m.instructions, m.holdReason].filter(Boolean).join(' '),
-    by: m.orderedBy || p.attending, time: m.entered ? m.entered.orderTime : m.orderTime, dcTime: m.dcTime, status: m.status, isNew: m.isNew, priority: m.priority, protocol: m.protocol, set: m.orderSet, med: m, entered: m.entered
+    by: m.orderedBy || p.attending, time: m.entered ? m.entered.orderTime : m.orderTime, dcTime: m.dcTime, status: m.status, isNew: m.isNew, priority: m.priority, protocol: m.protocol, set: m.orderSet, med: m, entered: m.entered, dcEntry: m.dcEntry
   }));
 
   M.isAcked = (doc, ref) => doc.ack.some(e => e.status === 'active' && e.data.ref === ref);

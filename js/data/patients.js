@@ -190,7 +190,7 @@ window.SIM_PATIENTS = [
       { id: 'liv-o9', cat: 'Nursing', text: 'I & O every 4 hours', time: '08:00', day: -5, by: 'Dr. Marcus' },
       { id: 'liv-o10', cat: 'Nursing', text: 'Bladder scan every shift & PRN signs/symptoms of urinary retention', time: '08:00', day: -5, by: 'Dr. Marcus' },
       { id: 'liv-o11', cat: 'Nursing', text: 'Sterile dressing change to right hip daily', time: '08:00', day: -5, by: 'Dr. Marcus' },
-      { id: 'liv-o12', cat: 'Lab', text: 'BMP, CBC, lactate level', time: '08:00', day: -5, by: 'Dr. Marcus' },
+      { id: 'liv-o12', cat: 'Lab', text: 'BMP, CBC, lactate level every AM', time: '06:00', day: -5, by: 'Dr. Marcus' },   // same clock time as the AM results
       { id: 'liv-o13', cat: 'Nursing', text: 'Notify provider: SBP < 100 or > 160, HR < 55 or > 110, SpO2 < 90%', time: '08:00', day: -5, by: 'Dr. Marcus' }
     ],
     meds: [

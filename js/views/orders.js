@@ -65,7 +65,7 @@
       <td>${esc(o.by || '')}</td>
       <td class="nowrap">${esc(U.fmtDT(o.time))}${o.dcTime ? `<br>${esc(U.fmtDT(o.dcTime))}` : ''}</td>
       <td>${esc(status)}</td>
-      <td class="nowrap">${pending && faculty() ? `<button class="btn btn-sm btn-primary" data-approve="${esc(o.verbal.id)}">Review</button>` : ''}${o.isNew ? (acked ? '<span class="muted small">Ack’d</span>' : `<button class="btn btn-sm btn-primary" data-ack="${esc(o.id)}">Acknowledge</button>`) : ''}</td>
+      <td class="nowrap">${faculty() && changeable(o) ? `<button class="btn btn-sm" data-modify="${esc(o.id)}" title="Modify (discontinue and reorder)">Modify</button> <button class="btn btn-sm btn-danger" data-dc="${esc(o.id)}" title="Discontinue">DC</button> ` : ''}${pending && faculty() ? `<button class="btn btn-sm btn-primary" data-approve="${esc(o.verbal.id)}">Review</button>` : ''}${o.isNew ? (acked ? '<span class="muted small">Ack’d</span>' : `<button class="btn btn-sm btn-primary" data-ack="${esc(o.id)}">Acknowledge</button>`) : ''}</td>
       <td><button type="button" class="i-link" data-info="${esc(o.id)}" title="Order detail" aria-label="Order detail">i</button></td>
     </tr>`;
   }
@@ -87,6 +87,7 @@
       (o.eo || o.entered) && ['Entered', enteredLine(o.eo || o.entered)],
       o.eo && o.eo.state === 'declined' && ['Not approved', o.eo.decision.data.reason || '(no reason given)'],
       o.verbal && o.verbal.status === 'error' && ['Entered in error', o.verbal.error.reason],
+      dcEntryOf(o) && ['Discontinued by', `${Model.signature(dcEntryOf(o))}${dcEntryOf(o).data.reason ? ' — ' + dcEntryOf(o).data.reason : ''}`],
       o.isNew && ['Acknowledged', ack ? `${U.fmtDT(ack.time)} by ${Model.signature(ack)}` : 'Not yet acknowledged']
     ].filter(r => r && r[1]);
     UI.modal({
@@ -96,7 +97,9 @@
       buttons: [
         o.verbal && o.verbal.status === 'active' && o.status === 'Pending faculty approval' && faculty() ? { label: 'Review / Approve', cls: 'btn-primary', onClick: () => { setTimeout(() => review(p, o.verbal), 0); } } : null,
         o.verbal && o.verbal.status === 'active' ? { label: 'Mark in Error', cls: 'btn-danger', onClick: () => { setTimeout(() => UI.errorEntry(p, 'orders', o.verbal.id), 0); } } : null,
-        o.entered && faculty() && o.status === 'Active' ? { label: 'Discontinue', cls: 'btn-danger', onClick: () => { setTimeout(() => discontinue(p, o), 0); } } : null,
+        faculty() && changeable(o) ? { label: 'Modify…', onClick: () => { setTimeout(() => modify(p, o), 0); } } : null,
+        faculty() && changeable(o) ? { label: 'Discontinue…', cls: 'btn-danger', onClick: () => { setTimeout(() => discontinue(p, o), 0); } } : null,
+        faculty() && dcEntryOf(o) ? { label: 'Undo Discontinue', onClick: () => { setTimeout(() => undoDc(p, o), 0); } } : null,
         { label: 'Close' }
       ].filter(Boolean)
     });
@@ -156,6 +159,8 @@
       if (verbal) verbal.addEventListener('click', () => openVerbal(p));
       const fac = root.querySelector('[data-action="facorder"]');
       if (fac) fac.addEventListener('click', () => facultyOrder(p));
+      root.querySelectorAll('[data-dc]').forEach(b => b.addEventListener('click', () => { const o = all.find(x => x.id === b.dataset.dc); if (o) discontinue(p, o); }));
+      root.querySelectorAll('[data-modify]').forEach(b => b.addEventListener('click', () => { const o = all.find(x => x.id === b.dataset.modify); if (o) modify(p, o); }));
       root.querySelectorAll('[data-approve]').forEach(b => b.addEventListener('click', () => {
         const e = doc.orders.find(x => x.id === b.dataset.approve); if (e) review(p, e);
       }));
@@ -200,9 +205,11 @@
     });
   }
   // Read the form; returns { order } or { error }.
-  function readOrderForm(el) {
+  // textOnly: a medication-category order with no medication fields stays a text order (not on the MAR).
+  function readOrderForm(el, textOnly) {
     const v = U.formValues(el);
     const order = { cat: v.cat, provider: v.provider || '', priority: v.priority, text: (v.text || '').trim() };
+    if (textOnly && MED_CATS.includes(v.cat) && !v.mname && !v.mdose && order.text) return { order };
     if (MED_CATS.includes(v.cat)) {
       const type = v.mtype;
       if (!v.mname || !v.mdose) return { error: 'Enter the medication name and dose (it goes on the MAR).' };
@@ -272,13 +279,62 @@
     });
   }
 
-  function discontinue(p, o) {
-    const eo = o.entered;
-    UI.confirm('Discontinue order', `Discontinue "${o.text}"? It stays on the order list as Discontinued${o.med ? ' and no more doses are due on the MAR' : ''}.`, () => {
-      Store.add(p.id, 'orders', { kind: 'dc', ref: eo.entry.id }, p.clock.now(), p.clock.now());
-      UI.toast('Order discontinued.', 'warn');
+  // Faculty may discontinue or modify any active order: chart orders, released scenario orders, medications,
+  // and orders entered during the sim (e.g., a duplicate of an order entered before its release).
+  const changeable = o => !o.verbal && o.status !== 'Discontinued' && o.status !== 'Entered in error';
+  // The faculty "dc" entry: by entry id for orders entered during the sim, by order/medication id otherwise.
+  const dcRef = o => o.entered ? o.entered.entry.id : o.id;
+  const dcEntryOf = o => o.status === 'Discontinued' ? (o.entered ? o.entered.dcEntry : o.dcEntry) || null : null;
+  const DC_REASONS = ['Duplicate order', 'Order changed by provider', 'Completed', 'No longer indicated', 'Entered on wrong patient', 'Other'];
+
+  function discontinue(p, o, then) {
+    UI.modal({
+      title: 'Discontinue Order (Faculty)',
+      body: `<p><strong>${esc(o.med ? Model.medLabel(o.med) : o.text)}</strong></p>
+        <p class="muted small">It stays on the order list as Discontinued${o.med ? ', and no more doses are due on the MAR' : ''}. Undo from the order's <strong>i</strong> if needed.</p>
+        <label class="field"><span>Reason</span><select name="reason">${UI.options(DC_REASONS, 'Duplicate order', false)}</select></label>
+        <label class="field"><span>Comment (optional)</span><input name="comment"></label>`,
+      buttons: [{ label: 'Cancel' }, { label: 'Discontinue', cls: 'btn-danger', onClick: api => {
+        const v = U.formValues(api.el);
+        Store.add(p.id, 'orders', { kind: 'dc', ref: dcRef(o), reason: v.reason + (v.comment ? ': ' + v.comment : '') }, p.clock.now(), p.clock.now());
+        UI.toast('Order discontinued.', 'warn');
+        App.render();
+      } }]
+    });
+  }
+
+  function undoDc(p, o) {
+    const e = dcEntryOf(o);
+    UI.confirm('Undo discontinue', `Make "${o.med ? Model.medLabel(o.med) : o.text}" active again?`, () => {
+      Store.markError(p.id, 'orders', e.id, 'Discontinue undone by faculty', p.clock.now());
+      UI.toast('Order is active again.');
       App.render();
-    }, 'Discontinue');
+    }, 'Undo Discontinue');
+  }
+
+  // Modify = discontinue the original and enter the corrected order (like a provider changing an order).
+  function modify(p, o) {
+    const m = o.med || null;
+    const pre = { cat: o.cat === 'Medication' || !o.cat ? (m ? 'Medication' : 'Nursing') : o.cat, provider: (o.entered && o.entered.provider) || o.by || p.attending,
+      priority: o.priority || 'Routine', text: m ? '' : o.text, firstNow: false,
+      med: m ? { name: m.name, dose: m.dose, route: m.route, type: m.type, freq: m.freq, indication: m.indication, instructions: m.instructions, highAlert: m.highAlert } : null };
+    if (m && !MED_CATS.includes(pre.cat)) pre.cat = 'Medication';
+    UI.modal({
+      title: 'Modify Order (Faculty)', wide: true,
+      body: `<div class="review-src"><div>Current order</div><blockquote>${esc(m ? Model.medLabel(m) : o.text)}</blockquote></div>
+        <p class="muted small">Saving discontinues the current order and enters the corrected one as a faculty order. Students see the new order as <strong>NEW</strong> to acknowledge${m ? ', and the MAR updates' : ''}.</p>
+        ${orderForm(p, pre)}`,
+      onOpen: api => bindOrderForm(api.el),
+      buttons: [{ label: 'Cancel' }, { label: 'Save Modified Order', cls: 'btn-primary', onClick: api => {
+        const r = readOrderForm(api.el, !m);
+        if (r.error) { UI.formError(api.el.querySelector('.modal-body'), r.error); return false; }
+        const now = p.clock.now();
+        Store.add(p.id, 'orders', { kind: 'dc', ref: dcRef(o), reason: 'Modified — replaced by a new order' }, now, now);
+        Store.add(p.id, 'orders', Object.assign({ kind: 'faculty', replaces: dcRef(o) }, r.order), now, now);
+        UI.toast('Order modified' + (r.order.med ? ' — the MAR is updated.' : '.'));
+        App.render();
+      } }]
+    });
   }
 
   function openVerbal(p) {

@@ -144,7 +144,7 @@ To refresh after that repository changes: `node tools/import-atu-sim-hospital.cj
 - **Approve Order**: the order becomes active, shows as **NEW** for students to acknowledge, and medications appear on the **MAR**. For scheduled medications you can make the first dose due now.
 - **Not Approved…**: the student sees the order crossed out, with your reason.
 
-**Faculty can enter their own orders.** In Faculty mode, **Orders → ENTER (faculty order)** works the same way: the order is active right away, students see it as NEW to acknowledge, and medications go on the MAR. In an order's **i** detail, faculty can **Discontinue** an order entered this way.
+**Faculty can enter their own orders.** In Faculty mode, **Orders → ENTER (faculty order)** works the same way: the order is active right away, students see it as NEW to acknowledge, and medications go on the MAR. In Faculty mode every active order (chart orders, released scenario orders, medications, and orders entered during the sim) has **Modify** and **DC** buttons on the Orders screen (also in the order's **i** detail). **DC** asks for a reason (default "Duplicate order" — e.g., an order you entered before releasing the same scenario orders); the order stays on the list as Discontinued and its MAR doses stop. **Modify** discontinues the order and enters the corrected one as a faculty order (NEW for students; the MAR updates). **Undo Discontinue** is in the order's **i** detail.
 
 **Labels and scanning.** New medications print on **Print Wristbands & Med Labels**, and their labels scan on the MAR. Common drugs also scan with the unit-dose product labels.
 

@@ -38,6 +38,7 @@
     document: '<path d="M5 2h7l4 4v12H5z"/><path d="M12 2v4h4M8 10h5M8 13h5"/>',
     orders: '<rect x="4" y="3" width="12" height="15" rx="1"/><path d="M8 3V2h4v1M7 8h6M7 11h6M7 14h4"/>',
     gear: '<circle cx="10" cy="10" r="2.5"/><path d="M10 2v2.5M10 15.5V18M2 10h2.5M15.5 10H18M4.3 4.3l1.8 1.8M13.9 13.9l1.8 1.8M4.3 15.7l1.8-1.8M13.9 6.1l1.8-1.8"/>',
+    help: '<circle cx="10" cy="10" r="7.5"/><path d="M7.8 7.8a2.3 2.3 0 1 1 3.2 2.1c-.7.3-1 .8-1 1.5v.6M10 14.6v.2"/>',
     suspend: '<circle cx="10" cy="10" r="7"/><path d="M7.5 7.5l5 5M12.5 7.5l-5 5"/>'
   };
   const svg = name => `<svg viewBox="0 0 20 20" aria-hidden="true">${ICON[name]}</svg>`;
@@ -81,6 +82,7 @@
             ${['student', 'observer', 'faculty'].map(m => `<a role="menuitem" href="#" data-setmode="${m}" class="${Screens.mode() === m ? 'ml-on' : ''}">${Screens.MODE_LABEL[m]}${m === 'observer' ? ' (view only)' : m === 'faculty' ? ' (PIN)' : ' (documenting)'}</a>`).join('')}
             ${Screens.mode() === 'faculty' ? '<a role="menuitem" href="#/instructor">Instructor Tools…</a>' : ''}
           </div></div>`}
+        <a class="tb-btn" href="#" data-action="help">${svg('help')}<span>Help</span></a>
         <a class="tb-btn" href="#" data-action="logout">${svg('suspend')}<span>Suspend</span></a>
       </div>
     </header>
@@ -137,6 +139,7 @@
     ].join('');
     const problems = [p.admitDx, ...(p.pmh || [])].map(x => `<p>${esc(x)}</p>`).join('');
     const resus = /not documented/i.test(p.codeStatus || '') ? '<div class="resus">Resus Status Needs Review</div>' : '';
+    const bsa = p.heightCm && p.weightKg ? Math.sqrt(p.heightCm * p.weightKg / 3600).toFixed(2) : null;
     return `<aside class="side" aria-label="Patient">
       <div class="side-id"><button class="side-refresh" type="button" title="Refresh" onclick="App.render()" aria-label="Refresh chart">↻</button>
         <div class="avatar" aria-hidden="true">${esc(initials)}</div>
@@ -146,9 +149,11 @@
       </div>${resus}
       <div class="side-facts">
         <div>${esc(p.unit)}${p.room && p.room !== '—' ? ' · ' + esc(p.room) : ''}</div>
-        <div>${p.heightCm ? esc(p.heightCm) + ' cm' : 'Ht —'} · ${p.weightKg ? esc(p.weightKg) + ' kg' : 'Wt —'}${bmi ? ' · BMI ' + bmi : ''}</div>
-        <div>Admit: ${esc(U.fmtDate(p.admitTime))} · ${esc(p.attending)}</div>
+        <div class="side-2col"><span>${p.heightCm ? esc(p.heightCm) + ' cm' : 'Ht —'}<br>${p.weightKg ? esc(p.weightKg) + ' kg' : 'Wt —'}</span><span>${bsa ? 'BSA: ' + bsa + ' m²' : ''}<br>${bmi ? 'BMI: ' + bmi + ' kg/m²' : ''}</span></div>
+        <div class="side-cc">${esc(p.chiefComplaint || p.admitDx)}</div>
+        <div class="side-admit">Admit: ${esc(U.fmtDate(p.admitTime))} · ${esc(p.attending)}</div>
       </div>
+      <form class="side-search" role="search"><span aria-hidden="true">🔍</span><input name="q" placeholder="Search Patient's Chart" autocomplete="off" aria-label="Search Patient's Chart"></form>
       <details class="side-sec" open><summary>Special Indicators</summary>${indicators}</details>
       <details class="side-sec" open><summary>Allergies</summary>${allergies}</details>
       <details class="side-sec" open><summary>Problems</summary>${problems}</details>
@@ -196,6 +201,10 @@
             <main class="content" id="content">${paneHead(p, doc, tab)}${view.render(p, doc)}</main>
           </div>${sidePanel(p)}</div>`;
         if (view.bind) view.bind(app.querySelector('#content'), p, doc);
+        // Search Patient's Chart (right-hand column): searches the whole chart and highlights the matches.
+        const ss = app.querySelector('.side-search');
+        if (ss) ss.addEventListener('submit', e => { e.preventDefault(); Views.chartSearch.run(p, ss.q.value); });
+        if (Views.chartSearch) Views.chartSearch.decorate(app, p);
         document.title = `${p.name.last}, ${p.name.first} — ${view.label} · ${C.systemName}`;
         if (App._lastKey === location.hash) window.scrollTo(0, scroll);
       } else if (r.page === 'instructor') {
@@ -249,6 +258,12 @@
       document.body.classList.toggle('mode-observer', Screens.mode() === 'observer');
       const sharedBtn = app.querySelector('.toolbar [data-action="shared"]');
       if (sharedBtn) sharedBtn.addEventListener('click', () => Shared.dialog());
+      // Help: the text lives in js/config.js (helpHtml) so it can be filled in later without code changes.
+      const helpBtn = app.querySelector('.toolbar [data-action="help"]');
+      if (helpBtn) helpBtn.addEventListener('click', e => {
+        e.preventDefault();
+        UI.modal({ title: 'Help', wide: true, body: C.helpHtml || '<p class="muted">Help information will be added here.</p>', buttons: [{ label: 'Close' }] });
+      });
       app.querySelector('[data-action="logout"]').addEventListener('click', e => {
         e.preventDefault();
         UI.confirm('Suspend session', window.Shared && Shared.on() ? 'Sign out of the simulation EHR? Your documentation stays in the shared chart.' : 'Sign out of the simulation EHR? Your documentation stays saved on this device.', () => {

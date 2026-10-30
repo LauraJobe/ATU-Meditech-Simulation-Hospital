@@ -80,7 +80,7 @@
 
     // Instructor-released scenario events: { eventId: realTimeReleased }
     released: pid => read('released.' + pid, {}),
-    release(pid, eventId) { const r = Store.released(pid); r[eventId] = Date.now(); write('released.' + pid, r); if (shared()) Shared.release(pid, eventId, true, r[eventId]); },
+    release(pid, eventId, at) { const r = Store.released(pid); r[eventId] = at || Date.now(); write('released.' + pid, r); if (shared()) Shared.release(pid, eventId, true, r[eventId]); },
     unrelease(pid, eventId) { const r = Store.released(pid); delete r[eventId]; write('released.' + pid, r); if (shared()) Shared.release(pid, eventId, false, 0); },
 
     // Patients added through Instructor Tools (JSON import)

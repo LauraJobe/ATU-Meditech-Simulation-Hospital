@@ -263,6 +263,7 @@
     (ev.vitals || []).forEach(() => out.push(['Vital signs', 'Vital-sign row']));
     (ev.discontinue || []).forEach(id => { const m = ((base && base.meds) || []).find(x => x.id === id); out.push(['Discontinues', m ? Model.medLabel(m) : id]); });
     if (ev.delivery) out.push(['Delivery', 'Opens the newborn documentation on both Sung charts']);
+    (ev.includes || []).forEach(id => { const x = ((base && base.events) || []).find(e => e.id === id); if (x) out.push(['Also releases (if not released yet)', x.title]); });
     return out;
   }
 
@@ -325,8 +326,20 @@
       const pick = root.querySelector('[data-action="ins-pick"]');
       if (pick) pick.addEventListener('change', () => { pickPatient(pick.value); App.render(); });
       const pts = () => Model.allPatients().map(p => p.id);
-      root.querySelectorAll('[data-release]').forEach(b => b.addEventListener('click', () => { const [pid, ev] = b.dataset.release.split('|'); Store.release(pid, ev); UI.toast('Event released to the chart.'); App.render(); }));
-      root.querySelectorAll('[data-unrelease]').forEach(b => b.addEventListener('click', () => { const [pid, ev] = b.dataset.unrelease.split('|'); Store.unrelease(pid, ev); App.render(); }));
+      // An event with "includes" (Ruth's ICU orders) also releases those events if they are not out yet, at the same
+      // time; Undo takes back only the ones that were released with it.
+      const evOf = (pid, id) => ((Model.base(pid) || {}).events || []).find(e => e.id === id) || {};
+      root.querySelectorAll('[data-release]').forEach(b => b.addEventListener('click', () => {
+        const [pid, ev] = b.dataset.release.split('|'), at = Date.now();
+        Store.release(pid, ev, at);
+        (evOf(pid, ev).includes || []).forEach(id => { if (!Store.released(pid)[id]) Store.release(pid, id, at); });
+        UI.toast('Event released to the chart.'); App.render();
+      }));
+      root.querySelectorAll('[data-unrelease]').forEach(b => b.addEventListener('click', () => {
+        const [pid, ev] = b.dataset.unrelease.split('|'), at = Store.released(pid)[ev];
+        (evOf(pid, ev).includes || []).forEach(id => { if (Store.released(pid)[id] === at) Store.unrelease(pid, id); });
+        Store.unrelease(pid, ev); App.render();
+      }));
       root.querySelectorAll('[data-restart]').forEach(b => b.addEventListener('click', () => UI.confirm('Restart clock', 'Set this chart\'s clock back to the scenario start time? Existing documentation keeps its times.', () => { Store.restartScenario(b.dataset.restart); App.render(); }, 'Restart')));
       root.querySelectorAll('[data-reset]').forEach(b => b.addEventListener('click', () => UI.confirm('Reset patient', window.Shared && Shared.on()
         ? 'Reset this patient for the next group? This erases ALL student documentation and released events on EVERY connected device and restarts the clock. No copy is kept. Other patients are not changed.'

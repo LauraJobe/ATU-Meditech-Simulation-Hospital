@@ -872,3 +872,18 @@ tr.row-pending { background: #fff8e1; }
 .tr-opt { padding: 0 4px; }
 .tr-opt.tr-on { border: 2px solid #1b2733; border-radius: 50%; font-weight: 700; }
 @media (max-width: 760px) { .tr-cols { grid-template-columns: 1fr; } .tr-cols > div + div { border-left: 0; padding-left: 0; } }
+
+/* Right-hand column: facts and Search Patient's Chart (from EMRTestEnvironment) */
+.side-2col { display: flex; justify-content: space-between; gap: 8px; margin-top: 4px; }
+.side-cc { color: #c0392b; margin-top: 4px; }
+.side-admit { margin-top: 6px; color: #5a6b7c; font-size: 12px; }
+.side-search { display: flex; align-items: center; gap: 6px; margin: 8px 10px; padding: 0 8px; border: 1px solid #b6c2ce; border-radius: 16px; background: #fff; }
+.side-search input { flex: 1; min-width: 0; border: none; height: 30px; font-style: italic; background: transparent; }
+.side-search input:focus { outline: none; }
+.side-search:focus-within { box-shadow: 0 0 0 2px #8fd19b; }
+.cs-strip { position: sticky; top: 56px; z-index: 20; box-shadow: 0 2px 6px rgba(0,0,0,.12); display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: -6px 0 12px; padding: 6px 10px; background: #fffbe0; border: 1px solid #e4cf6a; border-radius: 4px; font-size: 13px; }
+.no-flexgap .cs-strip > * { margin: 0 6px 4px 0; }
+.cs-chip { padding: 2px 9px; border: 1px solid #b6c2ce; border-radius: 12px; background: #fff; color: #1a5fa8; text-decoration: none; }
+.cs-chip.on { background: #1a5fa8; border-color: #1a5fa8; color: #fff; font-weight: 700; }
+.cs-clear { margin-left: auto; border: 1px solid #b6c2ce; border-radius: 4px; background: #fff; width: 26px; height: 24px; cursor: pointer; }
+mark.cs-mark { background: #ffe066; padding: 0 1px; border-radius: 2px; }

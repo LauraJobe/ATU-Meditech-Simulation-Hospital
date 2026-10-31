@@ -262,7 +262,9 @@
       const helpBtn = app.querySelector('.toolbar [data-action="help"]');
       if (helpBtn) helpBtn.addEventListener('click', e => {
         e.preventDefault();
-        UI.modal({ title: 'Help', wide: true, body: C.helpHtml || '<p class="muted">Help information will be added here.</p>', buttons: [{ label: 'Close' }] });
+        const links = (C.helpLinks || []).map(l => `<li><a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">${esc(l.label)}</a> <span class="muted small">(opens in a new tab)</span></li>`).join('');
+        UI.modal({ title: 'Help', wide: true, buttons: [{ label: 'Close' }],
+          body: (C.helpHtml || '<p class="muted">Help information will be added here.</p>') + (links ? `<h4>References</h4><ul>${links}</ul>` : '') });
       });
       app.querySelector('[data-action="logout"]').addEventListener('click', e => {
         e.preventDefault();

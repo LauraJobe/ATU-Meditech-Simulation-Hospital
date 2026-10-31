@@ -64,6 +64,8 @@
 
   Views.results = {
     label: 'Diagnostics',
+    // Chart search opens a sub-tab directly (e.g., "labs" → Laboratory).
+    show(s) { if (SUBTABS.includes(s)) { sub = s; section = 'All'; } },
     render(p, doc) {
       const pending = Model.unreviewedResults(p, doc);
       const labPick = r => !isMicro(r) && !isBank(r);

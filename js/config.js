@@ -7,7 +7,7 @@ window.EHR_CONFIG = {
   systemName: 'SimEHR',
   // Shown on the sign-in screen. Also bump ?v= in index.html, orientation.html, and labels.html when files change,
   // so browsers (older iPads especially) load the new files instead of a saved copy.
-  version: '2026.10.31-1',
+  version: '2026.10.31-2',
 
   // Toolbar Help button: HTML shown in the Help window (e.g., '<p>…</p><ul><li>…</li></ul>'). Empty = "will be added".
   helpHtml: '',

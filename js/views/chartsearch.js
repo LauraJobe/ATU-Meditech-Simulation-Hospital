@@ -38,9 +38,11 @@
     (p.homeMeds || []).forEach(m => add('Home Medications', 'meds', m.name, null, m));
     p.orders.forEach(o => add('Orders', 'orders', o.text, o.time, [o.cat, o.priority, o.by, o.detail, o.instructions]));
     p.meds.forEach(m => add('Medications', 'meds', Model.medLabel(m), m.orderTime, [m.status, m.indication, m.instructions, m.holdReason, m.orderedBy]));
-    p.labs.forEach(l => add('Lab Results', 'results', l.panel, l.time, (l.results || []).map(r => `${r.t} ${r.v}${r.u ? ' ' + r.u : ''}${Model.labFlag(r) ? ' ' + Model.labFlag(r) : ''}`)));
+    // Diagnostics results carry the sub-tab they show on (Laboratory, Microbiology, Blood Bank Tests, Imaging, Cardiovascular).
+    const labSub = r => /culture|gram stain|sensitivit/i.test(r.t) ? 'Microbiology' : /ABO|blood type|antibod|crossmatch/i.test(r.t) ? 'Blood Bank Tests' : 'Laboratory';
+    p.labs.forEach(l => (l.results || []).forEach(r => { add('Lab Results', 'results', l.panel, l.time, `${r.t} ${r.v}${r.u ? ' ' + r.u : ''}${Model.labFlag(r) ? ' ' + Model.labFlag(r) : ''}`); out[out.length - 1].sub = labSub(r); }));
     if (p.labsPending) add('Lab Results', 'results', 'Pending', null, p.labsPending);
-    p.imaging.forEach(r => add('Imaging', 'results', r.study, r.time, [r.text, r.findings, r.impression, r.report]));
+    p.imaging.forEach(r => { add('Imaging', 'results', r.study, r.time, [r.text, r.findings, r.impression, r.report]); out[out.length - 1].sub = /ECG|EKG|echo|telemetry|cardiac/i.test(r.study) ? 'Cardiovascular' : 'Imaging'; });
     p.notes.forEach(n => add(Views.isProviderNote(n) ? 'Provider Notes' : 'Nursing Notes', Views.isProviderNote(n) ? 'provnotes' : 'notes', `${n.type || 'Note'} — ${n.author || ''}`, n.time, n.text));
     (p.documents || []).forEach(d => add('Documents', 'documents', d.title, d.time, [d.category, d.md, d.text]));
     (p.vitalsPrior || []).forEach(v => add('Vital Signs', 'vitals', 'Vital signs', v.time, vitalText(v)));
@@ -77,23 +79,68 @@
 
   // Chart tabs in the order to prefer when several have the same number of matches.
   const PRIORITY = ['results', 'meds', 'orders', 'provnotes', 'notes', 'history', 'summary', 'vitals', 'assess', 'io', 'careplan', 'admin', 'documents', 'tar'];
+  const NOTE_TABS = ['provnotes', 'notes', 'documents'];
   const tabLabel = t => (Views[t] && Views[t].label) || t;
   let active = null;   // { pid, q, hl, tabs: [{ tab, n }], scroll }
+
+  // Chart sections by name: searching for a section ("vital signs", "labs", "demographics") opens that section
+  // itself, not the first note that mentions it. Matched against the whole search, ignoring case and spacing.
+  const PLACES = [
+    { tab: 'vitals', name: 'Vital Signs flowsheet', words: ['vital signs', 'vital sign', 'vitals', 'vs', 'v/s', 'flowsheet', 'flowsheets', 'flow sheet', 'vital signs flowsheet', 'blood pressure', 'bp', 'pulse', 'heart rate', 'temperature', 'temp', 'respirations', 'respiratory rate', 'resp rate', 'spo2', 'o2 sat', 'oxygen saturation', 'pulse ox', 'pain score'] },
+    { tab: 'results', sub: 'Laboratory', name: 'Diagnostics → Laboratory', words: ['lab', 'labs', 'laboratory', 'lab results', 'labs results', 'lab values', 'results', 'diagnostics', 'bloodwork', 'blood work'] },
+    { tab: 'results', sub: 'Imaging', name: 'Diagnostics → Imaging', words: ['imaging', 'radiology', 'x-ray', 'xray', 'x ray', 'chest x-ray', 'cxr', 'ct', 'ct scan', 'mri', 'ultrasound', 'scans'] },
+    { tab: 'results', sub: 'Microbiology', name: 'Diagnostics → Microbiology', words: ['micro', 'microbiology', 'culture', 'cultures', 'blood culture', 'blood cultures', 'urine culture'] },
+    { tab: 'results', sub: 'Blood Bank Tests', name: 'Diagnostics → Blood Bank Tests', words: ['blood bank', 'blood type', 'type and cross', 'type and screen', 'crossmatch'] },
+    { tab: 'results', sub: 'Cardiovascular', name: 'Diagnostics → Cardiovascular', words: ['cardiovascular', 'ecg', 'ekg', '12 lead', '12-lead', 'echo', 'echocardiogram', 'telemetry'] },
+    { tab: 'admin', name: 'Administrative', words: ['demographics', 'demographic', 'contact', 'contacts', 'emergency contact', 'next of kin', 'nok', 'family contact', 'insurance', 'address', 'phone', 'administrative', 'admin', 'registration', 'encounter', 'language', 'religion'] },
+    { tab: 'history', name: 'History & Problems', words: ['history', 'problems', 'problem list', 'pmh', 'past medical history', 'medical history', 'psh', 'surgical history', 'family history', 'social history', 'home meds', 'home medications', 'hpi', 'history of present illness', 'ros', 'review of systems', 'immunizations'] },
+    { tab: 'summary', name: 'Summary (allergies are in the right-hand column)', words: ['allergies', 'allergy', 'nkda'] },
+    { tab: 'summary', name: 'Summary', words: ['summary', 'patient summary', 'overview'] },
+    { tab: 'orders', name: 'Orders', words: ['orders', 'order', 'provider orders', 'current orders'] },
+    { tab: 'mar', name: 'MAR', words: ['mar', 'emar', 'medication administration', 'medication administration record'] },
+    { tab: 'meds', name: 'Medications', words: ['medications', 'medication', 'meds', 'med list', 'medication list', 'drugs'] },
+    { tab: 'tar', name: 'Transfusion Administration Record', words: ['tar', 'transfusion', 'transfusions', 'blood transfusion', 'transfusion record', 'blood administration'] },
+    { tab: 'worklist', name: 'Worklist', words: ['worklist', 'work list', 'tasks', 'interventions', 'due'] },
+    { tab: 'notes', name: 'Nursing Notes', words: ['notes', 'nursing notes', 'nurse notes', 'nursing note', 'handoff', 'sbar', 'i-pass', 'ipass'] },
+    { tab: 'provnotes', name: 'Provider Notes', words: ['provider notes', 'provider note', 'progress notes', 'progress note', 'physician notes', 'doctor notes', 'md notes', 'h&p', 'h and p', 'history and physical', 'consult', 'consults', 'op note', 'operative note'] },
+    { tab: 'assess', name: 'Assessments', words: ['assessment', 'assessments', 'head to toe', 'head-to-toe', 'shift assessment', 'pain assessment', 'braden', 'morse', 'fall risk', 'gcs', 'glasgow'] },
+    { tab: 'io', name: 'Intake & Output', words: ['i&o', 'i & o', 'i and o', 'i/o', 'io', 'intake', 'output', 'intake and output', 'intake & output', 'urine output'] },
+    { tab: 'careplan', name: 'Care Plan', words: ['care plan', 'careplan', 'plan of care', 'poc', 'nursing care plan', 'goals'] },
+    { tab: 'documents', name: 'Documents', words: ['documents', 'document', 'consent', 'consents', 'forms', 'prenatal record'] },
+    { tab: 'activity', name: 'Activity', words: ['activity', 'activity log'] },
+    { tab: 'report', name: 'Chart Report', words: ['report', 'chart report', 'print chart'] },
+    { tab: 'heparin', name: 'Heparin Flowsheet', words: ['heparin flowsheet', 'heparin protocol', 'aptt', 'ptt'], when: p => p.heparinFlowsheet },
+    { tab: 'newborn', name: 'Newborn', words: ['newborn', 'newborn documentation', 'transitional record', 'baby'], when: p => p.newborn }
+  ];
+  const norm = s => s.toLowerCase().replace(/\s+/g, ' ').replace(/^(the|open|go to|show)\s+/, '').replace(/\s+(tab|section|screen|page)$/, '').trim();
+  const placeFor = (p, q) => { const n = norm(q); return PLACES.find(x => (!x.when || x.when(p)) && x.words.includes(n)) || null; };
 
   // Search, then open the chart tab with the most matches (no pop-up). The matches are highlighted
   // there, and a strip at the top of the screen links to every other tab that matches.
   function run(p, query) {
     const q = String(query || '').trim();
     if (!q) { active = null; App.render(); return; }
+    // A section name opens that section; other places that mention the words are offered in the strip.
+    const place = placeFor(p, q);
+    if (place) {
+      if (place.sub && Views.results.show) Views.results.show(place.sub);
+      active = { pid: p.id, q, hl: [], tabs: [], scroll: false, tried: [place.tab], place };
+      const target = `#/patient/${p.id}/${place.tab}`;
+      if (location.hash === target) App.render(); else location.hash = target;
+      return;
+    }
     const words = q.toLowerCase().split(/\s+/).filter(Boolean);
     const hits = index(p, Store.doc(p.id)).filter(e => { const hay = (e.title + ' ' + e.text).toLowerCase(); return words.every(w => alts(w).some(t => has(hay, t))); });
     if (!hits.length) { active = null; UI.toast(`Nothing in this chart matches “${q}”. Try a drug name, lab test, or diagnosis.`, 'info'); App.render(); return; }
     const count = {};
     hits.forEach(h => { count[h.tab] = (count[h.tab] || 0) + 1; });
     const tabs = Object.keys(count).map(tab => ({ tab, n: count[tab] }))
-      .sort((a, b) => b.n - a.n || PRIORITY.indexOf(a.tab) - PRIORITY.indexOf(b.tab));
+      // Chart data (results, medications, orders, flowsheets) before notes and documents that mention it.
+      .sort((a, b) => NOTE_TABS.includes(a.tab) - NOTE_TABS.includes(b.tab) || b.n - a.n || PRIORITY.indexOf(a.tab) - PRIORITY.indexOf(b.tab));
     const hl = Array.from(new Set(words.flatMap(alts))).filter(t => t.length > 2 || words.includes(t));
     active = { pid: p.id, q, hl, tabs, scroll: true, tried: [tabs[0].tab] };
+    const dx = hits.find(h => h.tab === 'results' && h.sub);
+    if (dx && Views.results.show) Views.results.show(dx.sub);
     const target = `#/patient/${p.id}/${tabs[0].tab}`;
     if (location.hash === target) App.render(); else location.hash = target;
   }
@@ -103,7 +150,7 @@
     if (!terms.length) return [];
     const re = new RegExp(terms.map(t => { const e = t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); return t.length <= 3 ? `\\b${e}\\b` : e; }).join('|'), 'gi');
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: n =>
-      !n.nodeValue.trim() || n.parentNode.closest('script, style, textarea, input, select, option, button, .cs-strip, mark') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
+      !n.nodeValue.trim() || n.parentNode.closest('script, style, textarea, input, select, option, .cs-strip, mark') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
     const nodes = [];
     for (let n = walker.nextNode(); n; n = walker.nextNode()) nodes.push(n);
     const marks = [];
@@ -135,6 +182,13 @@
     const cur = (location.hash.split('/')[3] || 'summary');
     const input = app.querySelector('.side-search input');
     if (input) input.value = active.q;
+    if (active.place) {
+      if (cur !== active.place.tab) { active = null; return; }   // moved on: the search ends
+      content.insertAdjacentHTML('afterbegin', `<div class="cs-strip" role="status"><span>🔍 <strong>“${esc(active.q)}”</strong> — opened <strong>${esc(active.place.name)}</strong></span>
+        <button type="button" class="cs-clear" aria-label="Clear search">✕</button></div>`);
+      content.querySelector('.cs-clear').addEventListener('click', () => { active = null; App.render(); });
+      return;
+    }
     const marks = highlight(content, active.hl);
     // Just searched and nothing visible here (e.g., a match in a field this screen doesn't show):
     // move on to the next matching tab until one shows the match.

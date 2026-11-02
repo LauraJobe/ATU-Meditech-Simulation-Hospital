@@ -78,7 +78,7 @@
     'GBS': 'Pos', 'Antibiotic': 'Clindamycin 900 mg IVPB', 'Rubella': 'Immune', 'Hep B': '−', 'VDRL': '−', 'HIV': '−',
     'Chlamydia history': 'N', 'Herpes history': 'N', 'Gonorrhea history': 'N', 'Diabetes history': 'Y', 'Diabetes controlled': 'Diet',
     'Smoker': 'N', 'Illegal drug use': 'N', 'Gravida': '2', 'Para': '1', 'Blood type': 'O+', 'Rupture of membranes time': '0300',
-    'Anesthesia': 'Epidural', 'Feeding preference': 'Breast', 'Band #': '31539', 'Physician OB': 'Dr. Darnell', 'Physician Ped': 'MD'
+    'Anesthesia': 'Epidural', 'Feeding preference': 'Breast', 'Band #': '31539', 'Physician OB': 'Dr. Darnell', 'Physician Ped': 'Dr. Craig'
   };
   // Dates come from the scenario day: EDC = 7 days from now; rupture of membranes = scenario day.
   function baseline(p) {

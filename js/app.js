@@ -26,7 +26,7 @@
   ];
   const TABS = GROUPS.flat().filter(Boolean).flatMap(g => g.views).concat(['worklist', 'orders', 'tar', 'mar']); // worklist, orders, TAR, and MAR are their own screens
   // Some screens exist only for some patients: the heparin flowsheet, and the Sung newborn documentation.
-  const hasView = (v, p) => (v !== 'heparin' || p.heparinFlowsheet) && (v !== 'newborn' || p.newborn);
+  const hasView = (v, p) => (v !== 'heparin' || p.heparinFlowsheet) && (v !== 'newborn' || p.nbPair);
   const viewsOf = (g, p) => g.views.filter(v => hasView(v, p));
   const groupOf = tab => GROUPS.flat().find(g => g && g.views.includes(tab));
 

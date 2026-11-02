@@ -93,11 +93,16 @@
     deleteCustomPatient(id) { write('customPatients', Store.customPatients().filter(x => x.id !== id)); },
 
     // Connected devices reset the shared chart (all devices) and return a promise of true/false.
+    // Each reset moves the patient to a new epoch (on connected devices, the shared chart's epoch).
     resetPatient(pid) {
-      if (shared()) return Shared.reset(pid);
+      const after = ok => { if (ok && window.Views && Views.transitional) Views.transitional.cleanup(); return ok; };
+      if (shared()) return Promise.resolve(Shared.reset(pid)).then(after);
       remove('doc.' + pid); remove('released.' + pid); remove('sim.' + pid);
-      return true;
+      write('epoch.' + pid, Store.epoch(pid) + 1);
+      return after(true);
     },
+    // Reset counter for a patient. Records shared by two charts (Sung Transitional Record) keep the epochs of both.
+    epoch: pid => shared() ? Shared.epoch(pid) : Number(read('epoch.' + pid, 1)),
 
     exportAll(pids) {
       const out = { app: 'ATU SimEHR', version: 1, exported: new Date().toISOString(), patients: {} };

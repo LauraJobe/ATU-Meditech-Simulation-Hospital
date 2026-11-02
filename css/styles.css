@@ -887,3 +887,13 @@ tr.row-pending { background: #fff8e1; }
 .cs-chip.on { background: #1a5fa8; border-color: #1a5fa8; color: #fff; font-weight: 700; }
 .cs-clear { margin-left: auto; border: 1px solid #b6c2ce; border-radius: 4px; background: #fff; width: 26px; height: 24px; cursor: pointer; }
 mark.cs-mark { background: #ffe066; padding: 0 1px; border-radius: 2px; }
+
+/* Shared Newborn Transitional Record (Sung) */
+.tr2-shared { margin: 0 0 10px; padding: 6px 10px; background: #eef6ff; border: 1px solid #b9d4f1; border-radius: 4px; }
+.tr2-vs th, .tr2-vs td { padding: 3px 4px; }
+.tr2-vs input { width: 100%; min-width: 72px; }
+.tr2-actions { position: sticky; bottom: 0; background: #fff; padding: 8px 0; border-top: 1px solid var(--border, #d5dbe1); }
+.tr2-ro { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 13px; }
+.fh { font-style: normal; font-weight: 400; color: #5b6b78; font-size: 12px; }
+.form-note { color: #7a4b00; background: #fff6e0; border-left: 3px solid #e0a100; padding: 4px 8px; margin: 2px 0; font-size: 13px; }
+.form-flags .alert { margin: 8px 0; }

@@ -110,7 +110,7 @@
     { tab: 'activity', name: 'Activity', words: ['activity', 'activity log'] },
     { tab: 'report', name: 'Chart Report', words: ['report', 'chart report', 'print chart'] },
     { tab: 'heparin', name: 'Heparin Flowsheet', words: ['heparin flowsheet', 'heparin protocol', 'aptt', 'ptt'], when: p => p.heparinFlowsheet },
-    { tab: 'newborn', name: 'Newborn', words: ['newborn', 'newborn documentation', 'transitional record', 'baby'], when: p => p.newborn }
+    { tab: 'newborn', name: 'Newborn', words: ['newborn', 'newborn documentation', 'transitional record', 'baby'], when: p => p.nbPair }
   ];
   const norm = s => s.toLowerCase().replace(/\s+/g, ' ').replace(/^(the|open|go to|show)\s+/, '').replace(/\s+(tab|section|screen|page)$/, '').trim();
   const placeFor = (p, q) => { const n = norm(q); return PLACES.find(x => (!x.when || x.when(p)) && x.words.includes(n)) || null; };

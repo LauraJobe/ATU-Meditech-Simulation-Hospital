@@ -1,0 +1,30 @@
+/* Regression test (moved from development checks). Run with `npm test`. */
+const { playwright, startServer } = require('../helpers.cjs');
+const { chromium } = playwright();
+const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) process.exitCode = 1; };
+(async () => {
+  const srv = await startServer(); const BASE = srv.url;
+  const b = await chromium.launch(); const pg = await b.newPage({ viewport: { width: 1280, height: 900 } });
+  const errs = []; pg.on('pageerror', e => errs.push(e.message));
+  await pg.goto(BASE + '/index.html'); await pg.evaluate(() => { localStorage.clear(); sessionStorage.clear(); }); await pg.reload();
+  await pg.fill('[name=name]', 'Prof Release'); await pg.selectOption('[name=cred]', 'Faculty'); await pg.fill('[name=pin]', '2468'); await pg.click('button[type=submit]');
+  await pg.goto(BASE + '/index.html#/instructor'); await pg.waitForTimeout(400);
+  const n = await pg.$$eval('main .panel', x => x.length);
+  const opts = await pg.$$eval('[data-action="ins-pick"] option', o => o.map(x => x.textContent));
+  ok(n === 1, 'one patient card shown (not a long scroll): ' + n);
+  ok(opts.length === 14, 'drop-down lists 13 patients + All: ' + opts.length);
+  console.log('   ', opts.slice(0, 4).join(' | '));
+  await pg.selectOption('[data-action="ins-pick"]', 'livingston'); await pg.waitForTimeout(300);
+  ok(/Livingston, Ruth/.test(await pg.textContent('main .panel h2')), 'choosing Livingston shows her card');
+  await pg.click('[data-release^="livingston|"]'); await pg.waitForTimeout(300);
+  ok(await pg.evaluate(() => Object.keys(Store.released('livingston')).length === 1), 'Release Now works from the selected card');
+  ok(/Livingston, Ruth/.test(await pg.textContent('main .panel h2')), 'still on Livingston after releasing');
+  ok(/\(1 of \d+ released\)/.test(await pg.$eval('[data-action="ins-pick"] option:checked', o => o.textContent)), 'drop-down shows released count');
+  await pg.goto(BASE + '/index.html#/census'); await pg.goto(BASE + '/index.html#/instructor'); await pg.waitForTimeout(300);
+  ok(/Livingston/.test(await pg.textContent('main .panel h2')), 'selection remembered when coming back');
+  await pg.selectOption('[data-action="ins-pick"]', 'all'); await pg.waitForTimeout(300);
+  ok((await pg.$$eval('main .panel', x => x.length)) === 13, 'All patients option still available');
+  await pg.selectOption('[data-action="ins-pick"]', 'watkins'); await pg.waitForTimeout(300);
+  ok(errs.length === 0, 'no page errors ' + errs.join('|'));
+  await b.close(); srv.close();
+})();

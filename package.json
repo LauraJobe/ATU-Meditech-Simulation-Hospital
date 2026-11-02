@@ -1,0 +1,11 @@
+{
+  "name": "atu-meditech-simulation-hospital",
+  "private": true,
+  "description": "ATU Simulation Hospital EHR (static site). Tests drive the site in Chromium with Playwright.",
+  "scripts": {
+    "test": "node tests/run-all.cjs",
+    "test:transitional": "node tests/sung-transitional-record.cjs",
+    "test:head-to-toe": "node tests/newborn-head-to-toe.cjs",
+    "build:scorm": "node tools/build-scorm.cjs"
+  }
+}

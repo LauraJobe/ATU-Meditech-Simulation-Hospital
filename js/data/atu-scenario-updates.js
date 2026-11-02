@@ -127,20 +127,10 @@
       'Pitocin remains OFF. Dr. Darnell wants a call when the baby is crowning; vacuum assist at delivery. The baby delivers after 4 pushes. Head delivers with nuchal cord. ' +
       'Shoulder dystocia: McRoberts and suprapubic pressure. Newborn heart rate greater than 100 with weak/gasping respirations. Dry, stimulate and remove wet towels; PPV for 30 seconds. ' +
       'Apgar 6 at 1 minute and 8 at 5 minutes.' }]);
-    // Confirmed scenario facts shown on the Newborn Transitional Record (from the source charts and orders).
-    // Anything not confirmed stays blank for the student to complete.
-    const confirmed = {
-      gbs: 'Pos', abx: 'Clindamycin 900 mg IVPB', abxTimes: 'One dose before delivery', diab: 'Yes', diabCtl: 'Diet',
-      // Marked on the faculty's Transitional Record photo (October 29, 2026): keep as documented.
-      rubella: 'Immune', chlam: 'No', herpes: 'No', gon: 'No', smoker: 'No', drugs: 'No',
-      band: '31539', dob: 'Today', tob: '1235', present: 'Ceph', mec: 'No',
-      gravida: '2', para: '1 (before this delivery)', bloodType: 'O positive', anes: 'Epidural', feedPref: 'Breast',
-      mOther: 'Clindamycin is not adequate GBS prophylaxis — observe for early-onset GBS per unit protocol. Shoulder dystocia (left shoulder) — McRoberts and suprapubic pressure; nuchal cord; PPV for 30 seconds.',
-      obMd: 'Dr. Darnell', ped: 'Dr. Craig', sex: 'Male', delivery: 'Vaginal', useOf: 'Vac', apgar1: '6', apgar5: '8',
-      gestDates: '39 weeks 1 day', wtG: '4,080', wtLb: '9', wtOz: '0'
-    };
-    const newborn = { chart: 'babyboysung', deliveryPid: 'ameliasung', deliveryEvent: 'sung-delivery', confirmed };
-    a.newborn = newborn; b.newborn = newborn;
+    // The Newborn Transitional Record's prefilled values live in js/views/sung-transitional-record.js (SUNG_TRANSITIONAL_BASELINE).
+    const newborn = { chart: 'babyboysung', deliveryPid: 'ameliasung', deliveryEvent: 'sung-delivery' };
+    // nbPair: the mother/baby pairing (shared Newborn tab and Transitional Record). newborn: this patient is a newborn.
+    a.nbPair = newborn; b.nbPair = newborn; b.newborn = true;
     // Confirmed newborn facts (source Baby Boy Sung overview).
     b.weightKg = 4.08;
     b.demographics = Object.assign({}, b.demographics, { 'Gestational age': '39 weeks 1 day' });
@@ -154,7 +144,7 @@
     //   the Newborn Glucose Management Policy (and its PDF) → an order set, with the full policy on the orders' P (protocol).
     // The prenatal record stays as a reference document.
     b.documents = (b.documents || []).filter(d => !['babyboysung-d2', 'babyboysung-d4', 'babyboysung-d5', 'babyboysung-d6', 'babyboysung-d7'].includes(d.id));
-    b.assessmentForms = ['apgar', 'newborn-delivery', 'ballard', 'newborn-h2t', 'newborn-transition', 'newborn-glucose', 'pain'];
+    b.assessmentForms = ['apgar', 'newborn-delivery', 'newborn-h2t', 'newborn-glucose', 'pain'];
     // The same "Delivery completed" release on Baby Boy Sung's card (either one opens the newborn documentation).
     b.events = (b.events || []).concat([{ id: 'sung-delivery', title: 'Delivery completed — opens newborn documentation on the Worklist (APGAR, Delivery Assessment, Ballard, Head-to-Toe, Transitional Record, Glucose Monitoring)', delivery: true,
       instructorNotes: 'Same release as "Delivery completed" on Amelia Sung\'s card — releasing either one opens the newborn documentation on both Sung charts.' }]);

@@ -262,9 +262,39 @@
     (ev.notes || []).forEach(n => out.push(['Note', n.title || n.type || 'Note']));
     (ev.vitals || []).forEach(() => out.push(['Vital signs', 'Vital-sign row']));
     (ev.discontinue || []).forEach(id => { const m = ((base && base.meds) || []).find(x => x.id === id); out.push(['Discontinues', m ? Model.medLabel(m) : id]); });
+    (ev.hold || []).forEach(h => { const m = ((base && base.meds) || []).find(x => x.id === h.id); out.push(['Puts on hold', m ? Model.medLabel(m) : h.id]); });
     if (ev.delivery) out.push(['Delivery', 'Opens the newborn documentation on both Sung charts']);
     (ev.includes || []).forEach(id => { const x = ((base && base.events) || []).find(e => e.id === id); if (x) out.push(['Also releases (if not released yet)', x.title]); });
     return out;
+  }
+
+  // One scenario event: its contents and one Release Now (or Undo).
+  function eventHtml(p, base, rel, ev) {
+    return `<div class="event ${rel[ev.id] ? 'event-on' : ''}">
+                <div><strong>${esc(ev.title)}</strong>
+                  <ul class="ev-items">${releaseItems(ev, base).map(([k, t]) => `<li><span class="ev-kind">${esc(k)}</span> ${esc(t)}</li>`).join('')}</ul>
+                  ${ev.instructorNotes ? `<details><summary>Instructor notes</summary><p>${esc(ev.instructorNotes)}</p></details>` : ''}</div>
+                <div>${rel[ev.id] ? `<span class="badge badge-ok">Released ${U.fmtTime(p.clock.toSim(rel[ev.id]))}</span> <button class="btn btn-sm" data-unrelease="${esc(p.id)}|${esc(ev.id)}">Undo</button>`
+                  : `<button class="btn btn-sm btn-primary" data-release="${esc(p.id)}|${esc(ev.id)}">Release Now</button>`}</div>
+              </div>`;
+  }
+  // Events with ev.group (Charles Jones: Shift 1–4) sit under collapsible headings with progress. Headings start
+  // collapsed, have no release button of their own, and stay open across re-renders (Release Now / Undo).
+  const GROUP_KEY = C.storagePrefix + '.instructorOpenGroups';
+  const openGroups = () => { try { return JSON.parse(sessionStorage.getItem(GROUP_KEY) || '[]'); } catch (e) { return []; } };
+  const setGroupOpen = (key, on) => { try { const g = openGroups().filter(x => x !== key); if (on) g.push(key); sessionStorage.setItem(GROUP_KEY, JSON.stringify(g)); } catch (e) { /* ignore */ } };
+  function eventList(p, base, rel) {
+    const evs = base.events || [];
+    if (!evs.some(e => e.group)) return evs.map(ev => eventHtml(p, base, rel, ev)).join('');
+    const order = [], by = {};
+    evs.forEach(ev => { const g = ev.group || 'Other'; if (!by[g]) { by[g] = []; order.push(g); } by[g].push(ev); });
+    const open = openGroups();
+    return order.map(g => {
+      const key = `${p.id}|${g}`, list = by[g], n = list.filter(e => rel[e.id]).length;
+      return `<details class="ev-group" data-evgroup="${esc(key)}" ${open.includes(key) ? 'open' : ''}>
+          <summary><strong>${esc(g)}</strong> <span class="ev-progress ${n === list.length ? 'ev-all' : ''}">${n} of ${list.length} released</span></summary>
+          ${list.map(ev => eventHtml(p, base, rel, ev)).join('')}</details>`;
+    }).join('');
   }
 
   Screens.instructor = {
@@ -295,13 +325,7 @@
           <div class="panel-body">
             <p>Chart clock: <strong>${U.fmtDT(p.clock.now())}</strong> (real time; scenario written for ${esc(p.scenarioStart || "—")}, shifted ${p.clock.shift / 3600000 >= 0 ? "+" : ""}${Math.round(p.clock.shift / 3600000)} h) · ${count} student entr${count === 1 ? 'y' : 'ies'} · MRN barcode <code>${esc(p.mrn)}</code></p>
             ${p.labsPending ? `<p class="warn-box">${esc(p.labsPending)}</p>` : ''}
-            ${(base.events || []).length ? `<h3>Scenario events</h3>${base.events.map(ev => `<div class="event ${rel[ev.id] ? 'event-on' : ''}">
-                <div><strong>${esc(ev.title)}</strong>
-                  <ul class="ev-items">${releaseItems(ev, base).map(([k, t]) => `<li><span class="ev-kind">${esc(k)}</span> ${esc(t)}</li>`).join('')}</ul>
-                  ${ev.instructorNotes ? `<details><summary>Instructor notes</summary><p>${esc(ev.instructorNotes)}</p></details>` : ''}</div>
-                <div>${rel[ev.id] ? `<span class="badge badge-ok">Released ${U.fmtTime(p.clock.toSim(rel[ev.id]))}</span> <button class="btn btn-sm" data-unrelease="${esc(p.id)}|${esc(ev.id)}">Undo</button>`
-                  : `<button class="btn btn-sm btn-primary" data-release="${esc(p.id)}|${esc(ev.id)}">Release Now</button>`}</div>
-              </div>`).join('')}` : '<p class="muted">No scripted events for this patient.</p>'}
+            ${(base.events || []).length ? `<h3>Scenario events</h3>${eventList(p, base, rel)}` : '<p class="muted">No scripted events for this patient.</p>'}
             ${(base.facultyGuide || []).map(g => `<details class="faculty-guide"><summary>📘 ${esc(g.title)} (instructor only)</summary><div class="note-body">${U.md(g.md)}</div></details>`).join('')}
           </div></section>`;
       }).join('');
@@ -323,6 +347,7 @@
       </div>`;
     },
     bind(root) {
+      root.querySelectorAll('[data-evgroup]').forEach(d => d.addEventListener('toggle', () => setGroupOpen(d.dataset.evgroup, d.open)));
       const pick = root.querySelector('[data-action="ins-pick"]');
       if (pick) pick.addEventListener('change', () => { pickPatient(pick.value); App.render(); });
       const pts = () => Model.allPatients().map(p => p.id);

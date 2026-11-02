@@ -53,7 +53,7 @@ const { playwright, startServer, signIn, checker, go } = require('./helpers.cjs'
   const wrong = Object.keys(expected).filter(k => shown[k] !== expected[k]);
   const want = { 'GBS': 'Pos', 'Antibiotic': 'Clindamycin 900 mg IVPB', 'Rubella': 'Immune', 'Hep B': '−', 'VDRL': '−', 'HIV': '−', 'Chlamydia history': 'N', 'Herpes history': 'N', 'Gonorrhea history': 'N',
     'Diabetes history': 'Y', 'Diabetes controlled': 'Diet', 'Smoker': 'N', 'Illegal drug use': 'N', 'Gravida': '2', 'Para': '1', 'Blood type': 'O+', 'Rupture of membranes time': '0300',
-    'Anesthesia': 'Epidural', 'Feeding preference': 'Breast', 'Band #': '31539', 'Physician OB': 'Dr. Darnell', 'Physician Ped': 'MD' };
+    'Anesthesia': 'Epidural', 'Feeding preference': 'Breast', 'Band #': '31539', 'Physician OB': 'Dr. Darnell', 'Physician Ped': 'Dr. Craig' };
   const missing = Object.keys(want).filter(k => shown[k] !== want[k]);
   const day = await pg.evaluate(() => { const d = new Date(Model.get('babyboysung').clock.simStart); const e = new Date(d); e.setDate(e.getDate() + 7);
     const f = x => `${String(x.getMonth() + 1).padStart(2, '0')}/${String(x.getDate()).padStart(2, '0')}/${x.getFullYear()}`; return { rom: f(d), edc: f(e) }; });

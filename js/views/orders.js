@@ -225,8 +225,16 @@
     return { order };
   }
 
+  // Packet orders that faculty release in Instructor Tools (ev.aka words). A student telephone order for the same thing
+  // should not be approved as well — approve one or release the other, not both.
+  function packetMatches(p, text) {
+    const t = String(text || '').toLowerCase(), rel = Store.released(p.id);
+    return (Model.base(p.id).events || []).filter(ev => (ev.aka || []).some(w => t.includes(w.toLowerCase()))).map(ev => ({ ev, released: !!rel[ev.id] }));
+  }
+
   function review(p, e) {
     const d = e.data;
+    const dup = packetMatches(p, d.text);
     UI.modal({
       title: 'Review Student Order', wide: true,
       body: `<div class="review-src">
@@ -234,6 +242,7 @@
           <div>Provider: ${esc(d.provider || '')} · Category: ${esc(d.cat || '')}</div>
           <blockquote>${esc(d.text)}</blockquote>
         </div>
+        ${dup.length ? `<div class="alert alert-warn">⚠ This looks like a packet order you can release in Instructor Tools: ${dup.map(x => `<strong>${esc(x.ev.title)}</strong> (${x.released ? 'already released' : 'not released yet'})`).join('; ')}. Approve this order <em>or</em> release the packet order — not both.</div>` : ''}
         <p class="muted small">Approve to make it an active order: students see it as <strong>NEW</strong> to acknowledge, and medications go on the MAR. Correct or complete any field first.</p>
         ${orderForm(p, { cat: d.cat, provider: d.provider, text: d.text })}`,
       onOpen: api => bindOrderForm(api.el),

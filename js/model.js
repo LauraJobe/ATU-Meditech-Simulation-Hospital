@@ -160,6 +160,11 @@
         const o = p.orders.find(x => x.id === id);
         if (o) { o.status = 'Discontinued'; o.dcTime = rt; }
       });
+      // hold: [{ id, reason }] — a released order puts a medication on hold (Undo restores it).
+      (ev.hold || []).forEach(h => {
+        const m = p.meds.find(x => x.id === h.id);
+        if (m && m.status === 'Active') { m.status = 'Held'; m.holdReason = h.reason || 'On hold per provider order'; m.heldTime = rt; }
+      });
       (ev.activate || []).forEach(id => {
         const m = p.meds.find(x => x.id === id);
         if (m) { m.status = 'Active'; m.isNew = true; m.eventId = ev.id; delete m.holdReason; }

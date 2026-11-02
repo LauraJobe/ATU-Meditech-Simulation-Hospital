@@ -34,7 +34,7 @@
   };
 
   // Documents — consents, prenatal records, APGAR, policies, printable forms (read-only reference).
-  const DOC_GROUP = { documents: 'Consents & Forms', prenatal: 'Prenatal Record', labor: 'Labor & Delivery', io: 'Intake & Output (source record)', assessments: 'Assessment Tools', orders: 'Policies & Protocols' };
+  const DOC_GROUP = { documents: 'Consents & Forms', prenatal: 'Prenatal Record', labor: 'Labor & Delivery', io: 'Intake & Output (source record)', assessments: 'Assessment Tools', orders: 'Policies & Protocols', mar: 'MAR Schedules' };
   let openDoc = null;
   Views.documents = {
     label: 'Documents',

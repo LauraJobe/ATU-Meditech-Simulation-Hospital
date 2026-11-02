@@ -96,7 +96,7 @@ const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) process
   const bc = await pg.evaluate(() => ({ wrist: Object.keys(ATU_BARCODES.wristbands).length, pk: Object.keys(ATU_BARCODES.packages).length,
     amp: Scan.pkgFor(Model.base('mollythomas').events.find(e => e.id === 'mollythomas-ev6').meds[0], 'mollythomas'), cef: Scan.pkgFor(Model.base('stephaniesmith').events.find(e => e.id === 'stephaniesmith-ev4').meds[0], 'stephaniesmith'),
     meth: Scan.pkgFor(Model.base('fatimasanogo').events.find(e => e.id === 'fatimasanogo-ev5').meds[0], 'fatimasanogo'), sung: Scan.patientOf('1006').id }));
-  ok(bc.wrist === 13 && bc.pk === 68 && bc.amp === 'MED-0023' && bc.cef === 'MED-0061' && bc.meth === 'MED-0016' && bc.sung === 'babyboysung', 'barcodes unchanged: 13 wristbands, 68 packages, released meds keep their package codes ' + JSON.stringify(bc));
+  ok(bc.wrist === 13 && bc.pk === 71 && bc.amp === 'MED-0023' && bc.cef === 'MED-0061' && bc.meth === 'MED-0016' && bc.sung === 'babyboysung', 'barcodes unchanged: 13 wristbands, 71 packages (68 + Charles Jones MED-0066/0067/0068), released meds keep their package codes ' + JSON.stringify(bc));
   ok(errs.length === 0, 'no page errors ' + errs.join(' | '));
   await b.close(); srv.close();
 })();

@@ -7,14 +7,16 @@ window.EHR_CONFIG = {
   systemName: 'SimEHR',
   // Shown on the sign-in screen. Also bump ?v= in index.html, orientation.html, and labels.html when files change,
   // so browsers (older iPads especially) load the new files instead of a saved copy.
-  version: '2026.10.31-1',
+  version: '2026.11.02-1',
 
   // Toolbar Help button: HTML shown in the Help window (e.g., '<p>…</p><ul><li>…</li></ul>'). Empty = "will be added".
   helpHtml: '',
   // Reference links listed in the Help window (plain text links that open in a new tab).
   // PDR.net terms of use (revised June 24, 2015) allow "a simple link" to their site; no logo, no framing.
   helpLinks: [
-    { label: 'PDR.net — Prescribers\' Digital Reference (drug information)', url: 'https://www.pdr.net/' }
+    { label: 'PDR.net — Prescribers\' Digital Reference (drug information)', url: 'https://www.pdr.net/' },
+    // Stabilis builds a Y-site compatibility chart for the drugs a student picks. Linked only; no Stabilis data is copied here.
+    { label: 'Stabilis — IV Y-site compatibility table (pick your patient\'s drugs)', url: 'https://www.stabilis.org/TableIncompatibilites.php?codeLangue=EN-en' }
   ],
 
   // Simulation experiences students choose from at sign-in. Each patient in

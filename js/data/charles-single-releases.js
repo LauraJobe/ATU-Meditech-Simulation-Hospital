@@ -46,7 +46,7 @@
     { id: 'rel-charlesjones-ev3-im1', group: S2, title: 'Shift 2 Chest X-ray Results', imaging: [item('charlesjones-ev3', 'imaging', 'charlesjones-ev3-im1')] },
     { id: 'ch-lasix', group: S2, title: 'Furosemide (Lasix) 1 mg/kg IV once', aka: ['lasix', 'furosemide'],
       instructorNotes: 'Packet answer: 107 mg (10.7 mL of 10 mg/mL) at 236 lb (107.0 kg). Open with faculty: the Nursing Calculations sheet shows 82 mg, and the older packet shows 10 mg IVP.',
-      meds: [{ id: 'ch-lasix', name: 'Furosemide (Lasix)', dose: '1 mg/kg', route: 'IV push', freq: 'Once', type: 'once', doses: [{ at: 0 }], orderedBy: BY,
+      meds: [{ id: 'ch-lasix', name: 'Furosemide (Lasix)', dose: '1 mg/kg', route: 'IV', freq: 'Once', type: 'once', doses: [{ at: 0 }], orderedBy: BY,
         instructions: 'Weight-based: 1 mg/kg. Vial 10 mg/mL.' }] },
     { id: 'ch-foley', group: S2, title: 'Place an indwelling Foley catheter', aka: ['foley', 'catheter'], orders: [order('ch-foley', 'Nursing', 'Place an indwelling Foley catheter')] },
     { id: 'ch-kcl', group: S2, title: 'Potassium chloride 20 mEq PO daily', aka: ['potassium', 'kcl', 'k-dur'],
@@ -75,7 +75,7 @@
     { id: 'rel-charlesjones-ev2-l1-1', group: S4, title: 'Shift 4 Lactate', labs: [item('charlesjones-ev2', 'labs', 'charlesjones-ev2-l1-1')] },
     { id: 'rel-charlesjones-ev2-l1-2', group: S4, title: 'Shift 4 CBC', labs: [item('charlesjones-ev2', 'labs', 'charlesjones-ev2-l1-2')] },
     { id: 'ch-ceftriaxone', group: S4, title: 'Ceftriaxone 1 g in 50 mL IV over 30 minutes every 12 hours', aka: ['ceftriaxone', 'rocephin'],
-      meds: [{ id: 'ch-ceftriaxone', name: 'Ceftriaxone', dose: '1 g in 50 mL', route: 'IVPB', freq: 'Every 12 hours — infuse over 30 minutes', type: 'scheduled', doses: [{ at: 0 }], orderedBy: BY }] },
+      meds: [{ id: 'ch-ceftriaxone', name: 'Ceftriaxone', dose: '1 g in 50 mL', route: 'IV', freq: 'Every 12 hours — infuse over 30 minutes', type: 'scheduled', doses: [{ at: 0 }], orderedBy: BY }] },
     { id: 'ch-tylenol', group: S4, title: 'Acetaminophen (Tylenol) 1,000 mg PO now, then every 4 hours PRN fever or pain', aka: ['tylenol', 'acetaminophen'],
       instructorNotes: 'Built as written. Open with faculty: every 4 hours PRN could reach 6 g in a day; the frequency is being confirmed.',
       meds: [

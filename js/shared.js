@@ -387,6 +387,7 @@
     startClock: (pid, start) => queue({ op: 'start', pid, start }),
     // Faculty reset happens on the server first; the chart changes only when it succeeds.
     reset(pid) { return serial(() => doReset(pid)); },
+    epoch: pid => Number(mirrorOf(pid).epoch || 1),
     // For tests.
     _state: () => ({ status, outbox: outbox(), mirror: mirrors() }),
     _pull: full => pull(full),

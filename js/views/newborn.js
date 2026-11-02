@@ -26,7 +26,8 @@
   const ARM = ['Moves spontaneously, full range', 'Decreased movement', 'No spontaneous movement', 'Not assessed'];
   const CLAV = ['Intact — no crepitus or swelling', 'Crepitus', 'Swelling / deformity', 'Tenderness (cries with palpation)', 'Not assessed'];
 
-  const H2T = {
+  // Version 1 (before November 2, 2026): kept so entries saved with it display exactly as saved.
+  const H2T_V1 = {
     title: 'Newborn Head-to-Toe Assessment',
     newborn: true,
     intro: 'Structure follows Stanford Medicine Newborn Nursery, "The Newborn Exam." Document what you assess; nothing is pre-marked normal.',
@@ -256,6 +257,118 @@
     summary: d => [d.values['chk.bg'] != null && d.values['chk.bg'] !== '' ? `BG ${d.values['chk.bg']} mg/dL` : '', d.values['chk.type'] || ''].filter(Boolean).join(' · ') || 'Glucose check'
   };
 
+
+  /* ---------- Newborn Head-to-Toe Assessment (MEDITECH style), for any newborn (p.newborn: true) ---------- */
+  // Every system: defined-limits text and "Within defined limits? Y / N"; N opens the exception fields. Nothing is pre-marked.
+  const H = (o, hint) => Object.assign(o, { hint });
+  const W = o => Object.assign(o, { wide: true });
+  const NOTE = label => ({ id: 'n' + label.length, label, type: 'note' });
+  const PAW = ['Present', 'Weak', 'Absent'], PA = ['Present', 'Absent'];
+  const vm = (id, label, hint, methods, type) => [T(id + 'Time', label + ' — time'), H(type === 'text' ? T(id, label) : N(id, label), hint), S(id + 'Method', label + ' — method', methods)];
+  const COMMENTS = A('comments', 'Exceptions / comments');
+  const TERM = { posture: 'Full flexion', square: 'Angle near 0°', recoil: 'Quick, strong recoil', popliteal: '< 90°', scarf: 'Elbow does not reach midline', heel: 'Foot stays far from ear',
+    skin: 'Smooth, pink, visible veins', lanugo: 'Sparse or mostly absent', plantar: 'Creases cover entire sole', breast: 'Raised areola, 5–10 mm bud',
+    eye: 'Eyes open; well-curved pinna, firm, quick recoil', genitals: 'M: testes down, rugae · F: labia majora cover minora' };
+  const EDU = [['feed', 'Feeding (breast / bottle)'], ['cord', 'Cord care'], ['sleep', 'Safe sleep'], ['car', 'Car seat safety'], ['bath', 'Bathing / thermoregulation'], ['circ', 'Circumcision care']];
+  const num = v => (v === '' || v == null || isNaN(Number(v)) ? null : Number(v));
+  const H2T = {
+    title: 'Newborn Head-to-Toe Assessment', newborn: true, ver: 2, legacy: H2T_V1, scored: 'ballard', scoreOptional: true,
+    intro: 'Document what you assess. Nothing is pre-marked. For each system, answer "Within defined limits?" — N opens the exception fields.',
+    sections: [
+      { id: 'vm', title: 'Vital Signs / Measurements', fields: [
+        ...vm('temp', 'Temperature (°F)', '97.7–99.5 °F (36.5–37.5 °C)', ['Axillary', 'Skin probe']),
+        ...vm('hr', 'Heart rate (bpm)', '110–160 bpm (to 180 crying)', ['Apical, full 1 min']),
+        ...vm('rr', 'Respiratory rate (/min)', '30–60/min at rest', ['Counted full 1 min']),
+        ...vm('bp', 'Blood pressure (mm Hg)', '50–75 / 30–45 mm Hg', ['RUE', 'RLE'], 'text'),
+        ...vm('wt', 'Weight (g)', '2500–4000 g (5 lb 8 oz – 8 lb 13 oz)', ['Scale']), T('wtLbOz', 'Weight (lb / oz)'),
+        ...vm('len', 'Length (cm)', '46–56 cm (18–22 in)', ['Tape']),
+        ...vm('hc', 'Head circumference (cm)', '32–37 cm (12.5–14.5 in)', ['Tape']),
+        ...vm('cc', 'Chest circumference (cm)', '30–35 cm (12–14 in)', ['Tape']),
+        S('bwClass', 'Birth weight classification', ['Normal (≥2500 g)', 'LBW (<2500 g)', 'VLBW (<1500 g)', 'ELBW (<1000 g)']),
+        W(C('warmth', 'Warmth measures (choose all that apply)', ['Skin-to-skin', 'Radiant warmer with temp probe', 'Hat', 'Swaddled', 'Pre-warmed scale/surfaces']))] },
+      { id: 'neuro', title: 'Neurological / Behavioral', dl: 'Flexed posture, good tone, strong cry. Behavior fits the period of reactivity (birth–2 hr alert; 30–120 min sleepy; 2–8 hr awake, interested in stimuli). Anterior fontanelle soft and flat.', fields: [
+        S('state', 'Behavioral state', ['Quiet alert', 'Active alert', 'Crying', 'Drowsy', 'Sleeping']),
+        S('period', 'Period of reactivity', ['1st (birth–2 hr)', 'Decreased responsiveness (30–120 min)', '2nd (2–8 hr)']),
+        S('tone', 'Tone / posture', ['Flexed', 'Hypotonic', 'Flaccid', 'Hypertonic']), S('cry', 'Cry', ['Strong', 'Weak', 'High-pitched']), COMMENTS] },
+      { id: 'integ', title: 'Integumentary', dl: 'Body pink; acrocyanosis of hands and feet only in first 2–6 hr (up to 24 hr) without respiratory distress. Benign variations may be present: vernix, lanugo, milia, erythema toxicum, stork bite, Mongolian spots, harlequin sign.', fields: [
+        S('color', 'Color', ['Pink', 'Acrocyanosis', 'Central cyanosis', 'Pale', 'Mottled', 'Jaundiced']),
+        S('texture', 'Texture', ['Smooth, visible veins', 'Peeling or cracking', 'Transparent or friable']),
+        W(C('variations', 'Variations present (choose all that apply)', ['Vernix caseosa', 'Lanugo', 'Milia', 'Erythema toxicum', 'Stork bite', 'Mongolian spots', 'Harlequin sign', 'Port-wine stain'])),
+        T('marks', 'Location / size of marks'), COMMENTS] },
+      { id: 'heent', title: 'HEENT', dl: 'Head ~2 cm larger than chest. Fontanelles soft and flat: anterior diamond-shaped, posterior triangular and smaller. Sutures open or slightly overriding; molding may be present. Face, eyes and ears symmetrical; no eye discharge; ears well-curved with firm cartilage. Nares patent. Lip and palate intact.', fields: [
+        S('head', 'Head shape', ['Symmetrical', 'Molding', 'Caput succedaneum', 'Cephalohematoma L', 'Cephalohematoma R']),
+        S('af', 'Anterior fontanelle', ['Soft/flat', 'Sunken', 'Bulging']), S('pf', 'Posterior fontanelle', ['Soft/flat', 'Sunken', 'Bulging']),
+        S('sutures', 'Sutures', ['Open', 'Overriding', 'Fused']), S('face', 'Face', ['Symmetrical', 'Asymmetrical']),
+        S('eyes', 'Eyes', ['Clear', 'Not clear']), C('eyesWith', 'Eyes — with (choose all)', ['Discharge', 'Redness', 'Swelling']),
+        S('ears', 'Ears', ['Normal placement, firm cartilage', 'Low-set', 'Malformed']), S('nares', 'Nares', ['Patent bilaterally', 'Obstructed']),
+        S('mouth', 'Mouth / palate', ['Intact', 'Not intact']), C('mouthWith', 'Mouth / palate — with (choose all)', ['Cleft lip', 'Cleft palate', 'Epstein pearls']), COMMENTS] },
+      { id: 'resp', title: 'Respiratory', dl: 'RR 30–60/min at rest; unlabored; lungs clear bilaterally. No nasal flaring, retractions or grunting. Chest round and symmetrical.', fields: [
+        S('bs', 'Breath sounds', ['Clear bilat', 'Crackles', 'Diminished', 'Other']), T('bsOther', 'Breath sounds — other'),
+        S('effort', 'Respiratory effort', ['Unlabored', 'Labored']),
+        W(C('distress', 'Signs of distress (choose all that apply)', ['None', 'Nasal flaring', 'Retractions', 'Grunting', 'Tachypnea', 'Central cyanosis'])),
+        S('chest', 'Chest', ['Round, symmetrical', 'Not round / asymmetrical']), C('chestWith', 'Chest — with (choose all)', ['Engorged nipples / white discharge', 'Extra nipples']), COMMENTS] },
+      { id: 'cv', title: 'Cardiovascular', dl: 'Apical HR 110–160 bpm, regular rhythm. Body pink; acrocyanosis only as defined under Integumentary.', fields: [
+        S('rhythm', 'Rhythm', ['Regular', 'Irregular']), S('murmur', 'Murmur', ['None heard', 'Present']), COMMENTS] },
+      { id: 'gi', title: 'Gastrointestinal', dl: 'Abdomen soft, not distended or hard; bowel sounds present in all 4 quadrants. Cord has 3 vessels (2 arteries, 1 vein), with no bleeding, drainage or erythema. Anus in normal position and patent.', fields: [
+        S('abd', 'Abdomen', ['Soft', 'Distended', 'Firm']), S('bowel', 'Bowel sounds', ['Present x4 quadrants', 'Hypoactive', 'Absent']),
+        S('vessels', 'Umbilical cord vessels', ['3 (AVA)', '2 vessels']),
+        S('cord', 'Cord site', ['Clamp intact, dry', 'Not intact / not dry']), C('cordWith', 'Cord site — with (choose all)', ['Bleeding', 'Drainage', 'Erythema']),
+        S('anus', 'Anus', ['Patent', 'Not patent']), S('stool', 'Stool', ['Meconium passed', 'None yet']), T('stoolTime', 'Meconium passed — time'),
+        S('feed', 'Feeding method', ['Breast', 'Bottle', 'Both']), T('formula', 'Bottle — formula'), COMMENTS] },
+      { id: 'gu', title: 'Genitourinary', dl: 'Male: meatus centered at tip of penis; scrotum has rugae; testes descended, firm and smooth; no edema or discoloration. Female: labia majora cover minora and clitoris; meatus midline; engorgement and pink discharge from maternal hormones are normal.', fields: [
+        S('meatus', 'Male — meatus', ['Centered', 'Hypospadias (ventral)', 'Epispadias (dorsal)']), S('testes', 'Male — testes', ['Descended bilat', 'Undescended L', 'Undescended R']),
+        S('labia', 'Female — labia / discharge', ['Normal', 'Not normal']), C('labiaWith', 'Female — with (choose all)', ['Engorged', 'Pink / white discharge']),
+        S('void', 'Void', ['Voided', 'None yet']), T('voidTime', 'Voided — time'), COMMENTS] },
+      { id: 'msk', title: 'Musculoskeletal', dl: 'All extremities move freely and equally; 10 fingers, 10 toes; 3 palmar creases; sole creases cover the entire sole at term. Spine symmetrical; no sacral dimple or tuft of hair.', fields: [
+        S('upper', 'Upper extremities', ['Full ROM, equal', 'Not full / unequal']), C('upperWith', 'Upper extremities — with (choose all)', ['Limp arm L', 'Limp arm R']),
+        NOTE('Limp arm — check Moro for brachial plexus injury.'),
+        S('digits', 'Digits', ['10 fingers / 10 toes', 'Not 10 / 10']), C('digitsWith', 'Digits — with (choose all)', ['Extra digits', 'Webbing']),
+        S('palmar', 'Palmar creases', ['3 creases', 'Single crease L', 'Single crease R']), S('lower', 'Lower extremities', ['Full ROM, equal', 'Limited']),
+        S('spine', 'Back / spine', ['Symmetrical, intact', 'Not symmetrical / not intact']), C('spineWith', 'Back / spine — with (choose all)', ['Sacral dimple', 'Tuft of hair']),
+        A('injury', 'Birth injury: clavicle / brachial plexus / Moro / arm movement findings'), COMMENTS] },
+      { id: 'reflex', title: 'Newborn Reflexes', dl: 'All 8 reflexes are present, symmetrical and of normal strength.', dlQ: 'Reflexes within defined limits?', dlOpen: true, fields: [
+        H(S('rooting', 'Rooting', PAW), 'Turns toward cheek stroke, opens mouth'), H(S('sucking', 'Sucking', PAW), 'Rhythmic suck on gloved finger'),
+        H(S('moro', 'Moro', ['Symmetrical', 'Asymmetrical', 'Absent']), 'Arms extend, hands open, then arms come back in; may cry'),
+        H(S('palmarGrasp', 'Palmar grasp', PAW), 'Grasps finger tightly'), H(S('plantarGrasp', 'Plantar grasp', PAW), 'Toes curl down'),
+        H(S('babinski', 'Babinski', PA), 'Toes fan, big toe dorsiflexes'), H(S('tonicNeck', 'Tonic neck', PA), 'Arm on the side the face turns to extends; opposite arm flexes'),
+        H(S('stepping', 'Stepping', PA), 'Stepping motions when feet touch a surface')] },
+      { id: 'ga', title: 'Gestational Age Assessment (Ballard)', note: 'Complete within 2 hours of delivery.', fields: [
+        ...BALLARD.sections[0].fields.concat(BALLARD.sections[1].fields).map(f => Object.assign({}, f, { hint: TERM[f.id] })),
+        T('gaWeeks', 'Estimated gestational age (weeks)'),
+        S('maturity', 'Maturity classification', ['Preterm (<37 wk)', 'Term', 'Post-term (>42 wk)', 'Postmature']),
+        S('wfga', 'Weight for gestational age', ['SGA (<10th %ile)', 'AGA (10th–90th)', 'LGA (>90th)'])] },
+      { id: 'scr', title: 'Newborn Screenings / Procedures', fields: [
+        S('idBands', 'ID bands applied (infant, mother, support person)', ['Yes', 'No']), T('idBandsAt', 'ID bands — date/time'),
+        S('footprints', 'Footprints obtained', ['Yes', 'No']), T('footprintsAt', 'Footprints — date/time'),
+        S('golden', 'Skin-to-skin / golden hour', ['Done', 'Delayed']), T('goldenWhy', 'Delayed — reason'), T('goldenAt', 'Skin-to-skin — date/time'),
+        S('pku', 'Newborn metabolic screen (PKU)', ['Collected', 'Pending', 'Refused']), T('pkuAt', 'Metabolic screen — date/time'),
+        S('hearing', 'Hearing screen', ['Pass', 'Refer', 'Pending', 'Refused']), T('hearingAt', 'Hearing screen — date/time'),
+        S('tcbili', 'TcBili', ['Result', 'Pending', 'Refused']), T('tcbiliResult', 'TcBili result'), T('tcbiliAt', 'TcBili — date/time'),
+        T('cchdHand', 'CCHD pulse ox — R hand %'), T('cchdFoot', 'CCHD pulse ox — foot %'), S('cchd', 'CCHD result', ['Pass', 'Fail', 'Repeat']), T('cchdAt', 'CCHD — date/time'),
+        S('circ', 'Circumcision', ['Plastibell', 'Gomco', 'Not done']), T('circAt', 'Circumcision — date/time')] },
+      { id: 'edu', title: 'Patient / Family Education', fields: EDU.flatMap(([k, label]) => [
+        C(k, '', [label]), S(k + 'Learner', label + ' — learner', ['Mother', 'Father', 'Other']),
+        S(k + 'Method', label + ' — method', ['Verbal', 'Demo', 'Handout']), S(k + 'Response', label + ' — response', ['Verbalized', 'Return demo', 'Needs reinforcement'])]) },
+      { id: 'notes', title: 'Nursing Notes', fields: [
+        A('exceptions', 'Exceptions summary / provider notified'), A('interventions', 'Interventions performed'), A('plan', 'Plan of care'),
+        T('recordedBy', 'Recorded by (student)'), T('recordedAt', 'Recorded — date/time'), T('cosign', 'Co-signed by (RN / instructor)'), T('cosignAt', 'Co-signed — date/time')] }
+    ],
+    // Visible flags while charting and on the saved entry; they never block saving.
+    flags(v) {
+      const out = [], rr = num(v['vm.rr']), hr = num(v['vm.hr']), t = num(v['vm.temp']), hc = num(v['vm.hc']), cc = num(v['vm.cc']);
+      if (rr != null && (rr > 60 || rr < 25)) out.push(`Respiratory rate ${rr}/min — outside 25–60`);
+      if (hr != null && (hr > 160 || hr < 100)) out.push(`Heart rate ${hr} bpm — outside 100–160`);
+      if (t != null && (t < 97.7 || t > 99.5)) out.push(`Temperature ${t} °F — outside 97.7–99.5 °F`);
+      if (hc != null && cc != null && Math.abs(hc - cc - 2) > 1) out.push(`Head ${hc} cm vs chest ${cc} cm — head should be about 2 cm larger than chest`);
+      return out;
+    },
+    summary(d) {
+      const v = d.values, sys = this.sections.filter(s => s.dl);
+      const n = sys.filter(s => v[s.id + '.dl'] === 'N').map(s => s.title), y = sys.filter(s => v[s.id + '.dl'] === 'Y').length;
+      return [`${y} within defined limits`, n.length ? 'Exceptions: ' + n.join(', ') : '', d.total != null ? `Ballard ${d.total} (${d.interp})` : '', (d.flags || []).length ? `⚠ ${d.flags.length} flag(s)` : ''].filter(Boolean).join(' · ');
+    }
+  };
+  H2T.summary = H2T.summary.bind(H2T);
   window.ASSESSMENT_FORMS = Object.assign(window.ASSESSMENT_FORMS || {}, { 'newborn-h2t': H2T, 'newborn-transition': TR_FORM, 'newborn-tr-vs': VS_FORM,
     apgar: APGAR, 'newborn-delivery': DELIVERY, ballard: BALLARD, 'newborn-glucose': GLUCOSE });
   const gaWeeks = t => Math.round((2 * t + 120) / 5 * 10) / 10;
@@ -265,117 +378,33 @@
   });
 
   /* ---------- helpers ---------- */
-  const cfg = p => p && p.newborn;
+  const cfg = p => p && p.nbPair;
   // Released on either Sung chart (Instructor Tools shows "Delivery completed" on both cards).
   const isOpen = p => !!(cfg(p) && (Store.released(cfg(p).deliveryPid)[cfg(p).deliveryEvent] || Store.released(cfg(p).chart)[cfg(p).deliveryEvent]));
   const babyOf = p => Model.get(cfg(p).chart);
   const live = (doc, formId) => doc.assess.filter(e => e.status === 'active' && e.data.formId === formId).sort((a, b) => a.time - b.time);
-  // Latest saved value for each Transitional Record field (each save adds to the record).
-  function trValues(doc) {
-    const out = {};
-    live(doc, 'newborn-transition').forEach(e => Object.keys(e.data.values).forEach(k => { const v = e.data.values[k]; if (!U.isEmpty(v)) out[k.split('.').pop()] = { v, e }; }));
-    return out;
-  }
-  const initialsOf = name => String(name || '').split(/\s+/).filter(Boolean).map(w => w[0].toUpperCase()).join('').slice(0, 3);
-
-  // Medication lines of the paper form, from the CURRENT APPROVED ORDERS on the baby's MAR (documented on the MAR).
-  function medRefs(b, doc) {
-    return b.meds.map(m => {
-      const given = doc.mar.filter(e => e.status === 'active' && e.data.medId === m.id && e.data.action === 'Given').sort((x, y) => y.time - x.time)[0];
-      const site = given && (given.data.site || given.data.siteDesc);
-      return `<tr><td>${esc(Model.medLabel(m))}</td><td>${given ? `Time: ${esc(U.fmtDT(given.time))}${site ? ` · Site: ${esc(site)}` : ''} · ${esc(initialsOf(given.user.name))}` : '<span class="muted">Not documented on the MAR</span>'}</td></tr>`;
-    }).join('') + '<tr><td>HBIG 0.5 mL IM</td><td class="muted">No order — N/A</td></tr>';
-  }
-
-  function recordHtml(p, b, doc) {
-    const conf = cfg(p).confirmed || {};
-    const vals = trValues(doc);
-    const val = ([id, label, choices, area]) => {
-      const c = conf[id], s = vals[id];
-      const v = c != null ? c : s ? (Array.isArray(s.v) ? s.v.join(', ') : s.v) : '';
-      const by = c == null && s ? ` <span class="tr-by">${esc(initialsOf(s.e.user.name))} ${esc(U.fmtTime(s.e.time))}</span>` : '';
-      const body = choices ? choices.map(o => `<span class="tr-opt ${o === v ? 'tr-on' : ''}">${esc(o)}</span>`).join(' / ')
-        : `<span class="tr-line ${area ? 'tr-area' : ''}">${v ? `<span class="${c != null ? 'tr-conf' : ''}">${esc(v)}</span>` : ''}</span>`;
-      return `<span class="tr-f"><span class="tr-lab">${esc(label)}:</span> ${body}${by}</span>`;
-    };
-    const row = r => `<div class="tr-row">${r.map(val).join('')}</div>`;
-    const sec = s => `<div class="tr-box"><div class="tr-h">${esc(s.title.toUpperCase())}</div>
-      ${s.cols ? `<div class="tr-cols">${s.cols.map(col => `<div>${col.map(row).join('')}</div>`).join('')}</div>` : s.rows.map(row).join('')}
-      ${s.id === 'meds' ? `<table class="tr-sec"><tbody>${medRefs(b, doc)}</tbody></table>` : ''}</div>`;
-    const vs = live(doc, 'newborn-tr-vs');
-    const cols = Math.max(vs.length, 5);
-    const vsGrid = `<table class="tr-sec tr-vs"><thead><tr><th colspan="${cols + 1}">VITAL SIGNS</th></tr></thead><tbody>
-      <tr><td class="tr-l">Time</td>${Array.from({ length: cols }, (_, i) => `<td class="nowrap">${vs[i] ? esc(U.fmtDT(vs[i].time)) : ''}</td>`).join('')}</tr>
-      ${VS_COLS.map(([k, l]) => `<tr><td class="tr-l">${esc(l)}</td>${Array.from({ length: cols }, (_, i) => `<td>${vs[i] ? esc(vs[i].data.values['vs.' + k] || '') : ''}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
-    const nurses = [...new Set(live(doc, 'newborn-transition').concat(vs).map(e => Model.signature(e)))];
-    return `<div class="tr-form">
-      <div class="tr-title"><div>${esc(window.EHR_CONFIG.hospitalName)}</div><strong>NEWBORN TRANSITIONAL RECORD</strong>
-        <div class="tr-id">${esc(b.name.last.toUpperCase())}, ${esc(b.name.first)} · MRN ${esc(b.mrn)} · ${esc(b.unit)}</div></div>
-      ${TR.map(sec).join('')}
-      ${vsGrid}
-      <div class="tr-row"><span class="tr-f"><span class="tr-lab">Nurse signature:</span> <span class="tr-line">${esc(nurses.join('; '))}</span></span></div>
-      <p class="muted small">Gray values are confirmed scenario information; circled choices are what was documented. Initials and time follow each entry; full author and date/time are in Assessment History.</p>
-    </div>`;
-  }
+  // Saved rows of the shared Transitional Record (js/views/sung-transitional-record.js) describe themselves.
+  TR_FORM.summary = d => Views.transitional ? Views.transitional.summary(d) : null;
+  TR_FORM.detail = d => Views.transitional ? Views.transitional.detail(d) : null;
 
   /* ---------- documenting ---------- */
-  function openH2T(p) { Views.assess.open(babyOf(p), 'newborn-h2t'); }
+  function openH2T(p, after) { Views.assess.open(babyOf(p), 'newborn-h2t', after); }
+  // The shared Transitional Record is documented in the Assessments view (both charts).
+  function openRecord(p) { location.hash = `#/patient/${p.id}/assess`; }
 
-  function openRecord(p, after) {
-    const b = babyOf(p), doc = Store.doc(b.id), conf = cfg(p).confirmed || {}, vals = trValues(doc);
-    const input = ([id, label, choices, area]) => {
-      if (conf[id] != null) return `<label class="field"><span>${esc(label)}</span><input value="${esc(conf[id])}" disabled title="Confirmed scenario information"></label>`;
-      const cur = vals[id] ? vals[id].v : '';
-      if (choices) return `<fieldset class="field checks"><legend>${esc(label)}</legend>${choices.map(o => `<label class="check"><input type="radio" name="${SEC_OF[id]}.${id}" value="${esc(o)}" ${o === cur ? 'checked' : ''}> ${esc(o)}</label>`).join('')}</fieldset>`;
-      if (area) return `<label class="field wide"><span>${esc(label)}</span><textarea name="${SEC_OF[id]}.${id}" rows="2" placeholder="${cur ? esc('Current: ' + cur) : ''}"></textarea></label>`;
-      return `<label class="field"><span>${esc(label)}</span><input name="${SEC_OF[id]}.${id}" placeholder="${cur ? esc('Current: ' + cur) : ''}"></label>`;
-    };
-    UI.modal({
-      title: 'Newborn Transitional Record', wide: true,
-      body: `<p class="muted">Saves to Baby Boy Sung's record. Confirmed scenario information is filled in and locked; complete what you assess and leave unknown items blank. Medications are documented on the MAR; vital signs use "Add Vital Signs".</p>
-        <form class="assess-form"><div class="form-grid">${UI.timeField(b, 'Date/time documented')}</div>
-        ${TR.map(s => `<fieldset class="form-sec"><legend>${esc(s.title)}</legend><div class="form-grid">${(s.cols ? s.cols.flat() : s.rows).flat().map(input).join('')}</div></fieldset>`).join('')}</form>`,
-      buttons: [{ label: 'Cancel' }, { label: 'Sign & Save', cls: 'btn-primary', onClick: api => {
-        const values = U.formValues(api.el.querySelector('.assess-form')); const time = UI.readTime(b, api.el); delete values._time;
-        // Only what changed: a choice that is still the current value is not saved again.
-        Object.keys(values).forEach(k => { const id = k.split('.').pop(); if (U.isEmpty(values[k]) || (vals[id] && vals[id].v === values[k])) delete values[k]; });
-        if (!Object.keys(values).length) { UI.formError(api.el.querySelector('.modal-body'), 'Nothing new has been documented.'); return false; }
-        if (!Store.add(b.id, 'assess', { formId: 'newborn-transition', values }, time, b.clock.now())) return false;
-        UI.toast('Transitional Record saved to Baby Boy Sung.'); App.render(); if (after) setTimeout(after, 0);
-      } }]
-    });
-  }
-
-  function openVitals(p, after) {
-    const b = babyOf(p), s = Store.session() || {};
-    UI.modal({
-      title: 'Transitional Record — Add Vital Signs', wide: true,
-      body: `<form class="assess-form"><div class="form-grid">${UI.timeField(b, 'Date/time')}
-          ${VS_COLS.map(([k, l]) => k === 'distress'
-            ? `<label class="field"><span>${esc(l)}</span><select name="vs.${k}">${UI.options(['None observed', 'Tachypnea', 'Retractions', 'Grunting', 'Nasal flaring', 'Cyanosis', 'Apnea'])}</select></label>`
-            : k === 'other' ? `<label class="field wide"><span>${esc(l)}</span><textarea name="vs.${k}" rows="2"></textarea></label>`
-            : `<label class="field"><span>${esc(l)}</span><input name="vs.${k}" ${k === 'initials' ? `value="${esc(initialsOf(s.name))}"` : ''} ${['temp', 'hr', 'rr', 'spo2'].includes(k) ? 'inputmode="decimal"' : ''}></label>`).join('')}
-        </div></form>`,
-      buttons: [{ label: 'Cancel' }, { label: 'Sign & Save', cls: 'btn-primary', onClick: api => {
-        const values = U.formValues(api.el.querySelector('.assess-form')); const time = UI.readTime(b, api.el); delete values._time;
-        const measured = ['temp', 'hr', 'rr', 'spo2', 'bpArm', 'bpLeg', 'distress', 'other'].some(k => !U.isEmpty(values['vs.' + k]));
-        if (!measured) { UI.formError(api.el.querySelector('.modal-body'), 'Enter at least one vital sign or observation.'); return false; }
-        if (U.isEmpty(values['vs.initials'])) { UI.formError(api.el.querySelector('.modal-body'), 'Enter your initials.'); return false; }
-        Object.keys(values).forEach(k => { if (U.isEmpty(values[k])) delete values[k]; });
-        if (!Store.add(b.id, 'assess', { formId: 'newborn-tr-vs', values }, time, b.clock.now())) return false;
-        UI.toast('Vital signs added to the Transitional Record.'); App.render(); if (after) setTimeout(after, 0);
-      } }]
-    });
-  }
-
-  /* ---------- Worklist items (Baby Boy Sung's own Worklist) ---------- */
-  // All newborn documentation is charted from the Worklist; it opens when faculty release "Delivery completed".
+  /* ---------- Worklist items ---------- */
+  // Any newborn (p.newborn: true) gets the Newborn Head-to-Toe Assessment. Baby Boy Sung (the baby of a mother/baby pair)
+  // also gets the delivery documentation; it opens when faculty release "Delivery completed".
   const WL_MIN = 60000, WL_H = 3600000;
   function worklistItems(p) {
     const c = cfg(p);
-    if (!c || c.chart !== p.id) return [];
-    const locked = !isOpen(p);
+    const paired = !!(c && c.chart === p.id);
+    if (!p.newborn && !paired) return [];
+    const locked = paired && !isOpen(p);
     const lockedMsg = 'Newborn documentation opens after delivery. Faculty: Instructor Tools → Amelia Sung (or Baby Boy Sung) → release "Delivery completed".';
+    const base = { kind: 'form', tab: 'assess', newborn: true, locked, lockedMsg };
+    const h2t = Object.assign({ key: 'nb:h2t', formId: 'newborn-h2t', name: 'Newborn Head-to-Toe Assessment', freq: 'ADMIT, THEN Q12HOURS', ms: 12 * WL_H }, base);
+    if (!paired) return [h2t];
     const n = (doc, id) => live(doc, id).length;
     // APGAR is complete once 1- and 5-minute scores are in, and the last score is 7 or more (or 20 minutes was reached).
     const apgarDone = doc => {
@@ -383,39 +412,36 @@
       const last = APGAR_MIN.filter(m => by[m] != null).pop();
       return by['1 minute'] != null && by['5 minutes'] != null && (by[last] >= 7 || last === '20 minutes');
     };
-    const base = { kind: 'form', tab: 'assess', newborn: true, locked, lockedMsg };
     return [
       Object.assign({ key: 'nb:apgar', formId: 'apgar', name: 'APGAR Score (1, 5, and 10 minutes)', freq: 'AT 1 & 5 MIN', ms: 4 * WL_MIN, once: true, complete: apgarDone }, base),
       Object.assign({ key: 'nb:delivery', formId: 'newborn-delivery', name: 'Newborn Delivery Assessment', freq: 'ONCE AFTER DELIVERY', ms: 12 * WL_H, once: true, complete: d => n(d, 'newborn-delivery') > 0 }, base),
-      Object.assign({ key: 'nb:ballard', formId: 'ballard', name: 'New Ballard Score (Gestational Age)', freq: 'ONCE', ms: 12 * WL_H, once: true, complete: d => n(d, 'ballard') > 0 }, base),
-      Object.assign({ key: 'nb:h2t', formId: 'newborn-h2t', name: 'Newborn Head-to-Toe Assessment', freq: 'ADMIT, THEN Q12HOURS', ms: 12 * WL_H }, base),
-      Object.assign({ key: 'nb:record', formId: 'newborn-transition', name: 'Newborn Transitional Record', freq: 'ONCE (TRANSITION)', ms: 12 * WL_H, once: true, complete: d => n(d, 'newborn-transition') > 0, open: openRecord, tab: 'newborn' }, base),
-      Object.assign({ key: 'nb:trvs', formId: 'newborn-tr-vs', name: 'Transitional Record — Vital Signs', freq: 'Q30MIN X4', ms: 30 * WL_MIN, complete: d => n(d, 'newborn-tr-vs') >= 4, open: openVitals, tab: 'newborn' }, base),
+      h2t,
+      // The shared record is documented in the Assessments view, which both Sung charts show.
+      Object.assign({ key: 'nb:record', formId: 'newborn-transition', name: 'Newborn Transitional Record (shared with Amelia Sung)', freq: 'ONCE (TRANSITION)', ms: 12 * WL_H, once: true,
+        complete: () => !!Views.transitional && Views.transitional.transitionalEntries(p).length > 0, open: openRecord }, base),
       Object.assign({ key: 'nb:glucose', formId: 'newborn-glucose', name: 'Newborn Glucose Monitoring', freq: 'PER ORDER SET', ms: 3 * WL_H }, base)
     ];
   }
 
-  /* ---------- the Newborn tab ---------- */
+  /* ---------- the Newborn tab (both Sung charts) ---------- */
   Views.newborn = {
     label: 'Newborn',
     render(p) {
       const b = babyOf(p), doc = Store.doc(b.id), self = p.id === b.id;
-      const where = self ? 'All newborn documentation (APGAR, Delivery Assessment, Ballard, Head-to-Toe, Transitional Record, Glucose Monitoring) is on the Worklist. Also shown on Amelia Sung\'s chart (Newborn tab).' : 'Saves to Baby Boy Sung\'s record (MRN ' + b.mrn + '); the same documentation is on his chart. Amelia\'s maternal assessments stay on her Assessments tab.';
       if (!isOpen(p)) return UI.panel('Newborn Documentation — Baby Boy Sung', `<div class="alert alert-info">Newborn documentation opens after delivery. Faculty: Instructor Tools → Amelia Sung (or Baby Boy Sung) → <strong>Delivery completed</strong>.</div>`);
       const h2t = live(doc, 'newborn-h2t').reverse();
-      return `<div class="nb-head"><div><strong>Newborn Documentation — Baby Boy Sung</strong><div class="muted small">${esc(where)}</div></div>
+      return `<div class="nb-head"><div><strong>Newborn Documentation — Baby Boy Sung</strong>
+            <div class="muted small">${self ? 'Newborn assessments are documented from the Worklist. ' : 'Newborn assessments save to Baby Boy Sung\'s chart. '}The Newborn Transitional Record is one shared record, documented in the Assessments view of either Sung chart.</div></div>
           <div class="nb-actions">${self ? `<a class="btn" href="#/patient/${esc(b.id)}/worklist">Open Worklist</a>` : ''}<button class="btn btn-primary" data-nb="h2t">Document Newborn Head-to-Toe</button>
-            <button class="btn btn-primary" data-nb="record">Document Transitional Record</button>
-            <button class="btn" data-nb="vitals">Add Vital Signs</button></div></div>
+            <a class="btn btn-primary" href="#/patient/${esc(p.id)}/assess">Document Transitional Record</a></div></div>
         ${UI.panel('Newborn Head-to-Toe Assessments', h2t.length ? `<table class="grid"><thead><tr><th>Date/time</th><th>Summary</th><th>Documented by</th><th></th></tr></thead><tbody>
           ${h2t.map(e => `<tr><td class="nowrap">${esc(U.fmtDT(e.time))}</td><td>${esc(Views.assess.summary(H2T, e.data))}</td><td>${esc(Model.signature(e))}</td><td><button class="btn btn-sm" data-nbview="${esc(e.id)}">View</button></td></tr>`).join('')}</tbody></table>` : UI.empty('No newborn head-to-toe assessment documented yet.'))}
-        ${UI.panel('Newborn Transitional Record', recordHtml(p, b, doc))}`;
+        ${Views.transitional ? UI.panel('Newborn Transitional Record (shared — current values)', Views.transitional.readOnly(p)) : ''}`;
     },
     bind(root, p) {
-      const act = { h2t: openH2T, record: openRecord, vitals: openVitals };
       root.querySelectorAll('[data-nb]').forEach(btn => btn.addEventListener('click', () => {
         if (Screens.mode() === 'observer') { UI.toast('Observer mode is view only. You cannot document.', 'warn'); return; }
-        act[btn.dataset.nb](p);
+        openH2T(p);
       }));
       root.querySelectorAll('[data-nbview]').forEach(btn => btn.addEventListener('click', () => {
         const b = babyOf(p), e = Store.doc(b.id).assess.find(x => x.id === btn.dataset.nbview);

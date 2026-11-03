@@ -40,8 +40,13 @@
   // 3. Spironolactone: frequency Daily, no hold reason (dose, route, status, and the "Hold spironolactone" release unchanged).
   const spiro = (p.meds || []).find(m => m.id === 'char-spironolactone-8');
   if (spiro) { spiro.freq = 'Daily'; delete spiro.holdReason; }
-  // 4. Echo and ECG (charlesjones-im1, -im2) stay as they are under Diagnostics > Cardiovascular.
-  // 5. Admission chest X-ray: part of the admission chart (not a release). Image: the faculty's report sheet.
+  // 4. Echo and ECG (charlesjones-im1, -im2) stay under Diagnostics > Cardiovascular. The Echo report sheet's patient
+  //    header (old weight / MRN / provider) is covered on a copy, assets/charles-jones-echo.png (the imported file is
+  //    unchanged); the chart's own patient data stays as is (wristbands are already printed).
+  const echo = p.imaging.find(i => i.id === 'charlesjones-im1');
+  if (echo) echo.images = ['assets/charles-jones-echo.png'];
+  // 5. Admission chest X-ray: part of the admission chart (not a release). Image: the faculty's report sheet, with its
+  //    patient header covered the same way.
   if (!p.imaging.some(i => i.id === 'charlesjones-im-cxr-adm')) p.imaging.push({ id: 'charlesjones-im-cxr-adm', study: 'Admission Chest X-ray', at: -180, images: ['assets/charles-jones-admission-cxr.png'],
     text: 'Study Type: Portable AP Chest Radiograph\n' +
       'Indication: Dyspnea, orthopnea, fatigue, weight gain; history of hypertension and reduced ejection fraction.\n' +

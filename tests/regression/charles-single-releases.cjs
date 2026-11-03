@@ -74,7 +74,7 @@ const OTHERS = {"brody":[],"livingston":["liv-culture","liv-icu-labs","liv-trans
   ok(!/Shift 2 Chest X-ray Results/.test(img) && !(await pg.$('img[src*="7a9b97e711c726af17"]')), 'the Shift 2 chest X-ray and its image are hidden before release');
   ok(await pg.evaluate(() => !Model.get('charlesjones').imaging.some(i => i.id === 'charlesjones-im7')), 'the old "Admission Labs" image is not on the chart');
   const cv = await dx('Cardiovascular');
-  ok(/Echo Results-admission/.test(cv) && /ECG Results-Admission/.test(cv) && !!(await pg.$('img[src*="5b6a8e8db33e51d57b"]')) && !!(await pg.$('img[src*="25d059b717ff05f78a"]')), 'Cardiovascular shows the Echo and ECG with their images');
+  ok(/Echo Results-admission/.test(cv) && /ECG Results-Admission/.test(cv) && !!(await pg.$('img[src="assets/charles-jones-echo.png"]')) && !!(await pg.$('img[src*="25d059b717ff05f78a"]')), 'Cardiovascular shows the Echo and ECG with their images (Echo header covered)');
   ok(await pg.evaluate(() => { const r = Model.get('charlesjones').labs.find(l => l.id === 'charlesjones-l7-0').results.find(x => x.t === 'BNP'); return !!r && r.v === '4000' && r.u === 'pg/mL' && r.ref === '<100' && Model.labFlag(r) === 'H'; }), 'admission labs include BNP 4000 pg/mL, flagged high');
   const lab = await dx('Laboratory');
   ok(/BNP/.test(lab) && /4000/.test(lab), 'BNP 4000 shows under Diagnostics > Laboratory');

@@ -30,6 +30,30 @@
 
   // Admission weight 235 lb (106.6 kg), also on his first Vital Signs row.
   p.weightKg = 106.6;
+
+  // Admission chart corrections (Laura Jobe, November 3, 2026).
+  // 1. "Admission Labs" was an old lab-report image filed under Imaging; the labs are under Laboratory (charlesjones-l7-0).
+  p.imaging = (p.imaging || []).filter(i => i.id !== 'charlesjones-im7');
+  // 2. Admission labs: BNP.
+  const admLabs = (p.labs || []).find(l => l.id === 'charlesjones-l7-0');
+  if (admLabs && !admLabs.results.some(r => r.t === 'BNP')) admLabs.results.push({ t: 'BNP', v: '4000', u: 'pg/mL', ref: '<100', flag: 'H' });
+  // 3. Spironolactone: frequency Daily, no hold reason (dose, route, status, and the "Hold spironolactone" release unchanged).
+  const spiro = (p.meds || []).find(m => m.id === 'char-spironolactone-8');
+  if (spiro) { spiro.freq = 'Daily'; delete spiro.holdReason; }
+  // 4. Echo and ECG (charlesjones-im1, -im2) stay as they are under Diagnostics > Cardiovascular.
+  // 5. Admission chest X-ray: part of the admission chart (not a release). Image: assets/charles-jones-admission-cxr.png
+  //    (add it to images below once the file is in assets/).
+  if (!p.imaging.some(i => i.id === 'charlesjones-im-cxr-adm')) p.imaging.push({ id: 'charlesjones-im-cxr-adm', study: 'Admission Chest X-ray', at: -180, images: [],
+    text: 'Study Type: Portable AP Chest Radiograph\n' +
+      'Indication: Dyspnea, orthopnea, fatigue, weight gain; history of hypertension and reduced ejection fraction.\n' +
+      'Findings:\n' +
+      'Lungs: Bilateral lower lung field interstitial and alveolar opacities consistent with pulmonary congestion. No focal consolidation, pleural effusion, or pneumothorax. No lung mass or cavitary lesion.\n' +
+      'Heart and Mediastinum: Cardiomegaly is present. Pulmonary vasculature is mildly prominent. No widened mediastinum.\n' +
+      'Pleura: No pleural effusion or thickening.\n' +
+      'Bones and Soft Tissues: No acute osseous abnormalities. No subcutaneous emphysema.\n' +
+      'Impression:\n' +
+      'Cardiomegaly with bilateral lower lung field congestion, consistent with pulmonary edema in the setting of congestive heart failure. No evidence of pneumonia, pneumothorax, or pleural effusion.\n' +
+      'Read by Dr. Sneed' });
   if (p.vitals && p.vitals[0]) p.vitals[0].weight = 106.6;
 
   const S1 = 'Shift 1', S2 = 'Shift 2', S3 = 'Shift 3', S4 = 'Shift 4';

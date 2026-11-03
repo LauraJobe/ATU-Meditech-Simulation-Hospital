@@ -41,9 +41,8 @@
   const spiro = (p.meds || []).find(m => m.id === 'char-spironolactone-8');
   if (spiro) { spiro.freq = 'Daily'; delete spiro.holdReason; }
   // 4. Echo and ECG (charlesjones-im1, -im2) stay as they are under Diagnostics > Cardiovascular.
-  // 5. Admission chest X-ray: part of the admission chart (not a release). Image: assets/charles-jones-admission-cxr.png
-  //    (add it to images below once the file is in assets/).
-  if (!p.imaging.some(i => i.id === 'charlesjones-im-cxr-adm')) p.imaging.push({ id: 'charlesjones-im-cxr-adm', study: 'Admission Chest X-ray', at: -180, images: [],
+  // 5. Admission chest X-ray: part of the admission chart (not a release). Image: the faculty's report sheet.
+  if (!p.imaging.some(i => i.id === 'charlesjones-im-cxr-adm')) p.imaging.push({ id: 'charlesjones-im-cxr-adm', study: 'Admission Chest X-ray', at: -180, images: ['assets/charles-jones-admission-cxr.png'],
     text: 'Study Type: Portable AP Chest Radiograph\n' +
       'Indication: Dyspnea, orthopnea, fatigue, weight gain; history of hypertension and reduced ejection fraction.\n' +
       'Findings:\n' +

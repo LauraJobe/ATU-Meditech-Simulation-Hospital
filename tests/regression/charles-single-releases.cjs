@@ -70,6 +70,7 @@ const OTHERS = {"brody":[],"livingston":["liv-culture","liv-icu-labs","liv-trans
   let img = await dx('Imaging');
   ok(/Admission Chest X-ray/.test(img) && /Cardiomegaly with bilateral lower lung field congestion/.test(img) && /Read by Dr\. Sneed/.test(img) && !/Admission Labs/.test(img),
     'Imaging shows "Admission Chest X-ray" from the start, and not "Admission Labs"');
+  ok(await pg.$eval('img[src="assets/charles-jones-admission-cxr.png"]', i => i.complete && i.naturalWidth > 0).catch(() => false), 'the Admission Chest X-ray image loads');
   ok(!/Shift 2 Chest X-ray Results/.test(img) && !(await pg.$('img[src*="7a9b97e711c726af17"]')), 'the Shift 2 chest X-ray and its image are hidden before release');
   ok(await pg.evaluate(() => !Model.get('charlesjones').imaging.some(i => i.id === 'charlesjones-im7')), 'the old "Admission Labs" image is not on the chart');
   const cv = await dx('Cardiovascular');

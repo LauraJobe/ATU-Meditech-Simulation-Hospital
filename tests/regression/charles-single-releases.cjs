@@ -65,6 +65,28 @@ const OTHERS = {"brody":[],"livingston":["liv-culture","liv-icu-labs","liv-trans
   ok(await pg.evaluate(() => Model.base('charlesjones').events.filter(e => e.group === 'Shift 4' && (e.vitals || []).length).length === 0), 'no Shift 4 weight');
   ok(await pg.evaluate(() => { const e = Model.base('charlesjones').events.find(x => x.id === 'ch-wt-2'); return e.vitals[0].weight === 107.0 && e.vitals[0].note === '236 lb'; }), 'Shift 2 weight row: 107.0 kg, note "236 lb" only');
 
+  /* Admission chart corrections (November 3, 2026) */
+  const dx = async sub => { await pg.evaluate(s => Views.results.show(s), sub); await go(pg, `#/patient/${P}/summary`); await go(pg, `#/patient/${P}/results`); return pg.$eval('#content', e => e.textContent); };
+  let img = await dx('Imaging');
+  ok(/Admission Chest X-ray/.test(img) && /Cardiomegaly with bilateral lower lung field congestion/.test(img) && /Read by Dr\. Sneed/.test(img) && !/Admission Labs/.test(img),
+    'Imaging shows "Admission Chest X-ray" from the start, and not "Admission Labs"');
+  ok(await pg.$eval('img[src="assets/charles-jones-admission-cxr.png"]', i => i.complete && i.naturalWidth > 0).catch(() => false), 'the Admission Chest X-ray image loads');
+  ok(!/Shift 2 Chest X-ray Results/.test(img) && !(await pg.$('img[src*="7a9b97e711c726af17"]')), 'the Shift 2 chest X-ray and its image are hidden before release');
+  ok(await pg.evaluate(() => !Model.get('charlesjones').imaging.some(i => i.id === 'charlesjones-im7')), 'the old "Admission Labs" image is not on the chart');
+  const cv = await dx('Cardiovascular');
+  ok(/Echo Results-admission/.test(cv) && /ECG Results-Admission/.test(cv) && !!(await pg.$('img[src="assets/charles-jones-echo.png"]')) && !!(await pg.$('img[src*="25d059b717ff05f78a"]')), 'Cardiovascular shows the Echo and ECG with their images (Echo header covered)');
+  ok(await pg.evaluate(() => { const r = Model.get('charlesjones').labs.find(l => l.id === 'charlesjones-l7-0').results.find(x => x.t === 'BNP'); return !!r && r.v === '4000' && r.u === 'pg/mL' && r.ref === '<100' && Model.labFlag(r) === 'H'; }), 'admission labs include BNP 4000 pg/mL, flagged high');
+  const lab = await dx('Laboratory');
+  ok(/BNP/.test(lab) && /4000/.test(lab), 'BNP 4000 shows under Diagnostics > Laboratory');
+  await pg.evaluate(() => Store.release('charlesjones', 'rel-charlesjones-ev3-im1'));
+  img = await dx('Imaging');
+  ok(/Shift 2 Chest X-ray Results/.test(img) && /moderate right pleural effusion/.test(img) && /Right-sided pleural effusion/.test(img) && !!(await pg.$('img[src="assets/imported/7a9b97e711c726af17.png"]')),
+    'after release: the Shift 2 chest X-ray shows under Imaging with its image, findings, and impression');
+  ok(await pg.evaluate(() => { const m = Model.get('charlesjones').meds.find(x => x.id === 'char-spironolactone-8'); return m.freq === 'Daily' && !m.holdReason && m.dose === '12.5 mg' && m.route === 'PO' && m.status === 'Held'; }),
+    'spironolactone shows "Daily" with no hold reason (dose, route, and status unchanged)');
+  await go(pg, `#/patient/${P}/mar`);
+  ok(await pg.$$eval('.mg-med', a => a.some(x => /Spironolactone/.test(x.textContent) && /Daily/.test(x.textContent) && !/held while receiving Lasix/i.test(x.textContent))), 'MAR: spironolactone line reads Daily, no hold reason');
+
   /* Release everything: placeholders gone; barcodes find their orders */
   await pg.evaluate(() => Model.base('charlesjones').events.forEach(e => Store.release('charlesjones', e.id)));
   const all = await pg.evaluate(() => JSON.stringify(Model.get('charlesjones')));
